@@ -4,7 +4,7 @@ set -xe
 
 # Copy zip file from S3 bucket
 mkdir -vp ~/pv-validation-hub
-aws s3 cp s3://validationhubpipelinedjang-webappdeploymentbucket-d28ft3kbhuh4/deploy.zip ~/pv-validation-hub/deploy.zip
+aws s3 cp s3://validationhubpipelinedjang-webappdeploymentbucket-cqf0kpi8iioa/deploy.zip ~/pv-validation-hub/deploy.zip
 cd ~/pv-validation-hub
 unzip deploy.zip
 
