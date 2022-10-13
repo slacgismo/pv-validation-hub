@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 
 # Copy zip file from S3 bucket
