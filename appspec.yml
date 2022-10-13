@@ -1,0 +1,10 @@
+version: 0.0
+os: linux
+files:
+  - source: /aws
+    destination: /usr/local/codedeployresources
+hooks:
+  BeforeInstall:
+      - location: aws/scripts/before-install.sh
+  AfterInstall:
+      - location: aws/scripts/after-install.sh
