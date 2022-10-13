@@ -54,7 +54,7 @@ Parameters:
 
   ImageId:
     Type: AWS::EC2::Image::Id
-    Default: 'ami-0d5bf08bc8017c83b'
+    Default: 'ami-0f924dc71d44d23e2'
     Description: The Amazon EC2 Linux instance Amazon Machine Image (AMI), which designates the configuration of the new instance.
   InstanceType:
     Type: String
@@ -399,14 +399,15 @@ Resources:
         "Fn::Base64":
           !Sub |
               #!/bin/bash
-              sudo apt update
-              sudo apt install ruby-full
-              sudo apt install wget
-              cd /home/ubuntu
+              
+              yum install ruby -y
               wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
               chmod +x ./install
-              sudo ./install auto
-              sudo snap start amazon-ssm-agent
+              ./install auto
+              cd /tmp
+              yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+              systemctl enable amazon-ssm-agent
+              systemctl start amazon-ssm-agent
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
