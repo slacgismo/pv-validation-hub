@@ -3,6 +3,9 @@ set -xe
 
 
 # Copy zip file from S3 bucket
+if [ -d ~/pv-validation-hub ]; then
+    rm -rf ~/pv-validation-hub
+fi
 mkdir -vp ~/pv-validation-hub
 aws s3 cp s3://validationhubpipelinedjang-webappdeploymentbucket-1jov8z4e3glao/deploy.zip ~/pv-validation-hub/deploy.zip
 cd ~/pv-validation-hub
