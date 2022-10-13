@@ -40,6 +40,7 @@ jobs:
           python3 -m pip install -r requirements.txt
 
       - name: Run Tests
+        working-directory: ${{ env.applicationfolder }}
         run: |
           python3 manage.py test 
         
