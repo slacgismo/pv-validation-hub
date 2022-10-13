@@ -6,7 +6,7 @@ on:
 env:
   applicationfolder: valhub
   AWS_REGION: us-east-2
-  S3BUCKET: validationhubdjango-webappdeploymentbucket-1fhm2xs8nqcj0
+  S3BUCKET: validationhubpipelinedjang-webappdeploymentbucket-d28ft3kbhuh4
   DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
 
