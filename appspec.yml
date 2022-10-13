@@ -5,10 +5,13 @@ files:
     destination: /usr/local/codedeployresources
 hooks:
   BeforeInstall:
-      - location: aws/scripts/before_install.sh
-        timeout: 300
-        runas: root
+    - location: aws/scripts/before_install.sh
+      timeout: 300
+      runas: root
   AfterInstall:
-      - location: aws/scripts/after_install.sh
-        timeout: 300
-        runas: root
+    - location: aws/scripts/after_install.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: aws/scripts/application_start.sh
+      runas: root

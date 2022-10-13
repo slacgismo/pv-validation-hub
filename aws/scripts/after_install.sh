@@ -28,7 +28,3 @@ python3 -m pip install -r requirements.txt
 aws s3 cp s3://validationhubpipelinedjang-webappdeploymentbucket-1x29h7rms3rx5/secrets ~/pv-validation-hub/secrets
 cat secrets >> ~/.bashrc
 source ~/.bashrc
-
-# Start
-cd ~/pv-validation-hub/valhub
-python3 manage.py runserver
