@@ -5,6 +5,6 @@ files:
     destination: /usr/local/codedeployresources
 hooks:
   BeforeInstall:
-      - location: aws/scripts/before-install.sh
+      - location: aws/scripts/before_install.sh
   AfterInstall:
-      - location: aws/scripts/after-install.sh
+      - location: aws/scripts/after_install.sh
