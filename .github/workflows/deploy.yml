@@ -7,6 +7,7 @@ env:
   applicationfolder: valhub
   AWS_REGION: us-east-2
   S3BUCKET: validationhubdjango-webappdeploymentbucket-1fhm2xs8nqcj0
+  DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
 
 jobs:
