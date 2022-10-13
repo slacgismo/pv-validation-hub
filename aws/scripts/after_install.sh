@@ -3,6 +3,7 @@ set -xe
 
 
 # Copy zip file from S3 bucket
+mkdir -vp ~/pv-validation-hub
 aws s3 cp s3://validationhubdjango-webappdeploymentbucket-1fhm2xs8nqcj0/deploy.zip ~/pv-validation-hub/deploy.zip
 cd ~/pv-validation-hub
 unzip deploy.zip
@@ -14,4 +15,5 @@ python3 -m pip install -r requirements.txt
 # python3 manage.py migrate
 
 # Start
+cd valhub
 python3 manage.py runserver

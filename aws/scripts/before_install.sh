@@ -2,8 +2,8 @@
 set -xe
 
 # Delete the old  directory as needed.
-if [ -d ~/pv-validation-hub ]; then
-    rm -rf ~/pv-validation-hub
+if [ -d /usr/local/codedeployresources ]; then
+    rm -rf /usr/local/codedeployresources/
 fi
 
-mkdir -vp ~/pv-validation-hub
+mkdir -vp /usr/local/codedeployresources
