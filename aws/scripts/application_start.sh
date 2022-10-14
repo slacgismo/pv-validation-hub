@@ -5,4 +5,4 @@ set -xe
 cd ~/pv-validation-hub
 export $(grep -v '^#' secrets | xargs)
 cd ~/pv-validation-hub/valhub
-nohup python3 manage.py runserver > log &
+screen -d -m python3 manage.py runserver
