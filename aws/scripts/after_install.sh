@@ -2,15 +2,18 @@
 # set -e
 set -euo pipefail
 
-# Delete the old  directory as needed.
-if [ -d ./aws ]; then
-    rm -rf ./aws
-fi
+if ! command -v aws &> /dev/null
+then
+    # Delete the old  directory as needed.
+    if [ -d ./aws ]; then
+        rm -rf ./aws
+    fi
 
-# Install aws-cli
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
+    # Install aws-cli
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+fi
 
 # Copy zip file from S3 bucket
 if [ -d ~/pv-validation-hub ]; then
