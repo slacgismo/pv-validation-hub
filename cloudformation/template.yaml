@@ -81,6 +81,11 @@ Parameters:
     Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
     Type: String
     Default: 172.31.2.0/24
+  
+  S3BucketArn:
+    Description: S3 Bucket Arn
+    Type: String
+    Default: arn:aws:s3:::pv-insight-pipeline-bucket
 
   ImageId:
     Type: AWS::EC2::Image::Id
@@ -274,7 +279,7 @@ Resources:
                 Effect: "Allow"
                 Action: 
                 - "s3:getObject"
-                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*
+                Resource: !Sub ${S3BucketArn}/*
         -
           PolicyName: "allow-access-secret-manager"
           PolicyDocument:
@@ -327,7 +332,7 @@ Resources:
               - Effect: Allow
                 Action:
                 - 's3:putObject'
-                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*                  
+                Resource: !Sub ${S3BucketArn}/*                
 
   WebappApplication:
     Type: AWS::CodeDeploy::Application
@@ -375,18 +380,18 @@ Resources:
       SecurityGroupEgress:
       - IpProtocol: '-1'
         CidrIp: 0.0.0.0/0      
-  WebappDeploymentBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256   
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+  # WebappDeploymentBucket:
+  #   Type: AWS::S3::Bucket
+  #   Properties:
+  #     BucketEncryption:
+  #       ServerSideEncryptionConfiguration:
+  #         - ServerSideEncryptionByDefault:
+  #             SSEAlgorithm: AES256   
+  #     PublicAccessBlockConfiguration:
+  #       BlockPublicAcls: true
+  #       BlockPublicPolicy: true
+  #       IgnorePublicAcls: true
+  #       RestrictPublicBuckets: true
   CodeDeployRole:
     Type: AWS::IAM::Role
     Properties:
@@ -448,6 +453,7 @@ Resources:
               chmod +x ./install
               sudo ./install auto
               sudo snap start amazon-ssm-agent
+      KeyName: slac-pvinsight-dev
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -460,8 +466,8 @@ Resources:
       LaunchConfigurationName:
         Ref: WebappLaunchConfig
       VPCZoneIdentifier:
-        - Ref: PrivateSubnet1 
-        - Ref: PrivateSubnet2 
+        - Ref: PublicSubnet1 
+        - Ref: PublicSubnet2 
       TargetGroupARNs:
         - Ref: ALBTargetGroup
       Tags:
@@ -513,9 +519,9 @@ Outputs:
   DeploymentGroup:
     Description: Webapp Deployment Group
     Value: !Ref WebappDeploymentGroup
-  DeploymentBucket:
-    Description: Deployment bucket
-    Value: !Ref WebappDeploymentBucket
+  # DeploymentBucket:
+  #   Description: Deployment bucket
+  #   Value: !Ref WebappDeploymentBucket
   ApplicationName:
     Description: CodeDeploy Application name
     Value: !Ref WebappApplication
