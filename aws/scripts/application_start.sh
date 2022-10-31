@@ -1,5 +1,6 @@
 #!/bin/bash
 # set -xe
+set -euo pipefail
 
 # Start
 # cd ~/pv-validation-hub

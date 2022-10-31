@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Delete the old  directory as needed.
 if [ -d /usr/local/codedeployresources ]; then
