@@ -2,6 +2,11 @@
 # set -e
 set -euo pipefail
 
+# Delete the old  directory as needed.
+if [ -d ./aws ]; then
+    rm -rf ./aws
+fi
+
 # Install aws-cli
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
@@ -17,6 +22,7 @@ cd ~/pv-validation-hub
 unzip deploy.zip
 
 # Install libaries
+sudo apt update
 sudo apt --assume-yes install python3-pip
 sudo apt-get --assume-yes install mariadb-client
 sudo apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential
