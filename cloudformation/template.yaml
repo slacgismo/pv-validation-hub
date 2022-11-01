@@ -86,7 +86,12 @@ Parameters:
     Description: S3 Bucket Arn
     Type: String
     Default: arn:aws:s3:::pv-insight-pipeline-bucket
-
+  
+  RDSSecurityGroupId:
+    Description: RDS Security Group Id
+    Type: String
+    Default: sg-02696034138302411
+  
   ImageId:
     Type: AWS::EC2::Image::Id
     Default: 'ami-0a59f0e26c55590e9'
@@ -377,9 +382,13 @@ Resources:
         ToPort: 8080
         SourceSecurityGroupId:
           Ref: ALBSecurityGroup
+      # - IpProtocol: tcp
+      #   FromPort: 22
+      #   ToPort: 22
+      #   CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
       - IpProtocol: '-1'
-        CidrIp: 0.0.0.0/0      
+        CidrIp: 0.0.0.0/0
   # WebappDeploymentBucket:
   #   Type: AWS::S3::Bucket
   #   Properties:
@@ -438,6 +447,7 @@ Resources:
         Ref: InstanceType
       SecurityGroups:
         - Ref: WebappSecurityGroup
+        - Ref: RDSSecurityGroupId
       IamInstanceProfile:
         Ref: WebappInstanceProfile
       UserData:
@@ -453,7 +463,7 @@ Resources:
               chmod +x ./install
               sudo ./install auto
               sudo snap start amazon-ssm-agent
-      KeyName: slac-pvinsight-dev
+      # KeyName: slac-pvinsight-dev
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -515,7 +525,7 @@ Outputs:
       - ''
       - - http://
         - !GetAtt ApplicationLoadBalancer.DNSName
-        - ':8080/backend' 
+        - ':8080/accounts' 
   DeploymentGroup:
     Description: Webapp Deployment Group
     Value: !Ref WebappDeploymentGroup
