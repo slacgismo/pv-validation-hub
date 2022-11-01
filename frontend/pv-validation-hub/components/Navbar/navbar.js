@@ -1,7 +1,0 @@
-
-
-class NavBar{
-
-    
-}
-export {Navbar}
