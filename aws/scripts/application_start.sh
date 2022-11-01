@@ -6,4 +6,5 @@ set -euo pipefail
 # cd ~/pv-validation-hub
 # export $(grep -v '^#' secrets | xargs)
 cd ~/pv-validation-hub/valhub
-screen -d -m python3 manage.py runserver 8080
+# screen -d -m python3 manage.py runserver 8080
+nohup python3 manage.py runserver 8080 > log &
