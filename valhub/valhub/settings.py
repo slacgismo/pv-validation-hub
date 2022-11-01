@@ -151,7 +151,7 @@ if hostname is not None:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': db_name,
+            'NAME': 'accounts',  # db_name,
             'USER': username,
             'PASSWORD': password,
             'HOST': hostname,
