@@ -15,6 +15,7 @@ import os
 import boto3
 import base64
 from botocore.exceptions import ClientError
+import json
 
 
 def get_secret(secret_name):
@@ -79,14 +80,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 try:
-    SECRET_KEY = get_secret("DjangoSecretKey")['DJANGO_SECRET_KEY']
+    SECRET_KEY = json.loads(get_secret("DjangoSecretKey"))['DJANGO_SECRET_KEY']
 except:
     SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*', ]
 
 
 # Application definition
@@ -136,7 +137,7 @@ WSGI_APPLICATION = 'valhub.wsgi.application'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 try:
-    db_secrets = get_secret("pvinsight-db")
+    db_secrets = json.loads(get_secret("pvinsight-db"))
 except:
     hostname = None
 else:
@@ -150,7 +151,7 @@ if hostname is not None:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': db_name,
+            'NAME': 'accounts',  # db_name,
             'USER': username,
             'PASSWORD': password,
             'HOST': hostname,

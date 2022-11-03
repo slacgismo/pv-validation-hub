@@ -6,7 +6,7 @@ on:
 env:
   applicationfolder: valhub
   AWS_REGION: us-east-2
-  S3BUCKET: pv-insight-pipeline-webappdeploymentbucket-xhsxuqxbmnes
+  S3BUCKET: pv-insight-pipeline-bucket
   DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
 
