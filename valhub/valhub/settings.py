@@ -80,7 +80,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 try:
-    SECRET_KEY = json.loads(get_secret("DjangoSecretKey"))['DJANGO_SECRET_KEY']
+    # SECRET_KEY = json.loads(get_secret("DjangoSecretKey"))['DJANGO_SECRET_KEY']
+    SECRET_KEY = 'django-insecure-y&pp1if&0y)pxtmqf_@o1br(&-6mrxv**f5%&73d@d51kscvg!'
 except:
     SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
@@ -94,6 +95,7 @@ ALLOWED_HOSTS = ['*', ]
 
 INSTALLED_APPS = [
     'backend.apps.BackendConfig',
+    'accounts.apps.AccountsConfig'
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
