@@ -68,7 +68,7 @@ export default function Login() {
         let password = loginStates.password;
         let usernameError = validateUsername(username);
         if (usernameError === "" && password !== "") {
-            cookies.set('user', 'user', { path: '/' });
+            cookies.set('user', 'user', { path: '/' , sameSite: "strict"});
             navigate("/")
         }
         else {
