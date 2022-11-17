@@ -1,6 +1,6 @@
 import Register from '../Register/register';
-import Header from '../Header/header';
 import Login from '../Login/login';
+import Header from '../GlobalComponents/Header/header'
 import {
   BrowserRouter,
   Routes,
@@ -8,6 +8,8 @@ import {
 } from "react-router-dom";
 import Homepage from '../Homepage/homepage';
 import Dashboard from '../Dashboard/Dashboard';
+import Analysis from '../Analysis/Analysis';
+import Submission from '../Submission/Submission';
 function App() {
   return (
     <BrowserRouter>
@@ -18,6 +20,8 @@ function App() {
             <Route path="/register" element={<Register/>}/>
             <Route path="/login" element={<Login/>}/>
             <Route path='/dashboard' element={<Dashboard/>}/>
+            <Route path='/analysis' element={<Analysis/>}/>
+            <Route path='/submission' element={<Submission/>}/>
             <Route path="/" element={<Homepage/>}/>
           </Routes>
         </div>

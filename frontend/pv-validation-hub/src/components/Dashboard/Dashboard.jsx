@@ -7,19 +7,34 @@ import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
-import { red } from '@mui/material/colors';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { DashboardService } from "../../services/dashboard_service";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useEffect } from "react";
 
 export default function Dashboard() {
 
+    const navigate = useNavigate();
+
+    const [analysisId, setAnalysisId] = useState();
+
+    useEffect(() => {
+        if (analysisId != null) {
+          navigate("/analysis?analysis_id=" + analysisId);
+        }
+      }, [analysisId, navigate]);
+
+    const handleCardClick = (card_id, card_title) => {
+        setAnalysisId(card_id);
+      };
     const cardDetails = DashboardService.getAnalysisSet();
     const render_card = (card, index) => {
         return (
             <Grid item xs={2} sm={4} md={4} key={index}>
-                <Card sx={{ maxWidth: 345 }} key={card.id}>
+                <Card sx={{ maxWidth: 345 }} key={card.id} onClick={() => handleCardClick(card.id, card.title)}>
                     <CardHeader
                         avatar={
                             <Avatar sx={{ backgroundImage: card.user_avatar }} aria-label="Analysis">

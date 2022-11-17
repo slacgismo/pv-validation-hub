@@ -35,10 +35,6 @@ const Header = () => {
     setAnchorElUser(event.currentTarget);
   };
 
-  const handleCloseNavMenu = () => {
-    setAnchorElNav(null);
-  };
-
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
@@ -47,7 +43,11 @@ const Header = () => {
     if (endpoint != null) {
       navigate("/" + endpoint);
     }
-  }, [endpoint]);
+  }, [endpoint, navigate]);
+
+  const handleCloseNavMenu = (location) => {
+    setEndpoint(location);
+  };
 
 
   return (
@@ -103,7 +103,7 @@ const Header = () => {
               }}
             >
               {pages.map((page) => (
-                <MenuItem key={page} onClick={handleCloseNavMenu}>
+                <MenuItem key={page} onClick={() => handleCloseNavMenu(page)}>
                   <Typography textAlign="center">{page}</Typography>
                 </MenuItem>
               ))}
@@ -132,7 +132,7 @@ const Header = () => {
             {pages.map((page) => (
               <Button
                 key={page}
-                onClick={handleCloseNavMenu}
+                onClick={() => handleCloseNavMenu(page)}
                 sx={{ my: 2, color: '#18A0FB', display: 'block' }}
               >
                 {page}
