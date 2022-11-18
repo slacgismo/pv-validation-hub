@@ -321,19 +321,15 @@ def extract_submission_data(submission_id):
     return submission
 
 
-def run_submission(analysis_id, submission, user_annotation_file_path):
+def run_submission(analysis_id, submission):
     """
-    * receives a analysis id and user annotation file path
-    * checks whether the corresponding evaluation script for the analysis exists or not
-    * checks the above for annotation file
-    * calls evaluation script via subprocess passing annotation file and user_annotation_file_path as argument
+    * receives a analysis id and submission object
+    * calls evaluation script
     """
-    # execute algorithm
+    # get test data path
     submission_id = submission.submission_id
     analysis_data_file_path = ANALYSIS_DATA_FILE_PATH.format(
         analysis_id=analysis_id, data_file='test_data')
-    SUBMISSION_ALGORITHMS[submission_id].predict(analysis_data_file_path,
-                                                 user_annotation_file_path)
 
     # ANNOTATION_FILE_NAME_MAP[analysis_id]
     annotation_file_name = "test_annotation.txt"
@@ -349,8 +345,9 @@ def run_submission(analysis_id, submission, user_annotation_file_path):
         # EVALUATION_SCRIPTS[analysis_id] = analysis_module
 
         submission_output = EVALUATION_SCRIPTS[analysis_id].evaluate(
+            analysis_data_file_path,
             annotation_file_path,
-            user_annotation_file_path,
+            SUBMISSION_ALGORITHMS[submission_id].predict
             # submission_metadata=submission_serializer.data,
         )
         """
@@ -388,14 +385,9 @@ def process_submission_message(message):
     if not submission_instance:
         return
 
-    user_annotation_file_path = os.path.join(
-        SUBMISSION_DATA_DIR.format(submission_id=submission_id),
-        "test_pred.txt",
-    )
     run_submission(
         analysis_id,
-        submission_instance,
-        user_annotation_file_path,
+        submission_instance
     )
     # Delete submission data after processing submission
     delete_submission_data_directory(
