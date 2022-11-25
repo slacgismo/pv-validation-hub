@@ -34,7 +34,7 @@ export default function Leaderboard(props) {
         },
     ]
     const rows = DashboardService.getLeaderBoard(props.analysis_id);
-    console.log(rows);
+    // console.log(rows);
     return (
         <AppTable
             columns={columns}
