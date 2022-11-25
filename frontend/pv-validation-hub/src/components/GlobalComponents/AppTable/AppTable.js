@@ -18,7 +18,7 @@ export default function AppTable(props) {
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
       <TableContainer sx={{ maxHeight: 440 }}>
-        <Table stickyHeader aria-label="sticky table">
+        <Table aria-label="sticky table">
           <TableHead>
             <TableRow>
               {props.columns.map((column) => (
@@ -27,7 +27,7 @@ export default function AppTable(props) {
                   align={column.align}
                   style={{ minWidth: column.minWidth }}
                 >
-                  {column.label}
+                  <b>{column.label}</b>
                 </TableCell>
               ))}
             </TableRow>

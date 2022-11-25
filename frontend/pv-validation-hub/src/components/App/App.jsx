@@ -9,7 +9,8 @@ import {
 import Homepage from '../Homepage/homepage';
 import Dashboard from '../Dashboard/Dashboard';
 import Analysis from '../Analysis/Analysis';
-// import Submission from '../Submission/Submission';
+import Submission from '../Submission/Submission';
+import Profile from '../Profile/profile';
 function App() {
   return (
     <BrowserRouter>
@@ -21,7 +22,8 @@ function App() {
             <Route path="/login" element={<Login/>}/>
             <Route path='/dashboard' element={<Dashboard/>}/>
             <Route path='/analysis' element={<Analysis/>}/>
-            {/* <Route path='/submission' element={<Submission/>}/> */}
+            <Route path='/submission' element={<Submission/>}/>
+            <Route path="/profile" element={<Profile/>}/>
             <Route path="/" element={<Homepage/>}/>
           </Routes>
         </div>
