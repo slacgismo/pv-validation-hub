@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Box, Button, TextField } from '@mui/material';
-// import PropTypes from 'prop-types';
 import { Container } from "@mui/system";
 import Validation from '../../services/Validation';
 import { useNavigate } from "react-router-dom";
