@@ -23,9 +23,5 @@ describe("Selecting Tabs", () => {
         await userEvent.click(tabLearderboard);
         expect(tabLearderboard).toHaveAttribute("aria-selected","true");
         expect(screen.getByRole('button', {name: 'Upload Algorithm'})).toBeTruthy();
-        // screen.debug(tabLearderboard)
-        // getByRole('tab', { selectedd: true })
-
-        // expect(screen.getByLabelText(/Upload Algorithm/i)).toBeTruthy();
     });
 });

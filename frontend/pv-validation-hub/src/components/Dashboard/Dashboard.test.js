@@ -27,9 +27,5 @@ describe("Analysis Cards", () => {
         await userEvent.click(buttonSettings)
         expect(navigate).toHaveBeenCalled();
         // expect(navigate).toHaveBeenCalledWith('"/analysis?analysis_id=" + analysisId');
-        // screen.debug(screen.getAllByRole("card"));
-        // const card = screen.getByRole
-        // userEvent.click(screen.getByRole("button"));
-
     });
 });
