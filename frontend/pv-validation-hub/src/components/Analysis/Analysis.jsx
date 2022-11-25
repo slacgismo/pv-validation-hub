@@ -1,13 +1,19 @@
-import { Box, Button, Grid, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Grid, Button, Tab, Tabs, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DashboardService } from "../../services/dashboard_service";
 import TabPanel from "../GlobalComponents/TabPanel/TabPanel";
 import Data from "./Data/Data";
+import { CommentProvider } from "./Discussion/CommentContext";
+import Discussion from "./Discussion/Discussion";
 import Leaderboard from "./Leaderboard/Leaderboard";
 import Overview from "./Overview/Overview";
-
+import Rules from "./Rules/Rules";
+import Submission from "./Submissions/Submission";
+import CancelIcon from '@mui/icons-material/Cancel';
+import ReactModal from "react-modal";
+import { FileUploader } from "react-drag-drop-files";
 export default function Analysis() {
 
     const [value, setValue] = useState(0);
@@ -19,6 +25,22 @@ export default function Analysis() {
     const [showButton, setShowButton] = useState(false);
 
     const [card, setCard] = useState({});
+
+    const [isOpen, setIsOpen] = useState(false);
+
+    const closeModal = () => {
+        setIsOpen(false);
+    }
+    const openModal = () => {
+        setIsOpen(true);
+    }
+    const fileTypes = ["ZIP", "IPYNB"];
+
+    const [file, setFile] = useState(null);
+
+    const uploadFile = (file) => {
+        setFile(file);
+    };
 
     const setValues = (index) => {
         return {
@@ -39,21 +61,28 @@ export default function Analysis() {
         setValue(newValue);
     };
     return (
-        <Container>
-            <Box sx={{ flexGrow: 1, marginTop: 3, backgroundImage: `url(${card.image})` }}>
+        <Container id="analysis">
+            <Box sx={{
+                flexGrow: 1,
+                marginTop: 3,
+                marginLeft: 2,
+                marginRight: 2,
+                height: 200,
+                backgroundImage: `url(${card.image})`
+            }}>
                 <Box sx={{ flexGrow: 1, marginTop: 1 }}>
-                    <Typography variant="h2" gutterBottom>
+                    <Typography color={"white"} variant="h2" gutterBottom>
                         {card.title}
                     </Typography>
                 </Box>
                 <Box sx={{ flexGrow: 1, marginTop: 0.5 }}>
-                    <Typography variant="body1" gutterBottom>
+                    <Typography color={"white"} variant="body1" gutterBottom>
                         {card.description}
                     </Typography>
                 </Box>
             </Box>
             <Box sx={{ width: '100%' }}>
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', marginRight: 2 }}>
                     <Grid container spacing={2}>
                         <Grid item xs={6} md={10}>
                             <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
@@ -67,9 +96,22 @@ export default function Analysis() {
                         </Grid>
                         <Grid item xs={6} md={2}>
                             {
-                                showButton ? <Button align="right" variant="contained" sx={{ backgroundColor: "black", width: "100%", height: "75%", fontSize: "small" }}>
-                                    Upload Algorithm
-                                </Button>
+                                showButton ?
+                                    <Button
+                                        align="right"
+                                        variant="contained"
+                                        onClick={() => {
+                                            openModal();
+                                        }}
+                                        sx={{
+                                            backgroundColor: "black",
+                                            width: "100%",
+                                            height: "70%",
+                                            fontSize: "small",
+                                            marginTop: 1
+                                        }}>
+                                        Upload Algorithm
+                                    </Button>
                                     : null
                             }
                         </Grid>
@@ -91,15 +133,61 @@ export default function Analysis() {
                     />
                 </TabPanel>
                 <TabPanel value={value} index={3}>
-                    <Typography>Rules</Typography>
+                    <Rules analysis_id={searchParams.get("analysis_id")} />
                 </TabPanel>
                 <TabPanel value={value} index={4}>
-                    <Typography>Submission</Typography>
+                    <Submission analysis_id={searchParams.get("analysis_id")} />
                 </TabPanel>
                 <TabPanel value={value} index={5}>
-                    <Typography>Discussion</Typography>
+                    <CommentProvider>
+                        <Discussion />
+                    </CommentProvider>
+
                 </TabPanel>
             </Box>
+            <ReactModal
+                isOpen={isOpen}
+                contentLabel="Upload Algorithm"
+                ariaHideApp={false}
+                sx={{
+                    height: 400
+                }}
+                parentSelector={() => document.querySelector('#root')}
+            >
+                <Box>
+                    <Box sx={{ marginLeft: 40 }}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={11}>
+                                <Typography sx={{ marginLeft: 10 }} variant="h5">
+                                    PV Validation Hub Algorithm Upload
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={1}>
+                                <CancelIcon
+                                    sx={{
+                                        "&:hover": {
+                                            color: "#ADD8E6",
+                                            cursor: "pointer"
+                                        },
+                                        color: "#18A0FB"
+                                    }}
+                                    onClick={() => closeModal()} />
+                            </Grid>
+                        </Grid>
+                        <Box sx={{ marginTop: 2, marginBottom: 2}}>
+                            <FileUploader
+                                multiple={false}
+                                handleChange={uploadFile}
+                                name="file"
+                                types={fileTypes}
+                            />
+                        </Box>
+                        <Typography sx={{marginLeft: 20}} color="gray" variant="body1">
+                            {file ? `File name: ${file[0].name}` : "No files uploaded yet."}
+                        </Typography>
+                    </Box>
+                </Box>
+            </ReactModal>
         </Container>
     )
 }

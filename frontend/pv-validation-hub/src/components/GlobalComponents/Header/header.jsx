@@ -14,10 +14,9 @@ import MenuItem from '@mui/material/MenuItem';
 import DiamondSharpIcon from '@mui/icons-material/DiamondSharp';
 import { useNavigate } from "react-router-dom";
 import { useState } from 'react';
-import { useEffect } from 'react';
 import Cookies from 'universal-cookie';
-const pages = ['Analysis', 'Submission', 'Profile'];
-const settings = ['Profile', 'Settings', 'Logout'];
+const pages = ['Dashboard', 'Submission', 'Profile'];
+const settings = ['Logout'];
 
 const Header = () => {
 
@@ -27,7 +26,6 @@ const Header = () => {
   const navigate = useNavigate();
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
-  const [endpoint, setEndpoint] = useState(null);
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
   };
@@ -39,14 +37,8 @@ const Header = () => {
     setAnchorElUser(null);
   };
 
-  useEffect(() => {
-    if (endpoint != null) {
-      navigate("/" + endpoint);
-    }
-  }, [endpoint, navigate]);
-
   const handleCloseNavMenu = (location) => {
-    setEndpoint(location);
+    navigate("/" + location);
   };
 
 
@@ -140,48 +132,42 @@ const Header = () => {
             ))}
           </Box>
           {
-            cookies.get("user") === "undefined" || cookies.get("user") === null || cookies.get("user") === "" ?
-
+            cookies.get("user") === undefined || cookies.get("user") === null || cookies.get("user") === "" ?
               <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
-                <Button onClick={() => setEndpoint("login")} variant="outlined">Login</Button>
+                <Button onClick={() => handleCloseNavMenu("login")} variant="outlined">Login</Button>
 
-                <Button onClick={() => setEndpoint("register")} variant="contained">Register</Button>
+                <Button onClick={() => handleCloseNavMenu("register")} variant="contained">Register</Button>
               </Box>
               :
-              <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
-                <Button onClick={() => setEndpoint("login")} variant="outlined">Login</Button>
-
-                <Button onClick={() => setEndpoint("register")} variant="contained">Register</Button>
+              <Box sx={{ flexGrow: 0 }}>
+                <Tooltip title="Open settings">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar alt="User" src="/static/images/avatar/2.jpg" />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  {settings.map((setting) => (
+                    <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                      <Typography textAlign="center">{setting}</Typography>
+                    </MenuItem>
+                  ))}
+                </Menu>
               </Box>
-              // <Box sx={{ flexGrow: 0 }}>
-              //   <Tooltip title="Open settings">
-              //     <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-              //       <Avatar alt="User" src="/static/images/avatar/2.jpg" />
-              //     </IconButton>
-              //   </Tooltip>
-              //   <Menu
-              //     sx={{ mt: '45px' }}
-              //     id="menu-appbar"
-              //     anchorEl={anchorElUser}
-              //     anchorOrigin={{
-              //       vertical: 'top',
-              //       horizontal: 'right',
-              //     }}
-              //     keepMounted
-              //     transformOrigin={{
-              //       vertical: 'top',
-              //       horizontal: 'right',
-              //     }}
-              //     open={Boolean(anchorElUser)}
-              //     onClose={handleCloseUserMenu}
-              //   >
-              //     {settings.map((setting) => (
-              //       <MenuItem key={setting} onClick={handleCloseUserMenu}>
-              //         <Typography textAlign="center">{setting}</Typography>
-              //       </MenuItem>
-              //     ))}
-              //   </Menu>
-              // </Box>
           }
         </Toolbar>
       </Container>
