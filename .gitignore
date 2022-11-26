@@ -132,3 +132,5 @@ dmypy.json
 node_modules
 
 frontend/pv-validation-hub/node_modules
+.DS_Store
+frotend/.DS_Store

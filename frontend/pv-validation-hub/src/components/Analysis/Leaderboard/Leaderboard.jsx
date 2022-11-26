@@ -14,6 +14,7 @@ export default function Leaderboard(props) {
         },
     ]
     const rows = DashboardService.getLeaderBoard(props.analysis_id);
+
     return (
         <AppTable
             columns={columns}
