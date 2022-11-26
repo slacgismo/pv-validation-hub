@@ -98,6 +98,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*', ]
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Application definition
 
@@ -105,6 +107,7 @@ INSTALLED_APPS = [
     'analyses.apps.AnalysesConfig',
     'jobs.apps.JobsConfig',
     'backend.apps.BackendConfig',
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
