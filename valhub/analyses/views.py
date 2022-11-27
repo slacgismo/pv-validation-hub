@@ -21,6 +21,8 @@ from base.utils import upload_to_s3_bucket
 @api_view(["POST"])
 @csrf_exempt
 def create_analysis(request):
+    # TODO: get user account
+
     serializer = AnalysisSerializer(data=request.data)
 
     if serializer.is_valid():

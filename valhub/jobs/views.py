@@ -48,6 +48,8 @@ def analysis_submission(request, analysis_id):
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
+    # TODO: get user account
+
     serializer = SubmissionSerializer(data=request.data)
 
     if serializer.is_valid():

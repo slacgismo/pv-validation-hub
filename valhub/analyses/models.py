@@ -1,6 +1,7 @@
 from django.db import models
 
 from base.utils import RandomFileName
+from accounts.models import Account
 
 import uuid
 
@@ -14,7 +15,7 @@ class Analysis(models.Model):
 
     # TODO
     # creator = models.ForeignKey(
-    #     "accounts.User",
+    #     Account,
     #     related_name="analysis_creator",
     #     on_delete=models.CASCADE,
     # )
