@@ -2,9 +2,13 @@ from django.db import models
 
 from base.utils import RandomFileName
 
+import uuid
+
 
 class Analysis(models.Model):
-    analysis_id = models.IntegerField(primary_key=True)
+    # analysis_id = models.IntegerField(primary_key=True)
+    analysis_id = models.IntegerField(
+        primary_key=True, default=uuid.uuid4, editable=False)
     analysis_name = models.CharField(max_length=100, default="analysis")
     description = models.TextField(null=True, blank=True)
 
