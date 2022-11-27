@@ -7,7 +7,7 @@ import uuid
 
 
 class Submission(models.Model):
-    submission_id = models.UUIDField(
+    submission_id = models.IntegerField(
         primary_key=True, default=uuid.uuid4, editable=False)
     analysis = models.ForeignKey(
         Analysis, related_name="submissions", on_delete=models.CASCADE
