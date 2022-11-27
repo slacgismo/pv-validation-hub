@@ -13,6 +13,7 @@ import boto3
 import os
 
 from .serializers import AnalysisSerializer
+from base.utils import upload_to_s3_bucket
 
 # Create your views here.
 
@@ -28,35 +29,34 @@ def create_analysis(request):
         # description = serializer.data["description"]
         # evaluation_script = serializer.data["evaluation_script"]
 
-        # get unique id from analysis name
-        analysis_id = int.from_bytes(analysis_name.encode(), 'little')
-
-        serializer.save(analysis_id=analysis_id)
-        evaluation_script_path = serializer.instance.evaluation_script.path
-        # print("evaluation_script_path: {}".format(evaluation_script_path))
+        serializer.save()
+        analysis_id = serializer.instance.analysis_id
 
         # upload package to s3 and upload evaluation_script_path
+        evaluation_script_path = serializer.instance.evaluation_script.path
+        # print("evaluation_script_path: {}".format(evaluation_script_path))
         bucket_name = "pv-insight-application-bucket"
         upload_path = os.path.join(
             "evaluation_scripts", "analysis_{}.zip".format(analysis_id))
-
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
-        )
-
-        s3.upload_file(evaluation_script_path, bucket_name, upload_path)
-
-        bucket_location = boto3.client(
-            's3').get_bucket_location(Bucket=bucket_name)
-        object_url = "https://{}.s3.{}.amazonaws.com/{}".format(bucket_name,
-                                                                bucket_location['LocationConstraint'],
-                                                                upload_path)
+        object_url = upload_to_s3_bucket(
+            bucket_name, evaluation_script_path, upload_path)
+        if object_url is None:
+            response_data = {"error": "Cannot upload file to S3 bucket"}
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         # print("object_url: {}".format(object_url))
         serializer.save(evaluation_script=object_url)
 
         # TODO: create leaderboard
+
+        # spin up a worker instance which would create SQS queue
+        ec2 = boto3.resource('ec2')
+        worker = ec2.create_instances(
+            MinCount=1,
+            MaxCount=1,
+            LaunchTemplate={
+                'LaunchTemplateName': 'pv-insight-worker-template'
+            }
+        )
 
         response_data = serializers.serialize('json', [serializer.instance])
     else:
