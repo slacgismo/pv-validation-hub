@@ -35,6 +35,8 @@ const Header = () => {
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
+    cookies.remove("user");
+    navigate("/");
   };
 
   const handleCloseNavMenu = (location) => {

@@ -13,8 +13,15 @@ import Rules from "./Rules/Rules";
 import Submission from "./Submissions/Submission";
 import CancelIcon from '@mui/icons-material/Cancel';
 import ReactModal from "react-modal";
+import Cookies from 'universal-cookie';
 import { FileUploader } from "react-drag-drop-files";
+import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 export default function Analysis() {
+
+
+    const cookies = new Cookies();
+
+    let user = cookies.get("user");
 
     const [value, setValue] = useState(0);
 
@@ -133,15 +140,24 @@ export default function Analysis() {
                     />
                 </TabPanel>
                 <TabPanel value={value} index={3}>
+
                     <Rules analysis_id={searchParams.get("analysis_id")} />
                 </TabPanel>
                 <TabPanel value={value} index={4}>
-                    <Submission analysis_id={searchParams.get("analysis_id")} />
+                    {user === undefined || user == null ?
+                        <BlurryPage />
+                        :
+                        <Submission analysis_id={searchParams.get("analysis_id")} />
+                    }
                 </TabPanel>
                 <TabPanel value={value} index={5}>
-                    <CommentProvider>
-                        <Discussion />
-                    </CommentProvider>
+                    {user === undefined || user == null ?
+                        <BlurryPage />
+                        :
+                        <CommentProvider>
+                            <Discussion />
+                        </CommentProvider>
+                    }
 
                 </TabPanel>
             </Box>
@@ -174,7 +190,7 @@ export default function Analysis() {
                                     onClick={() => closeModal()} />
                             </Grid>
                         </Grid>
-                        <Box sx={{ marginTop: 2, marginBottom: 2}}>
+                        <Box sx={{ marginTop: 2, marginBottom: 2 }}>
                             <FileUploader
                                 multiple={false}
                                 handleChange={uploadFile}
@@ -182,7 +198,7 @@ export default function Analysis() {
                                 types={fileTypes}
                             />
                         </Box>
-                        <Typography sx={{marginLeft: 20}} color="gray" variant="body1">
+                        <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
                             {file ? `File name: ${file[0].name}` : "No files uploaded yet."}
                         </Typography>
                     </Box>

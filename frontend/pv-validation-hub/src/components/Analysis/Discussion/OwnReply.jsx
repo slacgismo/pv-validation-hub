@@ -11,10 +11,13 @@ import {
 } from "@mui/material";
 import YouTag from "./YouTag";
 import CommentContext from "./CommentContext";
+import Cookies from "universal-cookie";
 
 const OwnReply = ({ onContent, onCount, onTar, onDel, comId }) => {
+  const cookies = new Cookies();
+  var comment_user = cookies.get("user");
   const { IMGOBJ } = useContext(CommentContext);
-  const prsAva = IMGOBJ.juliusomo;
+  const prsAva = IMGOBJ[`${comment_user}`];
 
   const [clicked, setClicked] = useState(false);
   const [editingRep, setEditingRep] = useState(false);
@@ -38,7 +41,7 @@ const OwnReply = ({ onContent, onCount, onTar, onDel, comId }) => {
                     fontWeight="bold"
                     sx={{ color: "neutral.darkBlue" }}
                   >
-                    juliusomo
+                    {comment_user}
                   </Typography>
                   <YouTag />
                   <Typography sx={{ color: "neutral.grayishBlue" }}>
@@ -93,7 +96,6 @@ const OwnReply = ({ onContent, onCount, onTar, onDel, comId }) => {
                         ? alert("Read the placeholder.")
                         : setEditingRep(!editingRep);
                       setClicked(!clicked);
-                      console.log("check if it works");
                     }}
                   >
                     Update

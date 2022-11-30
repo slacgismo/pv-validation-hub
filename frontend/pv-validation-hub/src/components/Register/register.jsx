@@ -1,10 +1,11 @@
 import { Box, Button, TextField } from '@mui/material';
 import { Container } from '@mui/system';
 import { useState } from 'react';
-import Validation from '../../services/Validation';
+import Validation from '../../services/validation_service';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { useNavigate } from "react-router-dom";
+import { UserService } from '../../services/user_service';
 export default function Register(props) {
 
     const [registerStates, setRegisterStates] = useState({
@@ -100,7 +101,14 @@ export default function Register(props) {
                 [registrationErrors.password]: "",
                 [registrationErrors.confirmPassword]: ""
             }));
-            navigate("/");
+            const response = UserService.register(
+                registerStates.username,
+                registerStates.email,
+                registerStates.password
+            );
+            if (response!== null) {
+                navigate("/login");
+            }
         }
     }
 

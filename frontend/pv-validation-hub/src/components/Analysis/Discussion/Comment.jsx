@@ -8,6 +8,7 @@ import {
   ThemeProvider,
   TextField,
 } from "@mui/material";
+import Cookies from 'universal-cookie';
 import { Box } from "@mui/system";
 import { Edit } from "@mui/icons-material";
 import CommentContext from "./CommentContext";
@@ -17,6 +18,8 @@ import YouTag from "./YouTag";
 import ReplyIcon from '@mui/icons-material/Reply';
 
 const Comment = ({ onPass }) => {
+  const cookies = new Cookies();
+  let commenting_user = cookies.get("user");
   const { id, content, createdAt, score, replies, user } = onPass;
   const { IMGOBJ } = useContext(CommentContext);
   const userName = user.username;
@@ -46,12 +49,12 @@ const Comment = ({ onPass }) => {
                   >
                     {userName}
                   </Typography>
-                  {userName === "juliusomo" && <YouTag />}
+                  {userName === commenting_user && <YouTag />}
                   <Typography sx={{ color: "neutral.grayishBlue" }}>
                     {createdAt}
                   </Typography>
                 </Stack>
-                {userName === "juliusomo" ? (
+                {userName === commenting_user ? (
                   <Stack direction="row" spacing={1}>
                     <Button
                       variant="text"

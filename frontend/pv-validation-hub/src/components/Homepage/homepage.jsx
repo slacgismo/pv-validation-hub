@@ -16,7 +16,6 @@ export default function Homepage() {
 
     const highlight_data = HomepageService.getHighlights();
     const hub_gist = HomepageService.getValidationHubGist();
-    console.log(highlight_data);
     return (
         <Box>
             <Grid container spacing={2} alignItems="center">

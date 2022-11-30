@@ -4,8 +4,11 @@ import CommentContext from "./CommentContext";
 import AddReply from "./AddReply";
 import OwnReply from "./OwnReply";
 import ReplyIcon from '@mui/icons-material/Reply';
+import Cookies from "universal-cookie";
 
 const RepliesSection = ({ onReplies, onClicked, onTar }) => {
+  const cookies = new Cookies();
+  var comment_user = cookies.get("user");
   const { IMGOBJ } = useContext(CommentContext);
   const [repliess, setReplies] = useState(onReplies);
 
@@ -19,7 +22,7 @@ const RepliesSection = ({ onReplies, onClicked, onTar }) => {
         score: 0,
         replyingTo: `${onTar}`,
         replies: [],
-        user: { username: "juliusomo" },
+        user: { username: comment_user },
       },
     ]);
   };
@@ -29,7 +32,7 @@ const RepliesSection = ({ onReplies, onClicked, onTar }) => {
         const { content, createdAt, score, user, replyingTo } = rep;
         const userName = user.username;
         const ava = IMGOBJ[`${userName}`];
-        return userName === "juliusomo" ? (
+        return userName === comment_user ? (
           <OwnReply
             key={rep.id}
             comId={rep.id}

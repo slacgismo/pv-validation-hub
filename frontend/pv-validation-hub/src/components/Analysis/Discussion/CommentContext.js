@@ -7,11 +7,9 @@ const CommentContext = createContext();
 export function CommentProvider({ children }) {
 
   const cookies = new Cookies();
-  var user = cookies.get("user");
-  user = user === undefined || user == null ? "juliusomo" : user;
-  var data = DashboardService.getDiscussionComments("", user);
+  var comment_user = cookies.get("user");
+  var data = DashboardService.getDiscussionComments("", comment_user);
   const [currentUser, comments] = [data.currentUser, data.comments];
-  console.log(currentUser,comments);
   const [commentSection, setCommentSection] = useState(comments);
   const IMGOBJ = DashboardService.getImageObjects();
   const addComment = (data) => {
@@ -23,7 +21,7 @@ export function CommentProvider({ children }) {
         createdAt: "Just now",
         score: 0,
         replies: [],
-        user: { username: "juliusomo" },
+        user: { username: comment_user },
       },
     ]);
   };
