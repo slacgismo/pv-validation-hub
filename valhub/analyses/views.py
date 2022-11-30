@@ -73,6 +73,7 @@ def create_analysis(request):
 @csrf_exempt
 def list_analysis(request):
     analyses = Analysis.objects.all()
-    response_data = AnalysisSerializer(analyses)
+    # print(analyses)
+    response_data = serializers.serialize('json', analyses)
 
     return Response(response_data, status=status.HTTP_200_OK)
