@@ -13,4 +13,9 @@ urlpatterns = [
         views.list_analysis,
         name="list_analysis",
     ),
+    path(
+        "<int:analysis_id>",
+        views.analysis_detail,
+        name="analysis_detail",
+    ),
 ]

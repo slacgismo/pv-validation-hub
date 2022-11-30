@@ -77,3 +77,13 @@ def list_analysis(request):
     response_data = serializers.serialize('json', analyses)
 
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def analysis_detail(request, analysis_id):
+    analysis = Analysis.objects.get(analysis_id=analysis_id)
+    # print(analysis)
+    response_data = serializers.serialize('json', [analysis])
+
+    return Response(response_data, status=status.HTTP_200_OK)
