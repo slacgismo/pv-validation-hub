@@ -8,4 +8,9 @@ urlpatterns = [
         views.create_analysis,
         name="create_analysis",
     ),
+    path(
+        "home",
+        views.list_analysis,
+        name="list_analysis",
+    ),
 ]

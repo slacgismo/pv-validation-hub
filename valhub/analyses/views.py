@@ -12,6 +12,7 @@ from rest_framework.parsers import JSONParser
 import boto3
 import os
 
+from .models import Analysis
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 
@@ -64,5 +65,14 @@ def create_analysis(request):
     else:
         response_data = serializer.errors
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def list_analysis(request):
+    analyses = Analysis.objects.all()
+    response_data = AnalysisSerializer(analyses)
 
     return Response(response_data, status=status.HTTP_200_OK)
