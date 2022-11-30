@@ -13,12 +13,11 @@ class Analysis(models.Model):
     analysis_name = models.CharField(max_length=100, default="analysis")
     description = models.TextField(null=True, blank=True)
 
-    # TODO
-    # creator = models.ForeignKey(
-    #     Account,
-    #     related_name="analysis_creator",
-    #     on_delete=models.CASCADE,
-    # )
+    creator = models.ForeignKey(
+        Account,
+        related_name="analysis_creator",
+        on_delete=models.CASCADE,
+    )
 
     evaluation_script = models.FileField(max_length=1000, upload_to=RandomFileName(
         "evaluation_scripts"))  # url to zip file

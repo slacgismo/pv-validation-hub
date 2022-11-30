@@ -15,6 +15,7 @@ import os
 from .models import Analysis
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
+from accounts.models import Account
 
 # Create your views here.
 
@@ -22,7 +23,13 @@ from base.utils import upload_to_s3_bucket
 @api_view(["POST"])
 @csrf_exempt
 def create_analysis(request):
-    # TODO: get user account
+    # get user account
+    user_id = request.data["user_id"]
+    try:
+        user = Account.objects.get(id=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     serializer = AnalysisSerializer(data=request.data)
 
@@ -32,7 +39,7 @@ def create_analysis(request):
         # description = serializer.data["description"]
         # evaluation_script = serializer.data["evaluation_script"]
 
-        serializer.save()
+        serializer.save(creator=user)
         analysis_id = serializer.instance.analysis_id
 
         # upload package to s3 and upload evaluation_script_path
@@ -47,18 +54,28 @@ def create_analysis(request):
             response_data = {"error": "Cannot upload file to S3 bucket"}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         # print("object_url: {}".format(object_url))
-        serializer.save(evaluation_script=object_url)
-
-        # TODO: create leaderboard
+        Analysis.objects.filter(analysis_id=analysis_id).update(
+            evaluation_script=object_url)
 
         # spin up a worker instance which would create SQS queue
-        ec2 = boto3.resource('ec2')
+        ec2 = boto3.resource('ec2', region_name='us-east-2')
         worker = ec2.create_instances(
             MinCount=1,
             MaxCount=1,
             LaunchTemplate={
                 'LaunchTemplateName': 'pv-insight-worker-template'
-            }
+            },
+            TagSpecifications=[
+                {
+                    'ResourceType': 'instance',
+                    'Tags': [
+                        {
+                            'Key': 'ANALYSIS_PK',
+                            'Value': analysis_id
+                        }
+                    ]
+                }
+            ]
         )
 
         response_data = serializers.serialize('json', [serializer.instance])
