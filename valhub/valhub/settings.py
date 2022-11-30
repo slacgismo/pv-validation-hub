@@ -64,12 +64,21 @@ def get_secret(secret_name):
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
+            secret = json.loads(secret)
             return secret
         else:
             decoded_binary_secret = base64.b64decode(
                 get_secret_value_response['SecretBinary'])
             return decoded_binary_secret
 
+
+# build env variables
+try:
+    aws_account_credentials = get_secret("AwsAccountCredentials")
+    os.environ["AWS_SECRET_ACCESS_KEY"] = aws_account_credentials["AWS_SECRET_ACCESS_KEY"]
+    os.environ["AWS_ACCESS_KEY_ID"] = aws_account_credentials["AWS_ACCESS_KEY_ID"]
+except:
+    pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,7 +89,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 try:
-    SECRET_KEY = json.loads(get_secret("DjangoSecretKey"))['DJANGO_SECRET_KEY']
+    SECRET_KEY = get_secret("DjangoSecretKey")['DJANGO_SECRET_KEY']
 except:
     SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
@@ -89,6 +98,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*', ]
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Application definition
 
@@ -96,6 +107,9 @@ INSTALLED_APPS = [
     'backend.apps.BackendConfig',
     'corsheaders',
     'accounts.apps.AccountsConfig',
+    'analyses.apps.AnalysesConfig',
+    'jobs.apps.JobsConfig',
+    'backend.apps.BackendConfig',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -143,7 +157,7 @@ WSGI_APPLICATION = 'valhub.wsgi.application'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 try:
-    db_secrets = json.loads(get_secret("pvinsight-db"))
+    db_secrets = get_secret("pvinsight-db")
 except:
     hostname = None
 else:
@@ -157,7 +171,7 @@ if hostname is not None:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'accounts',  # db_name,
+            'NAME': 'test',  # db_name,
             'USER': username,
             'PASSWORD': password,
             'HOST': hostname,
