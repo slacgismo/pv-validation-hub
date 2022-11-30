@@ -108,7 +108,6 @@ INSTALLED_APPS = [
     'analyses.apps.AnalysesConfig',
     'jobs.apps.JobsConfig',
     'backend.apps.BackendConfig',
-    'accounts.apps.AccountsConfig',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
