@@ -17,6 +17,7 @@ from analyses.models import Analysis
 from base.utils import upload_to_s3_bucket
 
 from .serializers import SubmissionSerializer
+from .models import Submission
 
 # Create your views here.
 
@@ -86,3 +87,15 @@ def analysis_submission(request, analysis_id):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+@api_view(["GET"])
+@csrf_exempt
+def submission_detail(request, pk):
+    submission = Submission.objects.get(pk=pk)
+    if submission is None:
+        response_data = {"error": "submission does not exist"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+    serializer = SubmissionSerializer(submission)
+    return Response(serializer.data)

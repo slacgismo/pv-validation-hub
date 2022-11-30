@@ -8,4 +8,8 @@ urlpatterns = [
         views.analysis_submission,
         name="analysis_submission",
     ),
+    path("analysis/<int:analysis_id>/submission/<int:pk>",
+        views.submission_detail,
+        name="submission_detail",
+    ),
 ]
