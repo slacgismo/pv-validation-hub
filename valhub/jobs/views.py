@@ -15,6 +15,8 @@ import botocore
 
 from analyses.models import Analysis
 from base.utils import upload_to_s3_bucket
+from accounts.models import Account
+from .models import Submission
 
 from .serializers import SubmissionSerializer
 
@@ -48,13 +50,19 @@ def analysis_submission(request, analysis_id):
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    # TODO: get user account
+    # get user account
+    user_id = request.data["user_id"]
+    try:
+        user = Account.objects.get(id=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     serializer = SubmissionSerializer(data=request.data)
 
     if serializer.is_valid():
-        serializer.save(analysis=analysis)
-        submission_id = serializer.instance.submission_id
+        serializer.save(analysis=analysis, created_by=user)
+        submission_id = int(serializer.instance.submission_id)
         # print("submission_id: {}".format(submission_id))
 
         # upload package to s3 and upload evaluation_script_path
@@ -69,11 +77,13 @@ def analysis_submission(request, analysis_id):
             response_data = {"error": "Cannot upload file to S3 bucket"}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         # print("object_url: {}".format(object_url))
-        serializer.save(algorithm=object_url)
+        Submission.objects.filter(submission_id=submission_id).update(
+            algorithm=object_url)
+        # serializer.save(algorithm=object_url)
 
         # send a message to SQS queue
         message = json.dumps(
-            {"analysis_pk": analysis_id, "submission_pk": str(submission_id)})
+            {"analysis_pk": analysis_id, "submission_pk": submission_id})
         # print("message: {}".format(message))
         # print("submission_pk: {}".format(json.loads(message)["submission_pk"]))
         response = queue.send_message(
