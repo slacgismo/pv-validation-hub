@@ -71,7 +71,7 @@ def create_analysis(request):
                     'Tags': [
                         {
                             'Key': 'ANALYSIS_PK',
-                            'Value': analysis_id
+                            'Value': str(analysis_id)
                         }
                     ]
                 }

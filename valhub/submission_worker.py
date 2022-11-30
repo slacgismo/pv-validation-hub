@@ -455,7 +455,8 @@ def get_or_create_sqs_queue(queue_name):
             != "AWS.SimpleQueueService.NonExistentQueue"
         ):
             logger.exception("Cannot get queue: {}".format(queue_name))
-        queue = sqs.create_queue(QueueName=queue_name)
+        queue = sqs.create_queue(QueueName=queue_name,
+                                 Attributes={'FifoQueue': 'true'})
     return queue
 
 
@@ -506,6 +507,7 @@ def main():
     # create message queue
     queue_name = os.environ.get(
         "CHALLENGE_QUEUE", "valhub_submission_queue_{}.fifo".format(analysis_pk))
+    print("queue_name: {}".format(queue_name))
     queue = get_or_create_sqs_queue(queue_name)
     # print(queue)
 
