@@ -13,6 +13,7 @@ import botocore
 import signal
 import json
 import time
+import urllib.request
 import django
 from django.utils import timezone
 
@@ -49,6 +50,9 @@ SUBMISSION_INPUT_FILE_PATH = os.path.join(SUBMISSION_DATA_DIR, "{input_file}")
 # log
 WORKER_LOGS_PREFIX = "WORKER_LOG"
 SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
+
+# AWS
+S3_BUCKET_NAME = "pv-insight-application-bucket"
 
 EVALUATION_SCRIPTS = {}
 SUBMISSION_ALGORITHMS = {}
@@ -99,7 +103,7 @@ def create_dir_as_python_package(directory):
         pass
 
 
-def extract_zip_file(download_location, extract_location):
+def extract_zip_file(download_location, extract_location, new_name=None):
     """
     Helper function to extract zip file
     Params:
@@ -107,8 +111,18 @@ def extract_zip_file(download_location, extract_location):
         * `extract_location`: Location of directory for extracted file
     """
     zip_ref = zipfile.ZipFile(download_location, "r")
+    original_name = zip_ref.namelist()[0]
     zip_ref.extractall(extract_location)
     zip_ref.close()
+
+    # print("extract_location: {}".format(extract_location))
+
+    if new_name is not None:
+        source_dir = os.path.join(extract_location, original_name)
+        target_dir = os.path.join(extract_location, new_name)
+        for file_name in os.listdir(source_dir):
+            shutil.move(os.path.join(source_dir, file_name),
+                        os.path.join(target_dir, file_name))
 
 
 def delete_zip_file(download_location):
@@ -155,32 +169,31 @@ def delete_submission_data_directory(location):
         )
 
 
-def download_and_extract_zip_file(url, download_location, extract_location):
+def download_and_extract_zip_file(file_name, download_location, extract_location, new_name=None):
     """
     * Function to extract download a zip file, extract it and then removes the zip file.
     * `download_location` should include name of file as well.
     """
     try:
-        # TODO: where to store evaluation script
-        response = requests.get(url, stream=True)
+        s3 = boto3.client(
+            's3',
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+        )
+        s3.download_file(S3_BUCKET_NAME, file_name, download_location)
     except Exception as e:
         logger.error(
             "{} Failed to fetch file from {}, error {}".format(
-                WORKER_LOGS_PREFIX, url, e
+                WORKER_LOGS_PREFIX, file_name, e
             )
         )
-        response = None
 
-    if response and response.status_code == 200:
-        with open(download_location, "wb") as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-        # extract zip file
-        extract_zip_file(download_location, extract_location)
+    # extract zip file
+    extract_zip_file(download_location, extract_location, new_name)
 
-        # delete zip file
-        delete_zip_file(download_location)
+    # delete zip file
+    delete_zip_file(download_location)
 
 
 ############ analysis functions #############
@@ -205,9 +218,9 @@ def extract_analysis_data(analysis):
     analysis_zip_file = os.path.join(
         analysis_data_directory, "analysis_{}.zip".format(analysis.analysis_id)
     )
-    download_and_extract_zip_file(
-        evaluation_script_url, analysis_zip_file, ANALYSIS_DATA_BASE_DIR
-    )
+    # print("analysis_zip_file: {}".format(analysis_zip_file))
+    download_and_extract_zip_file("evaluation_scripts/analysis_{}.zip".format(analysis.analysis_id), analysis_zip_file,
+                                  analysis_data_directory, "")
 
     annotation_file_name = analysis.annotation_file_name
     ANNOTATION_FILE_NAME_MAP[analysis.analysis_id] = annotation_file_name
@@ -308,13 +321,13 @@ def extract_submission_data(submission_id):
     submission_zip_file = os.path.join(
         submission_data_directory, "submission_{}.zip".format(submission_id)
     )
-    download_and_extract_zip_file(
-        submission_algorithm_url, submission_zip_file, SUBMISSION_DATA_BASE_DIR)
+    download_and_extract_zip_file("submission_files/submission_{}.zip".format(submission_id), submission_zip_file,
+                                  submission_data_directory, "")
 
     # import as module
     importlib.invalidate_caches()
     submission_module = importlib.import_module(
-        SUBMISSION_IMPORT_STRING.format(submission_id=1)
+        SUBMISSION_IMPORT_STRING.format(submission_id=submission_id)
     )
     SUBMISSION_ALGORITHMS[submission_id] = submission_module
 
@@ -367,6 +380,9 @@ def run_submission(analysis_id, submission):
         """
         # submission_output["execution_time"] = 30
         print(submission_output)
+        submission_output = json.dumps(submission_output)
+        Submission.objects.filter(submission_id=submission_id).update(
+            result=submission_output)
     except Exception as e:
         print(e)
 
@@ -443,6 +459,24 @@ def get_or_create_sqs_queue(queue_name):
     return queue
 
 
+def get_analysis_pk():
+    instance_id = urllib.request.urlopen(
+        'http://169.254.169.254/latest/meta-data/instance-id').read().decode()
+
+    ec2_resource = boto3.resource(
+        'ec2',
+        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    )
+    ec2_instance = ec2_resource.Instance(instance_id)
+    tags = ec2_instance.tags
+    for tag in tags:
+        if tag['Key'] == 'ANALYSIS_PK':
+            return int(tag['Value'])
+    return 1
+
+
 def main():
     killer = GracefulKiller()
     logger.info(
@@ -457,7 +491,7 @@ def main():
     # q_params["end_date__gt"] = timezone.now()
 
     # primary key
-    analysis_pk = 1  # os.environ.get("ANALYSIS_PK")
+    analysis_pk = get_analysis_pk()  # os.environ.get("ANALYSIS_PK")
     if analysis_pk:
         q_params["pk"] = analysis_pk
 
@@ -471,7 +505,7 @@ def main():
 
     # create message queue
     queue_name = os.environ.get(
-        "CHALLENGE_QUEUE", "valhub_submission_queue.fifo")
+        "CHALLENGE_QUEUE", "valhub_submission_queue_{}.fifo".format(analysis_pk))
     queue = get_or_create_sqs_queue(queue_name)
     # print(queue)
 
