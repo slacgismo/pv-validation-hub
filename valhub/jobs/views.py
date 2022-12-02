@@ -79,7 +79,7 @@ def analysis_submission(request, analysis_id):
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         # print("object_url: {}".format(object_url))
         Submission.objects.filter(submission_id=submission_id).update(
-            algorithm=object_url)
+            algorithm=object_url, status=Submission.SUBMITTED)
         # serializer.save(algorithm=object_url)
 
         # send a message to SQS queue
@@ -97,7 +97,6 @@ def analysis_submission(request, analysis_id):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(response_data, status=status.HTTP_200_OK)
-
 
 
 @api_view(["GET"])
