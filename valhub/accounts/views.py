@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view
 
 from .serializers import AccountSerializer
 from .models import Account
+import json
 
 @csrf_exempt
 @api_view(["POST"])
@@ -35,11 +36,13 @@ def login(request):
     account = Account.objects.get(username=_username)
 
     if account.password == _password:
-        return HttpResponse("user logged in", status=200)
-        # TODO: redirect to a success page
+        data = {
+            'id': str(account.id),
+        }
+        dump = json.dumps(data)
+        return HttpResponse(dump, content_type='application/json', status=200)
     else:
         return HttpResponse("wrong password", status=400)
-        # TODO: return to an 'invalid login' error message
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AccountList(APIView):
