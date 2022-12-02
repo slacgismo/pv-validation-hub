@@ -108,3 +108,19 @@ def submission_detail(request, pk):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
     serializer = SubmissionSerializer(submission)
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def user_submission(request):
+    # get user account
+    user_id = request.data["user_id"]
+    try:
+        user = Account.objects.get(id=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    submissions = Submission.objects.filter(created_by=user)
+    response_data = serializers.serialize('json', submissions)
+    return Response(response_data, status=status.HTTP_200_OK)
