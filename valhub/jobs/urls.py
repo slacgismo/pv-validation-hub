@@ -12,4 +12,8 @@ urlpatterns = [
         views.submission_detail,
         name="submission_detail",
     ),
+    path("user_submission",
+        views.user_submission,
+        name="user_submission",
+    ),
 ]
