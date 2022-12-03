@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     'jobs.apps.JobsConfig',
     'backend.apps.BackendConfig',
     'rest_framework',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -131,6 +132,10 @@ MIDDLEWARE = [
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOWED_ORIGINS = [
+#     "https://domain.com",
+#     "http://localhost:8080",
+# ]
 
 ROOT_URLCONF = 'valhub.urls'
 

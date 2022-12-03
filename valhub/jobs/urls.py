@@ -8,7 +8,7 @@ urlpatterns = [
         views.analysis_submission,
         name="analysis_submission",
     ),
-    path("analysis/<int:analysis_id>/submission/<int:pk>",
+    path("analysis/<int:analysis_id>/submission/<int:submission_id>",
         views.submission_detail,
         name="submission_detail",
     ),

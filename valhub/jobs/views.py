@@ -91,7 +91,8 @@ def analysis_submission(request, analysis_id):
             MessageBody=message, MessageGroupId="1", MessageDeduplicationId=str(submission_id))
 
         # serializers.serialize('json', [serializer.instance])
-        response_data = serializers.serialize('json', [serializer.instance])
+        # response_data = serializers.serialize('json', [serializer.instance])
+        response_data = SubmissionSerializer(serializer.instance).data
     else:
         response_data = serializer.errors
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
@@ -101,13 +102,14 @@ def analysis_submission(request, analysis_id):
 
 @api_view(["GET"])
 @csrf_exempt
-def submission_detail(request, pk):
-    submission = Submission.objects.get(pk=pk)
-    if submission is None:
+def submission_detail(request, analysis_id, submission_id):
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-    serializer = SubmissionSerializer(submission)
-    return Response(serializer.data)
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+    response_data = SubmissionSerializer(submission).data
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
@@ -122,5 +124,6 @@ def user_submission(request):
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     submissions = Submission.objects.filter(created_by=user)
-    response_data = serializers.serialize('json', submissions)
+    # response_data = serializers.serialize('json', submissions)
+    response_data = SubmissionSerializer(submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
