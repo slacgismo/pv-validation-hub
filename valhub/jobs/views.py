@@ -103,10 +103,11 @@ def analysis_submission(request, analysis_id):
 @api_view(["GET"])
 @csrf_exempt
 def submission_detail(request, analysis_id, submission_id):
-    submission = Submission.objects.get(submission_id=submission_id)
-    if submission is None:
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
     response_data = SubmissionSerializer(submission).data
     return Response(response_data, status=status.HTTP_200_OK)
 
