@@ -18,7 +18,7 @@ from base.utils import upload_to_s3_bucket
 from accounts.models import Account
 from .models import Submission
 
-from .serializers import SubmissionSerializer
+from .serializers import SubmissionSerializer, SubmissionDetailSerializer
 from .models import Submission
 
 # Create your views here.
@@ -137,15 +137,13 @@ def analysis_user_submission(request, analysis_id, user_id):
     except Analysis.DoesNotExist:
         response_data = {"error": "Analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
-    # get user account
-    try:
-        user = Account.objects.get(id=user_id)
-    except Account.DoesNotExist:
-        response_data = {"error": "User account does not exist"}
-        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-
-    submissions = Submission.objects.filter(analysis=analysis, created_by=user)
-    # response_data = serializers.serialize('json', submissions)
-    response_data = SubmissionSerializer(submissions, many=True).data
-    return Response(response_data, status=status.HTTP_200_OK)
+    serializer = SubmissionDetailSerializer(
+        data={
+            'submission_id': str(submission.submission_id),
+            'analysis_id': str(submission.analysis.analysis_id),
+            'user_id': str(submission.created_by.id),
+            'algorithm': str(submission.algorithm),
+            'result': str(submission.result)
+        }
+    )
+    return Response(serializer.data)
