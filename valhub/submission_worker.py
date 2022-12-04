@@ -344,6 +344,10 @@ def run_submission(analysis_id, submission):
     analysis_data_file_path = ANALYSIS_DATA_FILE_PATH.format(
         analysis_id=analysis_id, data_file='test_data')
 
+    # update status as running
+    submission.status = Submission.RUNNING
+    submission.save()
+
     # ANNOTATION_FILE_NAME_MAP[analysis_id]
     annotation_file_name = "test_annotation.txt"
     annotation_file_path = ANALYSIS_ANNOTATION_FILE_PATH.format(
@@ -381,10 +385,14 @@ def run_submission(analysis_id, submission):
         # submission_output["execution_time"] = 30
         print(submission_output)
         submission_output = json.dumps(submission_output)
-        Submission.objects.filter(submission_id=submission_id).update(
-            result=submission_output)
+        # Submission.objects.filter(submission_id=submission_id).update(
+        #     result=submission_output)
+        submission.result = submission_output
+        submission.status = Submission.FINISHED
+        submission.save()
     except Exception as e:
         print(e)
+        submission.status = Submission.FAILED
 
 
 def process_submission_message(message):

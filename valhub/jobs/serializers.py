@@ -14,6 +14,19 @@ class SubmissionSerializer(serializers.ModelSerializer):
         model = Submission
         fields = ("algorithm",)
 
+    def to_representation(self, instance):
+        data = super(SubmissionSerializer, self).to_representation(instance)
+        data["submission_id"] = instance.submission_id
+        data["analysis"] = {"analysis_id": instance.analysis.analysis_id,
+                            "analysis_name": instance.analysis.analysis_name}
+        data["created_by"] = {"id": instance.created_by.id,
+                              "username": instance.created_by.username}
+        data["submitted_at"] = instance.submitted_at
+        data["result"] = instance.result
+        data["status"] = instance.status
+        return data
+
+
 class SubmissionDetailSerializer(serializers.ModelSerializer):
     """
     Serialize the details of Submission Model.
@@ -21,3 +34,4 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
         fields = ("submission_id", "algorithm", "analysis_id", "user_id", "result")     
+

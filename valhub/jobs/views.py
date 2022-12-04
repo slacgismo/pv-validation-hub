@@ -79,7 +79,7 @@ def analysis_submission(request, analysis_id):
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         # print("object_url: {}".format(object_url))
         Submission.objects.filter(submission_id=submission_id).update(
-            algorithm=object_url)
+            algorithm=object_url, status=Submission.SUBMITTED)
         # serializer.save(algorithm=object_url)
 
         # send a message to SQS queue
@@ -91,7 +91,8 @@ def analysis_submission(request, analysis_id):
             MessageBody=message, MessageGroupId="1", MessageDeduplicationId=str(submission_id))
 
         # serializers.serialize('json', [serializer.instance])
-        response_data = serializers.serialize('json', [serializer.instance])
+        # response_data = serializers.serialize('json', [serializer.instance])
+        response_data = SubmissionSerializer(serializer.instance).data
     else:
         response_data = serializer.errors
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
@@ -99,14 +100,14 @@ def analysis_submission(request, analysis_id):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
-
 @api_view(["GET"])
 @csrf_exempt
-def submission_detail(request, pk):
-    submission = Submission.objects.get(pk=pk)
-    if submission is None:
+def submission_detail(request, analysis_id, submission_id):
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
     serializer = SubmissionDetailSerializer(
         data={
             'submission_id': str(submission.submission_id),
@@ -116,4 +117,45 @@ def submission_detail(request, pk):
             'result': str(submission.result)
         }
     )
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def user_submission(request, user_id):
+    # get user account
+    try:
+        user = Account.objects.get(id=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    submissions = Submission.objects.filter(created_by=user)
+
     return Response(serializer.data)
+    # response_data = serializers.serialize('json', submissions)
+    response_data = SubmissionSerializer(submissions, many=True).data
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def analysis_user_submission(request, analysis_id, user_id):
+    # check if the analysis exists or not
+    try:
+        analysis = Analysis.objects.get(pk=analysis_id)
+    except Analysis.DoesNotExist:
+        response_data = {"error": "Analysis does not exist"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    # get user account
+    try:
+        user = Account.objects.get(id=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    submissions = Submission.objects.filter(analysis=analysis, created_by=user)
+    # response_data = serializers.serialize('json', submissions)
+    response_data = SubmissionSerializer(submissions, many=True).data
+    return Response(response_data, status=status.HTTP_200_OK)

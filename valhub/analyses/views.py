@@ -79,7 +79,8 @@ def create_analysis(request):
             ]
         )
 
-        response_data = serializers.serialize('json', [serializer.instance])
+        # response_data = serializers.serialize('json', [serializer.instance])
+        response_data = AnalysisSerializer(serializer.instance).data
     else:
         response_data = serializer.errors
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
@@ -92,7 +93,8 @@ def create_analysis(request):
 def list_analysis(request):
     analyses = Analysis.objects.all()
     # print(analyses)
-    response_data = serializers.serialize('json', analyses)
+    # response_data = serializers.serialize('json', analyses)
+    response_data = AnalysisSerializer(analyses, many=True).data
 
     return Response(response_data, status=status.HTTP_200_OK)
 
@@ -102,7 +104,8 @@ def list_analysis(request):
 def analysis_detail(request, analysis_id):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
     # print(analysis)
-    response_data = serializers.serialize('json', [analysis])
+    # response_data = serializers.serialize('json', [analysis])
+    response_data = AnalysisSerializer(analysis).data
 
     return Response(response_data, status=status.HTTP_200_OK)
 
