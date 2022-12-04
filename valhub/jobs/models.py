@@ -28,6 +28,7 @@ class Submission(models.Model):
     )
     created_by = models.ForeignKey(
         Account, related_name="submission_creator", on_delete=models.CASCADE)
+    submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
     algorithm = models.FileField(max_length=1000, upload_to=RandomFileName(
         "submission_files"))
     result = models.TextField(null=True, blank=True)
