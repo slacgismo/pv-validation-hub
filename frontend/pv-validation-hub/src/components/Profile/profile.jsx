@@ -1,20 +1,21 @@
-import { Avatar, Card, CardContent, CardMedia, Grid, Typography } from "@mui/material";
+import { Avatar, Card, CardContent, CardMedia, CircularProgress, Grid, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import Cookies from 'universal-cookie';
-import { UserService } from "../../services/user_service";
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
+import {UserService} from "../../services/user_service"
+
 export default function Profile() {
     const cookies = new Cookies();
     let user = cookies.get("user");
-
-    const userResponse = UserService.GetUserDetails(user);
+    const [isLoading, error, userResponse] = UserService.useGetUserDetails(user.id);
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
-                user === undefined || user === null
+                user === undefined || user === null || error != null
                     ?
                     <BlurryPage />
                     :
+                    isLoading ? <CircularProgress/> :
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={3}>
                             <Card

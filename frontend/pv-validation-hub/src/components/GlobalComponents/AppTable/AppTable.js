@@ -42,7 +42,7 @@ export default function AppTable(props) {
                       const value = row[column.id];
                       return (
                         <TableCell key={column.id} align={column.align}>
-                          {column.format && typeof value === 'number'
+                          {column.format && (value != null || value != undefined)
                             ? column.format(value)
                             : value}
                         </TableCell>

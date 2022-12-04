@@ -4,8 +4,6 @@ import PropTypes from 'prop-types';
 
 export default function Data(props) {
 
-    const datasetDetails = DashboardService.getAnalysisDataset(props.analysis_id);
-
     const handleDownloadClick = (url) => {
         const a = document.createElement('a')
         a.href = url
@@ -23,16 +21,7 @@ export default function Data(props) {
                         Dataset Description
                     </Typography>
                     <Typography variant="body2">
-                        {datasetDetails.description}
-                    </Typography>
-                    <Typography variant="body2">
-                        <b>Test Data: </b> {datasetDetails.train_data}
-                    </Typography>
-                    <Typography variant="body2">
-                        <b>Train Data: </b> {datasetDetails.test_data}
-                    </Typography>
-                    <Typography variant="body2">
-                        <b>Final Note: </b> {datasetDetails.final_note}
+                        {props.data_description}
                     </Typography>
                 </Box>
             </Grid>
@@ -42,15 +31,15 @@ export default function Data(props) {
                         Files
                     </Typography>
                     <Typography variant="body2">
-                        {datasetDetails.number_of_files}
+                        {3}
                     </Typography>
                     <Typography variant="h6">
                         Type
                     </Typography>
                     <Typography variant="body2">
-                        {datasetDetails.type_of_files}
+                        {"ZIP"}
                     </Typography>
-                    <Button align="right" onClick={() => { handleDownloadClick(datasetDetails.file) }} variant="contained" sx={{ backgroundColor: "black", width: "100%", height: "75%", fontSize: "small", marginTop: 3}}>
+                    <Button align="right" onClick={() => { handleDownloadClick(props.downloadable_link) }} variant="contained" sx={{ backgroundColor: "black", width: "100%", height: "75%", fontSize: "small", marginTop: 3 }}>
                         Download Files
                     </Button>
                 </Box>

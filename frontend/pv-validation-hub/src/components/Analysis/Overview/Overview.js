@@ -5,16 +5,14 @@ import { DashboardService } from '../../../services/dashboard_service';
 
 export default function Overview(props) {
 
-    const overviewData = DashboardService.getAnalysisOverview(props.analysis_id);
-
     return (
         <Container>
             <Box sx={{ flexGrow: 1, border: '1px black'}}>
                 <Typography variant='h5'>
-                    {overviewData.title}
+                    {props.title}
                 </Typography>
                 <Typography variant='body2'>
-                    {overviewData.description}
+                    {props.description}
                 </Typography>
             </Box>
             <Grid container spacing={2} sx={{marginTop: 6}}>
@@ -23,7 +21,7 @@ export default function Overview(props) {
                         <Grid container spacing={2}>
                             <Grid item xs={7} md={6}>
                                 <Typography align="center" variant='h4'>
-                                    {overviewData.number_of_submission}
+                                    {100}
                                 </Typography>
                                 <Typography align="center" variant='h6' sx={{color: "gray"}}>
                                     Entries
@@ -31,7 +29,7 @@ export default function Overview(props) {
                             </Grid>
                             <Grid item xs={7} md={6}>
                                 <Typography align="center" variant='h4'>
-                                    {overviewData.number_of_developers}
+                                    {20}
                                 </Typography>
                                 <Typography align="center" variant='h6' sx={{color: "gray"}}>
                                     People
@@ -45,7 +43,7 @@ export default function Overview(props) {
                         <Grid container spacing={2}>
                             <Grid item xs={7} md={6}>
                                 <Typography align="center" variant='h4'>
-                                    {overviewData.users_points}
+                                    {200}
                                 </Typography>
                                 <Typography align="center" variant='h6' sx={{color: "gray"}}>
                                     Score
@@ -53,7 +51,7 @@ export default function Overview(props) {
                             </Grid>
                             <Grid item xs={7} md={6}>
                                 <Typography align="center" variant='h4'>
-                                    {overviewData.users_ranking}
+                                    {10}
                                 </Typography>
                                 <Typography align="center" variant='h6' sx={{color: "gray"}}>
                                     Rank

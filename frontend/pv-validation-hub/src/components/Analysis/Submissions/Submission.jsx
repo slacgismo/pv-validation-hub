@@ -1,52 +1,84 @@
 import { DashboardService } from "../../../services/dashboard_service";
 import AppTable from "../../GlobalComponents/AppTable/AppTable";
 import PropTypes from 'prop-types';
+import { CircularProgress, Tooltip } from "@mui/material";
+import DownloadIcon from '@mui/icons-material/Download';
+import PublishedWithChangesIcon from '@mui/icons-material/PublishedWithChanges';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import RunCircleIcon from '@mui/icons-material/RunCircle';
+import SmsFailedIcon from '@mui/icons-material/SmsFailed';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
 export default function Submission(props) {
 
+    const status_to_icon = {
+        "submitted": <Tooltip title="Submitted"><PublishedWithChangesIcon /></Tooltip>,
+        "submitting": <Tooltip title="Submitting"><AccessTimeIcon /></Tooltip>,
+        "running": <Tooltip title="Running"><RunCircleIcon /></Tooltip>,
+        "failed": <Tooltip title="Failed"><SmsFailedIcon /></Tooltip>,
+        "finished": <Tooltip title="Finished"><CloudDoneIcon /></Tooltip>
+    }
+
+    const handleDownloadClick = (url) => {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = url.split('/').pop()
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+    }
+
     const columns = [
-        { id: 'analysis_id', label: 'Analysis ID', minWidth: 100 },
-        { id: 'ranking_id', label: 'Ranking', minWidth: 170 },
         {
-            id: 'score',
-            label: 'Score',
+            id: 'analysis',
+            label: 'Analysis ID',
+            minWidth: 100,
+            aligh: 'center',
+            format: (value) => {
+                return value != null ? value.analysis_id : null
+            }
+        },
+        // { id: 'ranking_id', label: 'Ranking', minWidth: 170 },
+        {
+            id: 'result',
+            label: 'Result',
             minWidth: 120,
             align: 'left',
-            format: (value) => value.toLocaleString('en-US'),
+            format: (value) => {
+                return value != null ? value.split1.score : null
+            },
         },
         {
-            id: 'submit_time',
-            label: 'Submit Time',
+            id: 'status',
+            label: 'Status',
             minWidth: 120,
-            align: 'left'
+            align: 'right',
+            format: (value) => {
+                return (status_to_icon[value])
+            }
         },
         {
-            id: 'execution_time',
-            label: 'Time to Execute',
-            minWidth: 120,
-            align: 'center'
-        },
-        {
-            id: 'error',
-            label: 'Error',
-            minWidth: 120,
-            align: 'right'
-        },
-        {
-            id: 'algorithm_url',
+            id: 'algorithm',
             label: 'Algorithm',
             minWidth: 200,
-            align: 'center'
+            align: 'center',
+            format: (value) => {
+                let download_link = value.split("/").pop();
+                return (<a href={value} download={value}><DownloadIcon /></a>);
+            }
         },
     ]
-    const rows = DashboardService.getSubmission(props.analysis_id);
+    let url = "jobs/analysis/" + props.analysis_id + "/user_submission/" + props.user_id;
+    const [isLoading, error, rows] = DashboardService.useGetSubmissions(url);
     return (
-        <AppTable
-            columns={columns}
-            rows={rows}
-        />
+        isLoading ? <CircularProgress /> :
+            <AppTable
+                columns={columns}
+                rows={rows}
+            />
     )
 }
 
 Submission.props = {
-    analysis_id: PropTypes.string
+    analysis_id: PropTypes.string,
+    user_id: PropTypes.string
 }

@@ -104,8 +104,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # Application definition
 
 INSTALLED_APPS = [
-    'backend.apps.BackendConfig',
-    'corsheaders',
     'accounts.apps.AccountsConfig',
     'analyses.apps.AnalysesConfig',
     'jobs.apps.JobsConfig',
@@ -172,24 +170,12 @@ else:
     hostname = db_secrets['host']
     port = db_secrets['port']
 
-if hostname is not None:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'test',  # db_name,
-            'USER': username,
-            'PASSWORD': password,
-            'HOST': hostname,
-            'PORT': port,
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # Password validation

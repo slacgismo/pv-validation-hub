@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Box, Button, TextField } from '@mui/material';
+import { Alert, Box, Button, TextField } from '@mui/material';
 import { Container } from "@mui/system";
 import Validation from '../../services/validation_service';
 import { useNavigate } from "react-router-dom";
 import Cookies from 'universal-cookie';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
-import { UserService } from "../../services/user_service";
+import client from "../../services/api_service";
 
 export default function Login() {
 
     const cookies = new Cookies();
+
+    const [showAlert, setShowAlert] = useState("none");
 
     const navigate = useNavigate();
     const [loginStates, setLoginStates] = useState({
@@ -69,16 +71,17 @@ export default function Login() {
         let password = loginStates.password;
         let usernameError = validateUsername(username);
         if (usernameError === "" && password !== "") {
-            const loginResponse = UserService.login(username, password);
-            if (loginResponse != null) {
-                cookies.set("user", loginResponse.user_id, { path: '/', sameSite: "strict" });
-                //cookies.set("user", "juliusomo", { path: '/', sameSite: "strict" });
+            client.post("/login", {
+                username: username,
+                password: password
+            }).then(response => {
+                console.log(response);
+                cookies.set("user", response.data, { path: '/', sameSite: "strict" });
                 navigate("/dashboard");
-            }
-            else{
-                cookies.set("user", "juliusomo", { path: '/', sameSite: "strict", maxAge: 7200000 });
-                navigate("/dashboard");
-            }
+            }).catch(error => {
+                setShowAlert("block");
+                setTimeout(() => { setShowAlert("none") }, 10);
+            })
         }
         else {
             setLoginErrors(prevState => ({
@@ -97,6 +100,7 @@ export default function Login() {
                 p: 1,
                 m: 1,
             }}>
+            <Alert sx={{ display: showAlert }} severity="error">Login Failed</Alert>
             <Box
                 component="form"
                 sx={{

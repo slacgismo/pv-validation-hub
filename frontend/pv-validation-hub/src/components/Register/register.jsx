@@ -104,8 +104,11 @@ export default function Register(props) {
             const response = UserService.register(
                 registerStates.username,
                 registerStates.email,
-                registerStates.password
+                registerStates.password,
+                registerStates.first_name,
+                registerStates.last_name
             );
+            console.log(response);
             if (response!== null) {
                 navigate("/login");
             }

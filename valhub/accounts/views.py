@@ -10,7 +10,6 @@ from .models import Account
 import json
 
 
-@api_view(["POST"])
 @csrf_exempt
 @api_view(["POST"])
 def register(request):
@@ -31,9 +30,8 @@ def register(request):
     return JsonResponse(serializer.data)
 
 
-@api_view(["POST"])
 @csrf_exempt
-@api_view(["GET"])
+@api_view(["POST"])
 def login(request):
     _username = request.data['username']
     _password = request.data['password']
