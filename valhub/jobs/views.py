@@ -18,7 +18,7 @@ from base.utils import upload_to_s3_bucket
 from accounts.models import Account
 from .models import Submission
 
-from .serializers import SubmissionSerializer
+from .serializers import SubmissionSerializer, SubmissionDetailSerializer
 from .models import Submission
 
 # Create your views here.
@@ -107,5 +107,13 @@ def submission_detail(request, pk):
     if submission is None:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-    serializer = SubmissionSerializer(submission)
+    serializer = SubmissionDetailSerializer(
+        data={
+            'submission_id': str(submission.submission_id),
+            'analysis_id': str(submission.analysis.analysis_id),
+            'user_id': str(submission.created_by.id),
+            'algorithm': str(submission.algorithm),
+            'result': str(submission.result)
+        }
+    )
     return Response(serializer.data)

@@ -12,4 +12,12 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Submission
-        fields = ("submission_id","analysis", "algorithm",)
+        fields = ("algorithm",)
+
+class SubmissionDetailSerializer(serializers.ModelSerializer):
+    """
+    Serialize the details of Submission Model.
+    """
+    class Meta:
+        model = Submission
+        fields = ("submission_id", "algorithm", "analysis_id", "user_id", "result")     

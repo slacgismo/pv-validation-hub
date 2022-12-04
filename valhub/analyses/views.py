@@ -13,6 +13,7 @@ import boto3
 import os
 
 from .models import Analysis
+from jobs.models import Submission
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 from accounts.models import Account
@@ -102,5 +103,20 @@ def analysis_detail(request, analysis_id):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
     # print(analysis)
     response_data = serializers.serialize('json', [analysis])
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+def leaderboard(request, analysis_id):
+    _analysis = Analysis.objects.get(analysis_id=analysis_id)
+
+    if _analysis is None:
+        response_data = {"error": "analysis does not exist"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    submission_list = Submission.objects.filter(analysis=_analysis)
+    response_data = serializers.serialize('json', [submission_list])
 
     return Response(response_data, status=status.HTTP_200_OK)

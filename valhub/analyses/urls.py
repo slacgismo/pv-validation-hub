@@ -18,4 +18,9 @@ urlpatterns = [
         views.analysis_detail,
         name="analysis_detail",
     ),
+    path(
+        "<int:analysis_id>/leaderboard",
+        views.leaderboard,
+        name="leaderboard"
+    )
 ]
