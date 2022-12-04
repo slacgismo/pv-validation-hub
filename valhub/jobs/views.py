@@ -114,9 +114,8 @@ def submission_detail(request, analysis_id, submission_id):
 
 @api_view(["GET"])
 @csrf_exempt
-def user_submission(request):
+def user_submission(request, user_id):
     # get user account
-    user_id = request.data["user_id"]
     try:
         user = Account.objects.get(id=user_id)
     except Account.DoesNotExist:
