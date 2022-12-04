@@ -18,15 +18,6 @@ export default function Submission(props) {
         "finished": <Tooltip title="Finished"><CloudDoneIcon /></Tooltip>
     }
 
-    const handleDownloadClick = (url) => {
-        const a = document.createElement('a')
-        a.href = url
-        a.download = url.split('/').pop()
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-    }
-
     const columns = [
         {
             id: 'analysis',
@@ -62,8 +53,8 @@ export default function Submission(props) {
             minWidth: 200,
             align: 'center',
             format: (value) => {
-                let download_link = value.split("/").pop();
-                return (<a href={value} download={value}><DownloadIcon /></a>);
+                value = value.replace("/media/","//");
+                return (<a href={value} download><DownloadIcon /></a>);
             }
         },
     ]
