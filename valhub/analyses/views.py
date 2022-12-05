@@ -14,6 +14,7 @@ import os
 
 from .models import Analysis
 from jobs.models import Submission
+from jobs.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 from accounts.models import Account
@@ -120,6 +121,6 @@ def leaderboard(request, analysis_id):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     submission_list = Submission.objects.filter(analysis=_analysis)
-    response_data = serializers.serialize('json', [submission_list])
+    response_data = SubmissionDetailSerializer(submission_list, many=True)
 
     return Response(response_data, status=status.HTTP_200_OK)
