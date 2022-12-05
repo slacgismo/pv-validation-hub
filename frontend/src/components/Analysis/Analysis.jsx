@@ -154,7 +154,7 @@ export default function Analysis() {
                                 :
                                 <Submission
                                     analysis_id={analysis_id}
-                                    user_id={user.id}
+                                    user_id={user != null || user != undefined ? user.id: user}
                                 />
                         }
                     </TabPanel>
