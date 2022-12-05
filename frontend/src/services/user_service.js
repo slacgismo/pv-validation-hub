@@ -12,21 +12,27 @@ export const UserService = {
         const [error, setError] = useState(null);
 
         useEffect(() => {
-            const url = base_uri + "/account/" + userId;
-            client.get(url)
-                .then(response => {
-                    let output = response.data();
-                    output["avatar"] = faker.image.avatar();
-                    output["location"] = faker.address.city() + ", " + faker.address.stateAbbr();
-                    output["subscriptionTier"] = faker.helpers.arrayElement(['admin', 'developer', 'viewer']);
-                    setUserDetails(response);
-                    console.log(response);
-                    setIsLoading(false);
+            if (userId != undefined) {
+                const url = base_uri + "/account/" + userId + "/";
+                client.get(url, {
+                    headers: {
+                        "Access-Control-Allow-Origin": "*"
+                    }
                 })
-                .catch(error => {
-                    setError(error);
-                    setIsLoading(false);
-                })
+                    .then(response => {
+                        let output = response.data();
+                        output["avatar"] = faker.image.avatar();
+                        output["location"] = faker.address.city() + ", " + faker.address.stateAbbr();
+                        output["subscriptionTier"] = faker.helpers.arrayElement(['admin', 'developer', 'viewer']);
+                        setUserDetails(response);
+                        console.log(response);
+                        setIsLoading(false);
+                    })
+                    .catch(error => {
+                        setError(error);
+                        setIsLoading(false);
+                    })
+            }
         }, [userId]);
         return [isLoading, error, userDetails];
 

@@ -22,27 +22,42 @@ export default function Submission(props) {
         {
             id: 'analysis',
             label: 'Analysis ID',
-            minWidth: 100,
+            minWidth: 50,
             aligh: 'center',
             format: (value) => {
                 return value != null ? value.analysis_id : null
             }
         },
-        // { id: 'ranking_id', label: 'Ranking', minWidth: 170 },
         {
             id: 'result',
-            label: 'Result',
-            minWidth: 120,
+            label: 'Score',
+            minWidth: 50,
             align: 'left',
             format: (value) => {
                 return value != null ? value.split1.score : null
             },
         },
         {
+            id: 'submitted_at',
+            label: 'Submitted Date',
+            minWidth: 100,
+            aligh: 'left'
+        },
+        {
+            id: 'execution_time',
+            label: 'Execution Time',
+            minWidth: 100,
+            aligh: 'center',
+            key: 'result',
+            format: (value) => {
+                return value != null ? value.execution_time : null
+            }
+        },
+        {
             id: 'status',
             label: 'Status',
-            minWidth: 120,
-            align: 'right',
+            minWidth: 50,
+            align: 'left',
             format: (value) => {
                 return (status_to_icon[value])
             }
@@ -50,7 +65,7 @@ export default function Submission(props) {
         {
             id: 'algorithm',
             label: 'Algorithm',
-            minWidth: 200,
+            minWidth: 50,
             align: 'center',
             format: (value) => {
                 value = value.replace("/media/","//");

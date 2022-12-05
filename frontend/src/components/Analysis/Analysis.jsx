@@ -1,8 +1,6 @@
 import { Box, Grid, Button, Tab, Tabs, Typography, CircularProgress } from "@mui/material";
 import { Container } from "@mui/system";
 import { useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import { DashboardService } from "../../services/dashboard_service";
 import TabPanel from "../GlobalComponents/TabPanel/TabPanel";
 import Data from "./Data/Data";
 import { CommentProvider } from "./Discussion/CommentContext";
@@ -16,7 +14,6 @@ import ReactModal from "react-modal";
 import Cookies from 'universal-cookie';
 import { FileUploader } from "react-drag-drop-files";
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
-import { useEffect } from "react";
 import { AnalysisService } from "../../services/analysis_service";
 import { faker } from "@faker-js/faker";
 export default function Analysis() {
@@ -212,7 +209,7 @@ export default function Analysis() {
                             <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
                                 {file ? `File name: ${file.name}` : "No files uploaded yet."}
                             </Typography>
-                            <Button variant="contained" onClick={() => { handleUpload() }}>Upload</Button>
+                            <Button variant="contained" onClick={handleUpload}>Upload</Button>
                         </Box>
                     </Box>
                 </ReactModal>

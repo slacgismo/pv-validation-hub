@@ -67,7 +67,7 @@ class AccountDetail(APIView):
     """
     Retrieve, update or delete a user.
     """
-
+    @csrf_exempt
     def get_object(self, pk):
         try:
             # _id = request.data["id"]
@@ -75,7 +75,7 @@ class AccountDetail(APIView):
             return Account.objects.get(pk=pk)
         except Account.DoesNotExist:
             return HttpResponse(status=404)
-
+    @csrf_exempt
     def get(self, request, pk):
         account = self.get_object(pk=pk)
         _account = Account(
@@ -87,7 +87,7 @@ class AccountDetail(APIView):
             )
         serializer = AccountSerializer(_account)
         return JsonResponse(serializer.data)
-
+    @csrf_exempt
     def put(self, request, pk):
         account = self.get_object(pk=pk)
         serializer = AccountSerializer(account, data=request.data)
@@ -95,7 +95,7 @@ class AccountDetail(APIView):
             serializer.save()
             return JsonResponse(serializer.data)
         return JsonResponse(serializer.errors, status=400)
-
+    @csrf_exempt
     def delete(self, request, pk):
         account = self.get_object(pk=pk)
         account.delete()

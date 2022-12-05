@@ -1,6 +1,7 @@
 import { DashboardService } from "../../../services/dashboard_service";
 import AppTable from "../../GlobalComponents/AppTable/AppTable";
 import PropTypes from 'prop-types';
+import { CircularProgress } from "@mui/material";
 export default function Leaderboard(props) {
 
     const columns = [
@@ -13,13 +14,15 @@ export default function Leaderboard(props) {
             align: 'center'
         },
     ]
-    const rows = DashboardService.getLeaderBoard(props.analysis_id);
+    let url = "/analysis/" + props.analysis_id + "/leaderboard";
+    const [isLoading, error, rows] = DashboardService.useGetLeaderBoard(url);
 
     return (
-        <AppTable
-            columns={columns}
-            rows={rows}
-        />
+        isLoading ? <CircularProgress /> :
+            <AppTable
+                columns={columns}
+                rows={rows}
+            />
     )
 }
 
