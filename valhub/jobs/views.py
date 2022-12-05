@@ -108,8 +108,16 @@ def submission_detail(request, analysis_id, submission_id):
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    response_data = SubmissionSerializer(submission).data
-    return Response(response_data, status=status.HTTP_200_OK)
+    serializer = SubmissionDetailSerializer(
+        data={
+            'submission_id': str(submission.submission_id),
+            'analysis_id': str(submission.analysis.analysis_id),
+            'user_id': str(submission.created_by.id),
+            'algorithm': str(submission.algorithm),
+            'result': str(submission.result)
+        }
+    )
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
@@ -123,6 +131,8 @@ def user_submission(request, user_id):
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     submissions = Submission.objects.filter(created_by=user)
+
+    return Response(serializer.data)
     # response_data = serializers.serialize('json', submissions)
     response_data = SubmissionSerializer(submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
