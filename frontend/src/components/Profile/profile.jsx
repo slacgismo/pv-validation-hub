@@ -2,20 +2,18 @@ import { Avatar, Card, CardContent, CardMedia, CircularProgress, Grid, Typograph
 import { Box } from "@mui/system";
 import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
-import {UserService} from "../../services/user_service"
+import { UserService } from "../../services/user_service"
+import { faker } from "@faker-js/faker";
 
 export default function Profile() {
     const cookies = new Cookies();
     let user = cookies.get("user");
-    const [isLoading, error, userResponse] = UserService.useGetUserDetails(user.id);
+    let url = "/account/" + user.id + "/";
+    const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
-                user === undefined || user === null || error != null
-                    ?
-                    <BlurryPage />
-                    :
-                    isLoading ? <CircularProgress/> :
+                isLoading ? <CircularProgress /> :
                     <Grid container spacing={2}>
                         <Grid item xs={12} md={3}>
                             <Card
@@ -25,7 +23,7 @@ export default function Profile() {
                                     <Avatar
                                         sx={{ height: 170, width: 174 }}
                                         alt={userResponse.firstName}
-                                        src={userResponse.avatar}
+                                        src={faker.image.avatar()}
                                     />
 
                                 </CardMedia>
@@ -34,11 +32,11 @@ export default function Profile() {
                                         {userResponse.firstName + " " + userResponse.lastName}
                                     </Typography>
                                     <Typography variant="overline" color={"gray"}>
-                                        {userResponse.subscriptionTier}
+                                        {faker.helpers.arrayElement(['admin', 'developer', 'viewer'])}
                                     </Typography>
                                     <br />
                                     <Typography variant="overline" color={"gray"}>
-                                        {userResponse.location}
+                                        {faker.address.city() + ", " + faker.address.stateAbbr()}
                                     </Typography>
                                 </CardContent>
                             </Card>
@@ -97,7 +95,7 @@ export default function Profile() {
                                             </Grid>
                                             <Grid item xs={8}>
                                                 <Typography variant="body2">
-                                                    {userResponse.location}
+                                                    {faker.address.city() + ", " + faker.address.stateAbbr()}
                                                 </Typography>
                                             </Grid>
                                         </Grid>
@@ -111,7 +109,7 @@ export default function Profile() {
                                             </Grid>
                                             <Grid item xs={8}>
                                                 <Typography variant="body2">
-                                                    {userResponse._id}
+                                                    {userResponse.id}
                                                 </Typography>
                                             </Grid>
                                         </Grid>
