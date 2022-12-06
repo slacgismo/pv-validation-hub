@@ -27,12 +27,12 @@ const Footer = () => {
                         <Box sx={{ marginLeft: 9 }}>
                             <Grid container spacing={2}>
                                 <Grid item xs={2}>
-                                    <Link href="#" underline="hover" color="inherit">
+                                    <Link href="https://www6.slac.stanford.edu/news-and-events/connect-with-us" underline="hover" color="inherit">
                                         Community
                                     </Link>
                                 </Grid>
                                 <Grid item xs={2}>
-                                    <Link href="#" underline="hover" color="inherit">
+                                    <Link href="https://www6.slac.stanford.edu/about" underline="hover" color="inherit">
                                         Company
                                     </Link>
 
@@ -60,12 +60,12 @@ const Footer = () => {
                                     </Box>
                                 </Grid>
                                 <Grid item xs={2}>
-                                    <Link href="#" underline="hover" color="inherit">
+                                    <Link href="https://www6.slac.stanford.edu/news-and-events/news-center" underline="hover" color="inherit">
                                         Blog
                                     </Link>
                                 </Grid>
                                 <Grid item xs={2}>
-                                    <Link href="#" underline="hover" color="inherit">
+                                    <Link href="https://www6.slac.stanford.edu/about/resources" underline="hover" color="inherit">
                                         Resources
                                     </Link>
                                 </Grid>

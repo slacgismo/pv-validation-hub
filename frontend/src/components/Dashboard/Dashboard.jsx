@@ -4,10 +4,7 @@ import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
-import CardActions from '@mui/material/CardActions';
 import Avatar from '@mui/material/Avatar';
-import IconButton from '@mui/material/IconButton';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import { DashboardService } from "../../services/dashboard_service";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -18,6 +15,7 @@ import ReactModal from "react-modal";
 import CancelIcon from '@mui/icons-material/Cancel';
 import Cookies from 'universal-cookie';
 import { faker } from "@faker-js/faker";
+import Footer from "../GlobalComponents/Footer/footer";
 
 export default function Dashboard() {
 
@@ -51,32 +49,30 @@ export default function Dashboard() {
     const render_card = (card, index) => {
         return (
             <Grid item xs={2} sm={4} md={4} key={index}>
-                <Card sx={{ maxWidth: 345 }} key={card.analysis_id} onClick={() => handleCardClick(card.analysis_id, card.analysis_name)}>
+                <Card sx={{ maxWidth: 345, height: 380 }} key={card.analysis_id} onClick={() => handleCardClick(card.analysis_id, card.analysis_name)}>
                     <CardHeader
                         avatar={
-                            <Avatar sx={{ backgroundImage: faker.image.avatar()}} aria-label="Analysis">
-                                {card.creator.username[0].toUpperCase()}
-                            </Avatar>
+                            <Avatar
+                                alt={card.creator.username[0].toUpperCase()}
+                                src={faker.image.avatar()}
+                                aria-label="Analysis"
+                            />
                         }
+                        sx={{ height: 61 }}
                         title={card.analysis_name}
                         subheader={card.creator.username}
                     />
                     <CardMedia
                         component="img"
                         height="194"
-                        image={faker.image.business()}
+                        src={faker.image.abstract(640,480,true)}
                         alt={card.analysis_name}
                     />
                     <CardContent>
                         <Typography variant="body2" color="text.secondary">
-                            {card.short_description}
+                            {card.short_description.length > 100 ? card.short_description.slice(0, 100) + "....." : card.short_description}
                         </Typography>
                     </CardContent>
-                    <CardActions disableSpacing>
-                        <IconButton aria-label="add to favorites">
-                            <FavoriteIcon />
-                        </IconButton>
-                    </CardActions>
                 </Card>
             </Grid>
         )
@@ -99,25 +95,30 @@ export default function Dashboard() {
                     </Box>
                 </Grid>
                 <Grid item>
-                    <Box sx={{ marginTop: 2, marginBottom: 1 }}>
-                        <Button
-                            variant="contained"
-                            onClick={() => {
-                                openModal();
-                            }}>
-                            Upload Analysis
-                        </Button>
-                    </Box>
+                    {
+                        user == undefined || user == null ?
+                            null
+                            :
+                            <Box sx={{ marginTop: 2, marginBottom: 1 }}>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => {
+                                        openModal();
+                                    }}>
+                                    Upload Analysis
+                                </Button>
+                            </Box>
+                    }
                 </Grid>
             </Grid>
-            <Box sx={{ flexGrow: 1, marginTop: 3 }}>
+            <Box sx={{ flexGrow: 1, marginTop: 3, marginBottom: 10 }}>
                 {
                     isLoading ?
                         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                             <CircularProgress />
                         </Box>
                         :
-                        <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }}>
+                        <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }} alignItems="stretch">
                             {cardDetails.map(render_card)}
                         </Grid>
                 }
@@ -150,7 +151,7 @@ export default function Dashboard() {
                                 onClick={() => closeModal()} />
                         </Grid>
                     </Grid>
-                    <UploadAnalysis user_id={user != null || user != undefined ? user.id: user} />
+                    <UploadAnalysis user_id={user != null || user != undefined ? user.id : user} />
                 </Box>
             </ReactModal>
         </Container >

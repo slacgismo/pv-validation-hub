@@ -18,6 +18,31 @@ export default function Submission(props) {
         "finished": <Tooltip title="Finished"><CloudDoneIcon /></Tooltip>
     }
 
+    const get_score_from_result = (value) => {
+        if (value == null && value == undefined) return null;
+        let value_obj = JSON.parse(value);
+        if (value_obj == null && value_obj == undefined) return null;
+        let result = value_obj["result"];
+        if (result == null && result == undefined) return null;
+        let final_score = 0;
+        let count = 1;
+        for (var split of result) {
+            final_score += split["split" + count]["score"]
+            console.log(final_score);
+            count += 1;
+        }
+        return final_score;
+    }
+
+    const get_evaluation_time = (value) => {
+        if (value == null && value == undefined) return null;
+        let value_obj = JSON.parse(value);
+        if (value_obj == null && value_obj == undefined) return null;
+        let time = value_obj["execution_time"];
+        if (time == null && time == undefined) return null;
+        return time;
+    }
+
     const columns = [
         {
             id: 'analysis',
@@ -34,7 +59,7 @@ export default function Submission(props) {
             minWidth: 50,
             align: 'left',
             format: (value) => {
-                return value != null ? value.split1.score : null
+                return get_score_from_result(value)
             },
         },
         {
@@ -50,7 +75,7 @@ export default function Submission(props) {
             aligh: 'center',
             key: 'result',
             format: (value) => {
-                return value != null ? value.execution_time : null
+                return get_evaluation_time(value);
             }
         },
         {
@@ -68,7 +93,7 @@ export default function Submission(props) {
             minWidth: 50,
             align: 'center',
             format: (value) => {
-                value = value.replace("/media/","//");
+                value = value.replace("/media/", "//");
                 return (<a href={value} download><DownloadIcon /></a>);
             }
         },

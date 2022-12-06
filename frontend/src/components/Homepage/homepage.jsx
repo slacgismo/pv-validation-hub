@@ -14,6 +14,15 @@ export default function Homepage() {
         window.location = "mailto:aanandak@andrew.cmu.edu";
     }
 
+    const handleNavigate = (url) => {
+        const a = document.createElement('a')
+        a.target = '_blank'
+        a.href = url
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+    }
+
     const highlight_data = HomepageService.getHighlights();
     const hub_gist = HomepageService.getValidationHubGist();
     return (
@@ -53,45 +62,74 @@ export default function Homepage() {
                 <Grid item xs={6}>
                     <Box m={10}>
                         <Typography variant="h4">
-                            {highlight_data[0].heading}
+                            Research
                         </Typography>
                         <Typography sx={{ marginTop: 1 }} variant="body1">
-                            {highlight_data[0].description}
+                            SLAC research explores nature on all scales, from the unseen realms of fundamental
+                            particles and unbelievably fast processes to astrophysical phenomena of cosmic dimensions.
+                            Our research opens new windows to the natural world and builds a brighter future through
+                            scientific discovery.
                         </Typography>
-                        <Button sx={{ marginTop: 5 }} variant="outlined">Learn More</Button>
+                        <Button
+                            sx={{ marginTop: 5 }}
+                            variant="outlined"
+                            onClick={() => handleNavigate("https://www6.slac.stanford.edu/research")}
+                        >
+                            Learn More
+                        </Button>
                     </Box>
                 </Grid>
                 <Grid item xs={6}>
                     <Box m={10}>
                         <Typography variant="h4">
-                            {highlight_data[1].heading}
+                            Our Story
                         </Typography>
                         <Typography sx={{ marginTop: 1 }} variant="body1">
-                            {highlight_data[1].description}
+                            SLAC began in 1962 with construction of a 2-mile-long electron accelerator that
+                            would take particle physics to new heights. Today we are known for conducting
+                            a broad range of research, leading large-scale science projects,
+                            and welcoming scientists around the world
                         </Typography>
-                        <Button sx={{ marginTop: 5 }} variant="outlined">Learn More</Button>
+                        <Button
+                            sx={{ marginTop: 5 }}
+                            variant="outlined"
+                            onClick={() => handleNavigate("https://www6.slac.stanford.edu/about/our-story")}>
+                            Learn More
+                        </Button>
                     </Box>
                 </Grid>
                 <Grid item xs={6}>
                     <Box m={10}>
                         <Typography variant="h4">
-                            {highlight_data[2].heading}
+                            News & Events
                         </Typography>
                         <Typography sx={{ marginTop: 1 }} variant="body1">
-                            {highlight_data[2].description}
+                            Get the latest news about the lab, our science and discoveries. Explore SLAC events and learn how to participate.
+                            Stay up to date on our latest scientific advances and research tools.
                         </Typography>
-                        <Button sx={{ marginTop: 5 }} variant="outlined">Learn More</Button>
+                        <Button
+                            sx={{ marginTop: 5 }}
+                            variant="outlined"
+                            onClick={() => handleNavigate("https://www6.slac.stanford.edu/news-and-events/news-center")}>
+                            Learn More
+                        </Button>
                     </Box>
                 </Grid>
                 <Grid item xs={6}>
                     <Box m={10}>
                         <Typography variant="h4">
-                            {highlight_data[3].heading}
+                            Resources
                         </Typography>
                         <Typography sx={{ marginTop: 1 }} variant="body1">
-                            {highlight_data[3].description}
+                            Explore our research through graphics, videos and photographs selected by our staff.
+                            Visit our public Flickr albums and YouTube videos for more.
                         </Typography>
-                        <Button sx={{ marginTop: 5 }} variant="outlined">Learn More</Button>
+                        <Button
+                            sx={{ marginTop: 5 }}
+                            variant="outlined"
+                            onClick={() => handleNavigate("https://www6.slac.stanford.edu/about/resources/images-and-videos")}>
+                            Learn More
+                        </Button>
                     </Box>
                 </Grid>
             </Grid>
@@ -103,12 +141,16 @@ export default function Homepage() {
             }}>
                 <Grid container spacing={2}>
                     <Grid item xs={7}>
-                        <Typography sx={{ marginLeft: 4, marginTop: 5 }} variant="body1">
-                            {hub_gist}
+                        <Typography sx={{ marginLeft: 4 }} variant="body1">
+                            Our goal is to develop an open-source toolkit written in Python, which automates
+                            the analysis of performance and reliability for fleets of photovoltaic (PV) systems.
+                            All our algorithms use unlabled PV system production data, that is, measurements of
+                            real power production over time without reference meteorological data or system configuration
+                            information, which allows for the algorithms to work with the minimal possible data requirements.
                         </Typography>
                     </Grid>
                     <Grid item xs={5}>
-                        <Grid container spacing={2} sx={{ marginTop: 5 }}>
+                        <Grid container spacing={2} sx={{ marginTop: 1 }}>
                             <Grid item xs={6}>
                                 <Button
                                     variant="contained"

@@ -15,6 +15,7 @@ import DiamondSharpIcon from '@mui/icons-material/DiamondSharp';
 import { useNavigate } from "react-router-dom";
 import { useState } from 'react';
 import Cookies from 'universal-cookie';
+import { faker } from "@faker-js/faker";
 const pages = ['Dashboard', 'Submission', 'Profile'];
 const settings = ['Logout'];
 
@@ -48,6 +49,12 @@ const Header = () => {
     <AppBar position="static" sx={{ backgroundColor: "white" }}>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
+          {/* <Box
+            component="img"
+            sx={{ height: 65, width: 100, display: { xs: 'none', md: 'flex' } }}
+            src="/logo-sm_1.png"
+            href="/"
+          /> */}
           <DiamondSharpIcon sx={{ display: { xs: 'none', md: 'flex', color: "black" }, mr: 1 }} />
           <Typography
             variant="h6"
@@ -144,7 +151,7 @@ const Header = () => {
               <Box sx={{ flexGrow: 0 }}>
                 <Tooltip title="Open settings">
                   <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                    <Avatar alt="User" src="/static/images/avatar/2.jpg" />
+                    <Avatar alt="User" src={faker.image.avatar()} />
                   </IconButton>
                 </Tooltip>
                 <Menu

@@ -21,6 +21,7 @@ export const DashboardService = {
                 })
                 .catch(error => {
                     setAnalysesError(error);
+                    setAnalysesDetails([]);
                     setAnalysesIsLoading(false);
                 })
         }, [analysisUrl]);

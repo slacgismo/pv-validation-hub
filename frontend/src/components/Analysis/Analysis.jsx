@@ -71,13 +71,13 @@ export default function Analysis() {
                     height: 200,
                     backgroundImage: `url(${faker.image.abstract(1200, 300)})`
                 }}>
-                    <Box sx={{ flexGrow: 1, marginTop: 1, marginLeft: 1 }}>
-                        <Typography color={"white"} variant="h2" gutterBottom>
+                    <Box sx={{ flexGrow: 1, marginTop: 4, marginLeft: 1 }}>
+                        <Typography color={"white"} variant="h4" gutterBottom>
                             {card.analysis_name}
                         </Typography>
                     </Box>
                     <Box sx={{ flexGrow: 1, marginTop: 2, marginLeft: 1 }}>
-                        <Typography color={"white"} variant="body1" gutterBottom>
+                        <Typography color={"white"} variant="body2" gutterBottom>
                             {card.short_description}
                         </Typography>
                     </Box>
@@ -98,21 +98,23 @@ export default function Analysis() {
                             <Grid item xs={6} md={2}>
                                 {
                                     showButton ?
-                                        <Button
-                                            align="right"
-                                            variant="contained"
-                                            onClick={() => {
-                                                openModal();
-                                            }}
-                                            sx={{
-                                                backgroundColor: "black",
-                                                width: "100%",
-                                                height: "70%",
-                                                fontSize: "small",
-                                                marginTop: 1
-                                            }}>
-                                            Upload Algorithm
-                                        </Button>
+                                        user !== undefined || user != null ?
+                                            <Button
+                                                align="right"
+                                                variant="contained"
+                                                onClick={() => {
+                                                    openModal();
+                                                }}
+                                                sx={{
+                                                    backgroundColor: "black",
+                                                    width: "100%",
+                                                    height: "70%",
+                                                    fontSize: "small",
+                                                    marginTop: 1
+                                                }}>
+                                                Upload Algorithm
+                                            </Button>
+                                            : null
                                         : null
                                 }
                             </Grid>
@@ -154,7 +156,7 @@ export default function Analysis() {
                                 :
                                 <Submission
                                     analysis_id={analysis_id}
-                                    user_id={user != null || user != undefined ? user.id: user}
+                                    user_id={user != null || user != undefined ? user.id : user}
                                 />
                         }
                     </TabPanel>

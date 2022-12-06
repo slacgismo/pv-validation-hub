@@ -39,7 +39,7 @@ export default function AppTable(props) {
                 return (
                   <TableRow hover role="checkbox" tabIndex={-1} key={index}>
                     {props.columns.map((column) => {
-                      const value = column.key ? row[column.key] : row[column.id];
+                      const value = column.key ? (column.key == "index" ? index+ 1 : row[column.key]) : row[column.id];
                       return (
                         <TableCell key={column.id} align={column.align}>
                           {column.format && (value != null || value != undefined)
