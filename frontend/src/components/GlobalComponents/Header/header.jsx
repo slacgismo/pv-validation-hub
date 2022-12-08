@@ -36,11 +36,20 @@ const Header = () => {
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
+  };
+  
+  const handleLogout = () => {
     cookies.remove("user");
     navigate("/");
-  };
+  }
 
   const handleCloseNavMenu = (location) => {
+    if (location === "Profile") {
+      location = location + "/" + cookies.get("user").id;
+    }
+    else if (location === "Submission") {
+      location = location + "/1";
+    }
     navigate("/" + location);
   };
 
@@ -171,7 +180,7 @@ const Header = () => {
                   onClose={handleCloseUserMenu}
                 >
                   {settings.map((setting) => (
-                    <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                    <MenuItem key={setting} onClick={handleLogout}>
                       <Typography textAlign="center">{setting}</Typography>
                     </MenuItem>
                   ))}

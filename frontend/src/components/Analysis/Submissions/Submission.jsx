@@ -8,6 +8,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import RunCircleIcon from '@mui/icons-material/RunCircle';
 import SmsFailedIcon from '@mui/icons-material/SmsFailed';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import LinkIcon from '@mui/icons-material/Link';
 export default function Submission(props) {
 
     const status_to_icon = {
@@ -66,7 +67,10 @@ export default function Submission(props) {
             id: 'submitted_at',
             label: 'Submitted Date',
             minWidth: 100,
-            aligh: 'left'
+            aligh: 'left',
+            format: (value) => {
+                return value != undefined || value != null ? value.split("T")[0] : null
+            }
         },
         {
             id: 'execution_time',
@@ -97,6 +101,15 @@ export default function Submission(props) {
                 return (<a href={value} download><DownloadIcon /></a>);
             }
         },
+        {
+            id: 'submission_id',
+            label: 'More Information',
+            minWidth: 50,
+            align: 'center',
+            format: (value) => {
+                return (<a href={`/submission/${value}`}><LinkIcon /></a>)
+            }
+        }
     ]
     let url = "jobs/analysis/" + props.analysis_id + "/user_submission/" + props.user_id;
     const [isLoading, error, rows] = DashboardService.useGetSubmissions(url);

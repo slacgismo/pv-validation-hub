@@ -49,114 +49,114 @@ export function UploadAnalysis(props) {
             setTimeout(() => { setErrored("none") }, 10)
             setAnalysisFormValues(defaultValues);
             setEvaluationScript(null);
+            props.closeModelFunc();
         }
         else {
             setSuccess("block");
             setTimeout(() => { setSuccess("none") }, 10)
             setAnalysisFormValues(defaultValues);
             setEvaluationScript(null);
+            props.closeModelFunc();
         }
     }
     return (
         <Container>
             <Alert sx={{ display: errored }} severity="error">Failed to create analysis - {analysisFormValues.name}</Alert>
             <Alert sx={{ display: success }} severity="success">Successfully created analysis - {analysisFormValues.names}</Alert>
-            <form onSubmit={handleSubmit}>
-                <Container sx={{
-                    marginTop: 5,
-                    marginLeft: 30,
-                    '& .MuiTextField-root': {
-                        m: 1,
-                        width: '60ch'
-                    }
-                }}>
-                    <Box sx={{ marginTop: 2 }}>
-                        <TextField
-                            id="anaylsis_name"
-                            name="name"
-                            label="Name"
-                            type="text"
-                            value={analysisFormValues.name}
-                            onChange={handleInputChange}
-                        />
+            <Container sx={{
+                marginTop: 5,
+                marginLeft: 30,
+                '& .MuiTextField-root': {
+                    m: 1,
+                    width: '60ch'
+                }
+            }}>
+                <Box sx={{ marginTop: 2 }}>
+                    <TextField
+                        id="anaylsis_name"
+                        name="name"
+                        label="Name"
+                        type="text"
+                        value={analysisFormValues.name}
+                        onChange={handleInputChange}
+                    />
 
-                    </Box>
-                    <Box sx={{ marginTop: 2 }}>
-                        <TextField
-                            id="summary"
-                            name="short_description"
-                            label="Summary"
-                            type="text"
-                            multiline
-                            minRows={4}
-                            maxRows={10}
-                            value={analysisFormValues.short_description}
-                            onChange={handleInputChange}
+                </Box>
+                <Box sx={{ marginTop: 2 }}>
+                    <TextField
+                        id="summary"
+                        name="short_description"
+                        label="Summary"
+                        type="text"
+                        multiline
+                        minRows={4}
+                        maxRows={10}
+                        value={analysisFormValues.short_description}
+                        onChange={handleInputChange}
+                    />
+                </Box>
+                <Box sx={{ marginTop: 2 }}>
+                    <TextField
+                        id="description"
+                        name="long_description"
+                        label="Overview"
+                        type="text"
+                        multiline
+                        minRows={7}
+                        maxRows={20}
+                        value={analysisFormValues.long_description}
+                        onChange={handleInputChange}
+                    />
+                </Box>
+                <Box sx={{ marginTop: 2 }}>
+                    <TextField
+                        id="dataset_description"
+                        name="dataset_description"
+                        label="Dataset Description"
+                        type="text"
+                        multiline
+                        minRows={7}
+                        maxRows={20}
+                        value={analysisFormValues.dataset_description}
+                        onChange={handleInputChange}
+                    />
+                </Box>
+                <Box sx={{ marginTop: 2 }}>
+                    <TextField
+                        id="rules"
+                        name="rules"
+                        label="Rule Set"
+                        type="text"
+                        multiline
+                        minRows={7}
+                        maxRows={20}
+                        value={analysisFormValues.rules}
+                        onChange={handleInputChange}
+                    />
+                </Box>
+                <Box sx={{ marginTop: 2 }}>
+                    <Box sx={{ marginBottom: 2 }}>
+                        <FileUploader
+                            multiple={false}
+                            handleChange={uploadFile}
+                            name="file"
+                            types={fileTypes}
                         />
                     </Box>
-                    <Box sx={{ marginTop: 2 }}>
-                        <TextField
-                            id="description"
-                            name="long_description"
-                            label="Overview"
-                            type="text"
-                            multiline
-                            minRows={7}
-                            maxRows={20}
-                            value={analysisFormValues.long_description}
-                            onChange={handleInputChange}
-                        />
-                    </Box>
-                    <Box sx={{ marginTop: 2 }}>
-                        <TextField
-                            id="dataset_description"
-                            name="dataset_description"
-                            label="Dataset Description"
-                            type="text"
-                            multiline
-                            minRows={7}
-                            maxRows={20}
-                            value={analysisFormValues.dataset_description}
-                            onChange={handleInputChange}
-                        />
-                    </Box>
-                    <Box sx={{ marginTop: 2 }}>
-                        <TextField
-                            id="rules"
-                            name="rules"
-                            label="Rule Set"
-                            type="text"
-                            multiline
-                            minRows={7}
-                            maxRows={20}
-                            value={analysisFormValues.rules}
-                            onChange={handleInputChange}
-                        />
-                    </Box>
-                    <Box sx={{ marginTop: 2 }}>
-                        <Box sx={{ marginBottom: 2 }}>
-                            <FileUploader
-                                multiple={false}
-                                handleChange={uploadFile}
-                                name="file"
-                                types={fileTypes}
-                            />
-                        </Box>
-                        <Typography color="gray" variant="body1">
-                            {
-                                evaluationScript != null
-                                    ? `File name: ${evaluationScript.name}`
-                                    : "No files uploaded yet."
-                            }
-                        </Typography>
-                    </Box>
-                    <Box sx={{ marginTop: 2 }}>
-                        <Button variant="contained" type="submit">
-                            Submit
-                        </Button>
-                    </Box>
-                </Container>
-            </form>
+                    <Typography color="gray" variant="body1">
+                        {
+                            evaluationScript != null
+                                ? `File name: ${evaluationScript.name}`
+                                : "No files uploaded yet."
+                        }
+                    </Typography>
+                </Box>
+                <Box sx={{ marginTop: 2 }}>
+                    <Button variant="contained" onClick={() => handleSubmit()}>
+                        Submit
+                    </Button>
+                </Box>
+            </Container>
         </Container>
     )
 }

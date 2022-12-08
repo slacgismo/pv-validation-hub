@@ -6,8 +6,51 @@ import client from './api_service';
 import { useEffect, useState } from 'react';
 
 
+
 export const DashboardService = {
 
+    formatResponse(response) {
+        let finalResponse = []
+        let id = 0;
+        response.forEach(resp => {
+            console.log("Printing response");
+            console.log(response, response["result"]);
+            if (response["result"] !== null && response["result"] !== undefined) {
+                let result = JSON.parse(response["result"]);
+                let details = result["details"];
+                for (const [key, value] of Object.entries(details)) {
+                    let element = {
+                        id: id,
+                        algorithm: resp["algorithm"],
+                        created_by: resp["created_by"]["username"],
+                        execution_time: details[key]["execution_time"],
+                        status: resp["status"],
+                        metrics: details[key]["outputs"],
+                        error: result["mean_error"],
+                        data_requirement: null
+                    }
+                    id += 1;
+                    finalResponse.push(element);
+                }
+            }
+            else{
+                let element = {
+                    id: id,
+                    algorithm: resp["algorithm"],
+                    created_by: resp["created_by"],
+                    execution_time: null,
+                    status: null,
+                    metrics: null,
+                    error: null,
+                    data_requirement: null
+                }
+                id += 1;
+                finalResponse.push(element);
+            }
+        });
+        console.log(finalResponse);
+        return finalResponse;
+    },
     useGetAnalysisSet(analysisUrl) {
         const [analysesDetails, setAnalysesDetails] = useState();
         const [isAnalysesLoading, setAnalysesIsLoading] = useState(true);
@@ -29,6 +72,7 @@ export const DashboardService = {
 
     },
     useGetLeaderBoard(leaderBoardUrl) {
+        console.log(leaderBoardUrl);
         const [leaderboardDetails, setLeaderboardDetails] = useState();
         const [isLeaderboardLoading, setLeaderboardIsLoading] = useState(true);
         const [leaderboardError, setLeaderboardError] = useState(null);
@@ -37,8 +81,7 @@ export const DashboardService = {
             client.get(leaderBoardUrl)
                 .then(leaderboardResponse => {
                     setLeaderboardIsLoading(false);
-                    console.log(leaderboardResponse);
-                    setLeaderboardDetails(leaderboardResponse.data);
+                    setLeaderboardDetails(this.formatResponse(leaderboardResponse.data));
                 })
                 .catch(error => {
                     setLeaderboardError(error);
@@ -71,6 +114,7 @@ export const DashboardService = {
     uploadAnalysis(user_id, analysis_name, description, short_description, file, rule_set, dataset_description) {
         let uploadAnalysisUrl = "/analysis/upload";
         let form_data = new FormData();
+        console.log(user_id);
         form_data.append("evaluation_script", file);
         form_data.append("user_id", user_id);
         form_data.append("analysis_name", analysis_name);

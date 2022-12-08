@@ -23,7 +23,7 @@ const AddComment = () => {
         <Box sx={{ p: "15px" }}>
           <Stack direction="row" spacing={2} alignItems="flex-start">
             <Avatar
-              src={IMGOBJ[`${user}`]}
+              src={IMGOBJ[`${user.username}`]}
               variant="rounded"
               alt="user-avatar"
             />

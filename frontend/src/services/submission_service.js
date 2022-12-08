@@ -11,7 +11,7 @@ export const SubmissionService = {
     getSubmissionsSet(user_id) {
         return fake_number_of_submission(20);
     },
-    getSubmissionDetails(user_id) {
+    getSubmissionDetails(user_id, submission_id) {
         return fake_submissio_details();
     }
 }

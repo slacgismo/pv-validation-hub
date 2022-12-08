@@ -8,7 +8,7 @@ export function CommentProvider({ children }) {
 
   const cookies = new Cookies();
   var comment_user = cookies.get("user");
-  var data = DashboardService.getDiscussionComments("", comment_user);
+  var data = DashboardService.getDiscussionComments("", comment_user.username);
   const [currentUser, comments] = [data.currentUser, data.comments];
   const [commentSection, setCommentSection] = useState(comments);
   const IMGOBJ = DashboardService.getImageObjects();
@@ -21,7 +21,7 @@ export function CommentProvider({ children }) {
         createdAt: "Just now",
         score: 0,
         replies: [],
-        user: { username: comment_user },
+        user: { username: comment_user.username },
       },
     ]);
   };

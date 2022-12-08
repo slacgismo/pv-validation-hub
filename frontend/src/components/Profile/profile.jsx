@@ -4,16 +4,16 @@ import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { UserService } from "../../services/user_service"
 import { faker } from "@faker-js/faker";
+import { useParams } from "react-router-dom";
 
 export default function Profile() {
-    const cookies = new Cookies();
-    let user = cookies.get("user");
-    let url = user !== null && user !== undefined ? "/account/" + user.id + "/" : "";
+    const { user_id } = useParams();
+    let url = user_id !== null && user_id !== undefined ? "/account/" + user_id + "/" : "";
     const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
-                user !== undefined ?
+                user_id !== undefined ?
                     isLoading ? <CircularProgress /> :
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={3}>

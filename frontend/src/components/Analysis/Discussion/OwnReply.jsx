@@ -17,7 +17,7 @@ const OwnReply = ({ onContent, onCount, onTar, onDel, comId }) => {
   const cookies = new Cookies();
   var comment_user = cookies.get("user");
   const { IMGOBJ } = useContext(CommentContext);
-  const prsAva = IMGOBJ[`${comment_user}`];
+  const prsAva = IMGOBJ[`${comment_user.username}`];
 
   const [clicked, setClicked] = useState(false);
   const [editingRep, setEditingRep] = useState(false);
@@ -41,7 +41,7 @@ const OwnReply = ({ onContent, onCount, onTar, onDel, comId }) => {
                     fontWeight="bold"
                     sx={{ color: "neutral.darkBlue" }}
                   >
-                    {comment_user}
+                    {comment_user.username}
                   </Typography>
                   <YouTag />
                   <Typography sx={{ color: "neutral.grayishBlue" }}>

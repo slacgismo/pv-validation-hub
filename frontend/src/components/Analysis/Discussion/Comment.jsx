@@ -49,12 +49,12 @@ const Comment = ({ onPass }) => {
                   >
                     {userName}
                   </Typography>
-                  {userName === commenting_user && <YouTag />}
+                  {userName === commenting_user.username && <YouTag />}
                   <Typography sx={{ color: "neutral.grayishBlue" }}>
                     {createdAt}
                   </Typography>
                 </Stack>
-                {userName === commenting_user ? (
+                {userName === commenting_user.username ? (
                   <Stack direction="row" spacing={1}>
                     <Button
                       variant="text"

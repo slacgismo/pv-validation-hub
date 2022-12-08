@@ -7,13 +7,13 @@ import { SubmissionService } from "../../services/submission_service";
 import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { Box } from "@mui/system";
+import { useParams } from "react-router-dom";
 
 export default function Submission() {
   const cookies = new Cookies();
   var user = cookies.get("user");
-  // user = user === undefined || user == null ? "juliusomo" : user;
-  const submissionData = SubmissionService.getSubmissionDetails(user);
-
+  const { submission_id } = useParams();
+  const submissionData = SubmissionService.getSubmissionDetails(user,submission_id);
   return (
     <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
       {
@@ -23,7 +23,7 @@ export default function Submission() {
           <Grid container spacing={3}>
             <Grid item xl={3} lg={3} md={4} sm={6} xs={12}>
               <CardSummary
-                title="Solution Submitted this week"
+                title="Data from Submissions"
                 value={submissionData.total_submissions}
                 footer={<div> {Math.abs(submissionData.total_submissions_change)}
                   {submissionData.total_submissions_change > 0 ? "% increase" : "% decrease"

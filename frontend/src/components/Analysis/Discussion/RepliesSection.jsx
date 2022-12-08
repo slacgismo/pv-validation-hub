@@ -22,7 +22,7 @@ const RepliesSection = ({ onReplies, onClicked, onTar }) => {
         score: 0,
         replyingTo: `${onTar}`,
         replies: [],
-        user: { username: comment_user },
+        user: { username: comment_user.username },
       },
     ]);
   };
@@ -32,7 +32,7 @@ const RepliesSection = ({ onReplies, onClicked, onTar }) => {
         const { content, createdAt, score, user, replyingTo } = rep;
         const userName = user.username;
         const ava = IMGOBJ[`${userName}`];
-        return userName === comment_user ? (
+        return userName === comment_user.username ? (
           <OwnReply
             key={rep.id}
             comId={rep.id}

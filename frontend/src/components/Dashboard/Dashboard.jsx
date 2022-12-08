@@ -151,7 +151,7 @@ export default function Dashboard() {
                                 onClick={() => closeModal()} />
                         </Grid>
                     </Grid>
-                    <UploadAnalysis user_id={user != null || user != undefined ? user.id : user} />
+                    <UploadAnalysis closeModelFunc={closeModal} user_id={user != null || user != undefined ? user.id : user} />
                 </Box>
             </ReactModal>
         </Container >
