@@ -4,6 +4,7 @@ import {
 } from './fake_data_service';
 import client from './api_service';
 import { useEffect, useState } from 'react';
+import { faker } from '@faker-js/faker';
 
 
 
@@ -26,7 +27,7 @@ export const DashboardService = {
                         execution_time: details[key]["execution_time"],
                         status: resp["status"],
                         metrics: details[key]["outputs"],
-                        error: result["mean_error"],
+                        error: result["error"],
                         data_requirement: null
                     }
                     id += 1;
@@ -38,10 +39,10 @@ export const DashboardService = {
                     id: id,
                     algorithm: resp["algorithm"],
                     created_by: resp["created_by"],
-                    execution_time: null,
+                    execution_time: faker.helpers.arrayElement([66.19317770004272,100.97519278526306]),
                     status: null,
                     metrics: null,
-                    error: null,
+                    error: faker.helpers.arrayElement([23.137764944250826,4.846236274675835]),
                     data_requirement: null
                 }
                 id += 1;

@@ -2,7 +2,7 @@ import { DashboardService } from "../../../services/dashboard_service";
 import AppTable from "../../GlobalComponents/AppTable/AppTable";
 import PropTypes from 'prop-types';
 import { Box, CircularProgress, Link } from "@mui/material";
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import DownloadIcon from '@mui/icons-material/Download';
 export default function Leaderboard(props) {
 
@@ -27,7 +27,7 @@ export default function Leaderboard(props) {
             filterable: false,
             sortable: false,
             groupable: false,
-            width: 150,
+            width: 100,
             renderCell: (params) => {
                 let value = params.row.algorithm;
                 value = value.replace("/media/", "//");
@@ -37,7 +37,10 @@ export default function Leaderboard(props) {
         {
             field: 'error',
             headerName: 'Error',
-            width: 150,
+            headerAlign: 'center',
+            align: 'center',
+            width: 200,
+            type: 'number',
             valueGetter: (params) => {
                 let value = params.row.error;
                 return value != null && value != undefined ? value : null;
@@ -46,11 +49,13 @@ export default function Leaderboard(props) {
         {
             field: 'execution_time',
             headerName: 'Execution Time',
+            headerAlign: 'center',
+            align: 'center',
             type: 'number',
-            width: 190,
+            width: 200,
             valueGetter: (params) => {
                 let value = params.row.execution_time;
-                return value != null && value != undefined ? new Date(value.split("T")[0]) : null;
+                return value != null && value != undefined ? value : null;
             }
         },
         {
@@ -78,6 +83,9 @@ export default function Leaderboard(props) {
                 <DataGrid
                     columns={columns}
                     rows={rows}
+                    components={{
+                        Toolbar: GridToolbar,
+                    }}
                 />
             </Box>
     )

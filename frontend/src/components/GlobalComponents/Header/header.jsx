@@ -39,7 +39,7 @@ const Header = () => {
   };
   
   const handleLogout = () => {
-    cookies.remove("user");
+    cookies.remove("user", {path: "/"});
     navigate("/");
   }
 
