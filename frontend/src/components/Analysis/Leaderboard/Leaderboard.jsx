@@ -28,7 +28,6 @@ export default function Leaderboard(props) {
             sortable: false,
             groupable: false,
             width: 150,
-            align: 'center',
             renderCell: (params) => {
                 let value = params.row.algorithm;
                 value = value.replace("/media/", "//");
@@ -39,7 +38,6 @@ export default function Leaderboard(props) {
             field: 'error',
             headerName: 'Error',
             width: 150,
-            align: 'center',
             valueGetter: (params) => {
                 let value = params.row.error;
                 return value != null && value != undefined ? value : null;
@@ -48,9 +46,8 @@ export default function Leaderboard(props) {
         {
             field: 'execution_time',
             headerName: 'Execution Time',
-            type: 'dateTime',
+            type: 'number',
             width: 190,
-            align: 'center',
             valueGetter: (params) => {
                 let value = params.row.execution_time;
                 return value != null && value != undefined ? new Date(value.split("T")[0]) : null;
@@ -63,7 +60,6 @@ export default function Leaderboard(props) {
             sortable: false,
             groupable: false,
             width: 190,
-            align: 'center'
         },
         {
             field: 'metrics',
@@ -72,7 +68,6 @@ export default function Leaderboard(props) {
             sortable: false,
             groupable: false,
             width: 180,
-            align: 'center'
         }
     ]
     let url = "/analysis/" + props.analysis_id + "/leaderboard";

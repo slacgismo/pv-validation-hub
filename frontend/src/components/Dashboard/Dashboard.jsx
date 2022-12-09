@@ -70,7 +70,7 @@ export default function Dashboard() {
                     />
                     <CardContent>
                         <Typography variant="body2" color="text.secondary">
-                            {card.short_description.length > 100 ? card.short_description.slice(0, 100) + "....." : card.short_description}
+                            {card.short_description != undefined && card.short_description.length > 100 ? card.short_description.slice(0, 100) + "....." : card.short_description}
                         </Typography>
                     </CardContent>
                 </Card>
