@@ -21,26 +21,20 @@ describe("Rendering", () => {
 describe("Download Button",() => {
     it("Should navigate to download url when clicked", async () => {
         const getAnalysisDataset = jest.fn().mockImplementation(() => {
-            datasetDetails.file = faker.internet.url() + "/test_pv.zip"});
+            datasetDetails.file = faker.internet.url() + "/test_pv.zip"})
 
-        const navigate = jest.fn();
-        jest.spyOn(router, 'useNavigate').mockImplementation(() => navigate);
-
-        // const url = 'http://example.com/test.zip';
-        // const link = {
-        //     href: url,
-        //     download: url.split('/').pop(),
-        //     click: jest.fn()
-        // };
-        // jest.spyOn(document, "createElement").mockImplementation((url) => link);
-        // jest.spyOn(link, "click").mockImplementation((url) => link.click);
-        render(<Data/>, {
+        const props = {
+            analysis_id: 'test'
+        }
+        const link = {
+            click: jest.fn()
+        };
+        // jest.spyOn(document.body, "appendChild").mockImplementation(() => link);
+        render(<Data {...props}/>, {
             wrapper: BrowserRouter,
-            // wrapperProps: {props: analysis_id}
         });
         await userEvent.click(screen.getByRole('button', {name: /Download Files/i}));
-        //screen.debug(datasetDetails);
-        // expect(navigate).toHaveBeenCalledWith(datasetDetails.file)
+        // expect(link.click).toHaveBeenCalled();
 
     })
 })

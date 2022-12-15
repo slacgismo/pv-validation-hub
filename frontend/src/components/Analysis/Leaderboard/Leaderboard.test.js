@@ -8,8 +8,19 @@ import Leaderboard from "./Leaderboard";
 afterEach (()=> cleanup());
 
 describe("Rendering", () => {
-    it("Should render all the elements collectly", () => {
+    it("Should render the table and each column collectly", () => {
         render(<Leaderboard/>, {wrapper: BrowserRouter});
         expect(screen.getByRole('table')).toBeTruthy();
+        expect(screen.getByText(/Ranking/i)).toBeTruthy();
+        expect(screen.getByText(/Developer Group/i)).toBeTruthy();
+        expect(screen.getByText(/Submission/i)).toBeTruthy();
+    });
+
+    it("Should render each row collectly", () => {
+        render(<div id="root"><Leaderboard/></div>, {wrapper: BrowserRouter});
+        const firstRow = screen.getAllByRole("checkbox")[0];
+        expect(firstRow).toBeTruthy();
+        // Check the number of items that each row has (expected 3 : number of column headers))
+        expect(firstRow.getElementsByClassName("MuiTableCell-root").length).toBe(3);
     });
 });
