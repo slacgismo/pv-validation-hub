@@ -26,6 +26,5 @@ describe("Analysis Cards", () => {
         const buttonSettings = screen.getAllByRole('button', {Name: 'settings'})[0];
         await userEvent.click(buttonSettings)
         expect(navigate).toHaveBeenCalled();
-        // expect(navigate).toHaveBeenCalledWith('"/analysis?analysis_id=" + analysisId');
     });
 });
