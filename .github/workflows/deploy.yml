@@ -14,17 +14,15 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-20.04
-    permissions:
-      id-token: write
-      contents: read
+    environment: test
     steps:
       - uses: actions/checkout@v2
         name: Checkout Repository
 
       - uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
-          role-session-name: GitHub-Action-Role
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Set up Python Environment
@@ -49,15 +47,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: test
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v2
       - uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
-          role-session-name: GitHub-Action-Role
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Generate deployment package
