@@ -1,0 +1,6 @@
+Django==3.2.16
+mysqlclient
+boto3
+requests
+djangorestframework
+django-cors-headers
