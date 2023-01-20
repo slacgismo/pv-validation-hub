@@ -136,4 +136,4 @@ frontend/pv-validation-hub/node_modules
 frotend/.DS_Store
 
 # terraform sensitive variables
-*.tfvars
+*.secret.tfvars

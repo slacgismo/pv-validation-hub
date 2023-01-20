@@ -1,4 +1,4 @@
-// Copy this file, rename it to terraform.tfvars, and fill-in the variables to be able to deploy this application
+// Copy this file, rename it to terraform.secret.tfvars, and fill-in the variables to be able to deploy this application
 
 aws-access-key = "value"
 aws-secret-key = "value"
