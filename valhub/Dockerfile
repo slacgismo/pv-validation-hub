@@ -11,7 +11,7 @@ EXPOSE 5001
 
 RUN apt-get update -qq
 # RUN apt-get --assume-yes install python3-pip
-RUN apt-get --assume-yes install mariadb-client supervisor
+RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client
 RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential
 RUN python3 -m pip install --upgrade pip
 WORKDIR /root/valhub
