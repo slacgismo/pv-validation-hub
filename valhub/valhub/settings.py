@@ -96,7 +96,7 @@ except:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*', ]
+ALLOWED_HOSTS = ['*']
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -188,7 +188,7 @@ else:
             'NAME': 'valhub',
             'USER': 'valhub',
             'PASSWORD': 'valhub',
-            'HOST': '127.0.0.1',
+            'HOST': 'db',
             'PORT': '5432',
         }
     }

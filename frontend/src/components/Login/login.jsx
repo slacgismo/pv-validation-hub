@@ -121,7 +121,7 @@ export default function Login() {
                     <TextField
                         required
                         id="username"
-                        label="Username/Email"
+                        label="Username"
                         value={loginStates.username}
                         onChange={handleChange}
                         error={loginErrors.username !== ""}

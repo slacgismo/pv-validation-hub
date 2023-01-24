@@ -39,7 +39,7 @@ def login(request):
 
     if account.password == _password:
         data = {
-            'id': str(account.id),
+            'uuid': str(account.uuid),
         }
         dump = json.dumps(data)
         return HttpResponse(dump, content_type='application/json', status=200)
@@ -79,7 +79,7 @@ class AccountDetail(APIView):
     def get(self, request, pk):
         account = self.get_object(pk=pk)
         _account = Account(
-            id=account.id,
+            uuid=account.uuid,
             username=account.username, 
             email=account.email,
             firstName=account.firstName,
