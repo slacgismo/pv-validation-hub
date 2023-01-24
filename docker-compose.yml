@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: valhub
+      POSTGRES_PASSWORD: valhub
+      POSTGRES_USER: valhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - valhub:/data/db
+
+  api:
+    build:
+      context: ./valhub
+      args:
+        djangosk: ${djangosk} 
+    env_file:
+      - .env
+    environment:
+      PGDATABASE: valhub
+      PGUSER: valhub
+      PGHOST: db
+      PG_DATABASE_URI: "postgresql://valhub:valhub@db/valhub"
+      DJANGO_SECRET_KEY: ${djangosk}
+    ports:
+      - "8005:8005"
+    depends_on:
+      - db
+
+  react-client:
+    stdin_open: true
+    build: ./frontend
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      - ./frontend:/opt/app:delegated
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+ valhub:

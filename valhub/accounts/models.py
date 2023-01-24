@@ -7,7 +7,7 @@ class Account(models.Model):
     Model to store a user account
     """
     # user = models.OneToOneField(User, on_delete=models.CASCADE)
-    id = models.AutoField(primary_key=True)
+    uuid = models.AutoField(primary_key=True)
     username = models.CharField(max_length=32)
     password = models.CharField(max_length=32)
     email = models.CharField(max_length=100, null=True)
