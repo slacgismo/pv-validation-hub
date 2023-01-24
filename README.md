@@ -1,5 +1,27 @@
-# pv-validation-hub
+# PV-Validation-Hub
 
+The Photovoltaic(PV) Validation Hub project is designed to be a one-stop-shop for industry and academic researchers to develop, test and evaluate their PV algorithms. To meet this dual-purpose assignment(e.g. Industry looking for the best algorithms and researchers looking to evaluate and refine their algorithms against otherwise difficult-to-obtain data), the validation hub will provide layered results to help industry and the researchers using the system.
+
+Through publicly available leaderboards for different analytical tasks, industry can evaluate the efficacy, resolution time, and error-rates of different tasks to find the best algorithms for their specific use-cases.
+
+Meanwhile, researchers will be able to benefit from receiving personal, high-fidelity results tailored to help them refine and further perfect their algorithms.
+
+Finally, both industry and academia will be able to enjoy the assurance of accurate results through protection and anonymization of the used data-sets. By only providing results, industry and academia can be assured of the validity of an algorithm, as it would prevent the possibility of tailoring an algorithm to match the data.
+
+## Developer quick-start
+
+To begin development on the validation hub, a new developer would need to install the Docker client on their system. If you installed docker only for the command line tools, then you will need to also make sure to install ```docker-compose``` and to update both to the latest versions. You will need to generate a secret key for Django before you proceed. From the repository root, run the following:
+
+~~~
+cp .env.example .env
+nano .env
+// replace the placeholder text in the djangosk variable with your secret key
+docker-compose up
+~~~
+
+Following those steps, you should now be able to access your local development version at ```localhost:3000```!
+
+You can also manually install all the services locally for faster developmental iterations at your own discretion.
 
 ## Jira link:
 
