@@ -4,15 +4,10 @@ import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { UserService } from "../../services/user_service"
 import { faker } from "@faker-js/faker";
-import { useParams } from "react-router-dom";
 
 export default function Profile() {
     const cookies = new Cookies();
     const userInfo = cookies.get("user");
-
-    console.log("user_cookie: ", userInfo)
-    console.log("name: ", userInfo["username"]);
-    console.log("password: ", userInfo["password"]);
 
     // TODO: check userInfo existence
     let url = userInfo !== null && userInfo !== undefined ?

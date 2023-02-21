@@ -11,6 +11,7 @@ import Dashboard from '../Dashboard/Dashboard';
 import Analysis from '../Analysis/Analysis';
 import Submission from '../Submission/Submission';
 import Profile from '../Profile/profile';
+
 function App() {
   return (
     <BrowserRouter>
