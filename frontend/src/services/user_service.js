@@ -12,11 +12,13 @@ export const UserService = {
         useEffect(() => {
             client.get(url)
                 .then(response => {
-                    setUserDetails(response.data);
-                    console.log(response.data);
+                    console.log('send url: ', url, ", get response: ", response);
+                    setUserDetails(response.data[0]);
+                    console.log(response.data[0]);
                     setIsLoading(false);
                 })
                 .catch(error => {
+                    console.log('send url: ', url, ", get error: ", error);
                     setError(error);
                     setUserDetails({});
                     setIsLoading(false);

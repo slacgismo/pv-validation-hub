@@ -70,13 +70,18 @@ export default function Login() {
         let username = loginStates.username;
         let password = loginStates.password;
         let usernameError = validateUsername(username);
+
         if (usernameError === "" && password !== "") {
             client.post("/login", {
                 username: username,
                 password: password
             }).then(response => {
-                console.log(response);
-                cookies.set("user", response.data, { path: '/', sameSite: "strict" });
+                cookies.set("user", {
+                    "uuid" : response.data,
+                    "username" : username,
+                    "password" : password
+                },
+                { path: '/', sameSite: "strict" });
                 navigate("/dashboard");
             }).catch(error => {
                 setShowAlert("block");

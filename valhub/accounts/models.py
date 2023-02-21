@@ -8,7 +8,7 @@ class Account(models.Model):
     """
     # user = models.OneToOneField(User, on_delete=models.CASCADE)
     uuid = models.AutoField(primary_key=True)
-    username = models.CharField(max_length=32)
+    username = models.CharField(max_length=32, unique=True)
     password = models.CharField(max_length=32)
     email = models.CharField(max_length=100, null=True)
     firstName = models.CharField(max_length=32, null=True)

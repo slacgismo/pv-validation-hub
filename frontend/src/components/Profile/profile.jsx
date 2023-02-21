@@ -7,13 +7,27 @@ import { faker } from "@faker-js/faker";
 import { useParams } from "react-router-dom";
 
 export default function Profile() {
-    const { user_id } = useParams();
-    let url = user_id !== null && user_id !== undefined ? "/account/" + user_id + "/" : "";
+    const cookies = new Cookies();
+    const userInfo = cookies.get("user");
+
+    console.log("user_cookie: ", userInfo)
+    console.log("name: ", userInfo["username"]);
+    console.log("password: ", userInfo["password"]);
+
+    // TODO: check userInfo existence
+    let url = userInfo !== null && userInfo !== undefined ?
+                       "/account/?username=" + userInfo["username"] + "&&" + "password=" + userInfo["password"]
+                       : "";
+
     const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
+
+    console.log("reqponse: ", userResponse)
+    // console.log("firstName: ", userResponse.firstName)
+    // console.log("firstName: ", userResponse["firstName"])
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
-                user_id !== undefined ?
+                userInfo !== undefined ?
                     isLoading ? <CircularProgress /> :
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={3}>
@@ -105,12 +119,12 @@ export default function Profile() {
                                             <Grid container spacing={10}>
                                                 <Grid item xs={2}>
                                                     <Typography variant="body1">
-                                                        User ID
+                                                        Username
                                                     </Typography>
                                                 </Grid>
                                                 <Grid item xs={8}>
                                                     <Typography variant="body2">
-                                                        {userResponse.id}
+                                                        {userResponse.username}
                                                     </Typography>
                                                 </Grid>
                                             </Grid>
