@@ -5,37 +5,22 @@ import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
-import MenuIcon from '@mui/icons-material/Menu';
 import Container from '@mui/material/Container';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
-import DiamondSharpIcon from '@mui/icons-material/DiamondSharp';
 import { useNavigate } from "react-router-dom";
 import { useState } from 'react';
 import Cookies from 'universal-cookie';
 import { faker } from "@faker-js/faker";
 
-const pages = ['Analyses', 'Datasets', 'Dashboard'];
-
-const Header = () => {
-
+export default function Header () {
   const cookies = new Cookies();
-
   const navigate = useNavigate();
-  const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
 
-  const handleOpenNavMenu = (event) => {
-    setAnchorElNav(event.currentTarget);
-  };
-
-  const handleOpenUserMenu = (event) => {
-    setAnchorElUser(event.currentTarget);
-  };
-
-  const settings = [
+  const userMenu = [
     {
       "text": "profile",
       "handler": () => {
@@ -51,6 +36,10 @@ const Header = () => {
     }
   ];
 
+  const handleOpenUserMenu = (event) => {
+    setAnchorElUser(event.currentTarget);
+  };
+
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
@@ -62,144 +51,97 @@ const Header = () => {
     navigate("/" + location);
   };
 
+  const pages = ['Analyses', 'Datasets', 'Dashboard'];
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: "white" }}>
-      <Container maxWidth="xl">
-        <Toolbar disableGutters>
-          {/* <Box
-            component="img"
-            sx={{ height: 65, width: 100, display: { xs: 'none', md: 'flex' } }}
-            src="/logo-sm_1.png"
-            href="/"
-          /> */}
-          <DiamondSharpIcon sx={{ display: { xs: 'none', md: 'flex', color: "black" }, mr: 1 }} />
-          <Typography
-            variant="h6"
-            noWrap
-            component="a"
-            href="/"
-            sx={{
-              mr: 2,
-              display: { xs: 'none', md: 'flex' },
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              letterSpacing: '.3rem',
-              color: 'black',
-              textDecoration: 'none',
-            }}
-          >
-            LOGO
-          </Typography>
+    <Box sx={{ display: 'flex '}}>
+      <AppBar position="static" sx={{ backgroundColor: "white" }}>
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            <Logo redirect="/" />
 
-          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
-            <IconButton
-              size="large"
-              aria-label="account of current user"
-              aria-controls="menu-appbar"
-              aria-haspopup="true"
-              onClick={handleOpenNavMenu}
-              color="inherit"
-            >
-              <MenuIcon />
-            </IconButton>
-            <Menu
-              id="menu-appbar"
-              anchorEl={anchorElNav}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-              }}
-              keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'left',
-              }}
-              open={Boolean(anchorElNav)}
-              onClose={handleCloseNavMenu}
-              sx={{
-                display: { xs: 'block', md: 'none' },
-              }}
-            >
-              {pages.map((page) => (
-                <MenuItem key={page} onClick={() => handleCloseNavMenu(page)}>
-                  <Typography textAlign="center">{page}</Typography>
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-          <DiamondSharpIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }} />
-          <Typography
-            variant="h5"
-            noWrap
-            component="a"
-            href=""
-            sx={{
-              mr: 2,
-              display: { xs: 'flex', md: 'none' },
-              flexGrow: 1,
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              letterSpacing: '.3rem',
-              color: 'black',
-              textDecoration: 'none',
-            }}
-          >
-            LOGO
-          </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {pages.map((page) => (
-              <Button
-                key={page}
-                onClick={() => handleCloseNavMenu(page)}
-                sx={{ my: 2, color: '#18A0FB', display: 'block' }}
-              >
-                {page}
-              </Button>
-            ))}
-          </Box>
-          {
-            cookies.get("user") === undefined || cookies.get("user") === null || cookies.get("user") === "" ?
-              <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
-                <Button onClick={() => handleCloseNavMenu("login")} variant="outlined">Login</Button>
+            <NavMenu pages={pages} onClose={handleCloseNavMenu} />
 
-                <Button onClick={() => handleCloseNavMenu("register")} variant="contained">Register</Button>
-              </Box>
-              :
-              <Box sx={{ flexGrow: 0 }}>
-                <Tooltip title="Open settings">
-                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                    <Avatar alt="User" src={faker.image.avatar()} />
-                  </IconButton>
-                </Tooltip>
+            {
+              cookies.get("user") === undefined || cookies.get("user") === null || cookies.get("user") === "" ?
+                <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
+                  <Button onClick={() => handleCloseNavMenu("login")} variant="outlined">Login</Button>
 
-                <Menu
-                  sx={{ mt: '45px' }}
-                  id="menu-appbar"
-                  anchorEl={anchorElUser}
-                  anchorOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  keepMounted
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'right',
-                  }}
-                  open={Boolean(anchorElUser)}
-                  onClose={handleCloseUserMenu}
-                >
-                  {settings.map((setting) => (
-                    <MenuItem key={setting.text} onClick={setting.handler}>
-                      <Typography textAlign="center">{setting.text}</Typography>
-                    </MenuItem>
-                  ))}
-                </Menu>
-              </Box>
-          }
-        </Toolbar>
-      </Container>
-    </AppBar>
+                  <Button onClick={() => handleCloseNavMenu("register")} variant="contained">Register</Button>
+                </Box>
+                :
+                <Box sx={{ flexGrow: 0 }}>
+                  <Tooltip title="Open settings">
+                    <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                      <Avatar alt="User" src={faker.image.avatar()} />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Menu
+                    sx={{ mt: '45px' }}
+                    id="menu-appbar"
+                    anchorEl={anchorElUser}
+                    anchorOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    keepMounted
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'right',
+                    }}
+                    open={Boolean(anchorElUser)}
+                    onClose={handleCloseUserMenu}
+                  >
+                    {userMenu.map((item) => (
+                      <MenuItem key={item.text} onClick={item.handler}>
+                        <Typography textAlign="center">{item.text}</Typography>
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </Box>
+            }
+          </Toolbar>
+        </Container>
+      </AppBar>
+    </Box>
   );
 };
-export default Header;
+
+function Logo({ redirect }) {
+  return (
+    <Typography
+      variant="h6"
+      noWrap
+      component="a"
+      href={redirect}
+      sx={{
+        mr: 2,
+        display: { xs: 'none', md: 'flex' },
+        fontFamily: 'sans-serif',
+        fontWeight: 700,
+        color: 'black',
+        textDecoration: 'none',
+      }}
+    >
+      PVHub
+    </Typography>
+  );
+}
+
+function NavMenu({ pages, onClose }) {
+  return (
+    <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+      {pages.map((page) => (
+        <Button
+          key={page}
+          onClick={() => {onClose(page)}}
+          sx={{ my: 2, color: '#18A0FB', display: 'block' }}
+          textTransform="none"
+        >
+          <Typography textTransform="none">{page}</Typography>
+        </Button>
+      ))}
+    </Box>
+  );
+}
