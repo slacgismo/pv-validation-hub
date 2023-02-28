@@ -82,7 +82,7 @@ export default function Login() {
                     "password" : password
                 },
                 { path: '/', sameSite: "strict" });
-                navigate("/dashboard");
+                navigate("/");
             }).catch(error => {
                 setShowAlert("block");
                 setTimeout(() => { setShowAlert("none") }, 10);
@@ -116,7 +116,6 @@ export default function Login() {
                 }}
                 noValidate
                 autoComplete="off"
-
             >
                 <div>
                     <Typography variant="h4" gutterBottom>Sign In</Typography>

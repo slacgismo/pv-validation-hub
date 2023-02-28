@@ -9,7 +9,7 @@ export default function Profile() {
     const cookies = new Cookies();
     const userInfo = cookies.get("user");
 
-    // TODO: check userInfo existence
+    // TODO: check userInfo existence by token instead of plain text password
     let url = userInfo !== null && userInfo !== undefined ?
                        "/account/?username=" + userInfo["username"] + "&&" + "password=" + userInfo["password"]
                        : "";
@@ -17,8 +17,6 @@ export default function Profile() {
     const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
 
     console.log("reqponse: ", userResponse)
-    // console.log("firstName: ", userResponse.firstName)
-    // console.log("firstName: ", userResponse["firstName"])
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
