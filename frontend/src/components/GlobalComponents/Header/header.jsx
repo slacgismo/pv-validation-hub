@@ -16,39 +16,48 @@ import { useNavigate } from "react-router-dom";
 import { useState } from 'react';
 import Cookies from 'universal-cookie';
 import { faker } from "@faker-js/faker";
-const pages = ['Dashboard', 'Submission', 'Profile'];
-const settings = ['Logout'];
+
+const pages = ['Analyses', 'Datasets', 'Dashboard'];
 
 const Header = () => {
-
 
   const cookies = new Cookies();
 
   const navigate = useNavigate();
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
+
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
   };
+
   const handleOpenUserMenu = (event) => {
     setAnchorElUser(event.currentTarget);
   };
+
+  const settings = [
+    {
+      "text": "profile",
+      "handler": () => {
+        navigate("/profile/"+cookies.get("user").id);
+      }
+    },
+    {
+      "text": "logout",
+      "handler": () => {
+        cookies.remove("user", {path: "/"});
+        navigate("/");
+      }
+    }
+  ];
 
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
   
-  const handleLogout = () => {
-    cookies.remove("user", {path: "/"});
-    navigate("/");
-  }
-
   const handleCloseNavMenu = (location) => {
-    if (location === "Profile") {
-      location = location + "/" + cookies.get("user").id;
-    }
-    else if (location === "Submission") {
-      location = location + "/1";
+    if (location === "Dashboard") {
+      location = "Submission" + "/1";
     }
     navigate("/" + location);
   };
@@ -163,6 +172,7 @@ const Header = () => {
                     <Avatar alt="User" src={faker.image.avatar()} />
                   </IconButton>
                 </Tooltip>
+
                 <Menu
                   sx={{ mt: '45px' }}
                   id="menu-appbar"
@@ -180,8 +190,8 @@ const Header = () => {
                   onClose={handleCloseUserMenu}
                 >
                   {settings.map((setting) => (
-                    <MenuItem key={setting} onClick={handleLogout}>
-                      <Typography textAlign="center">{setting}</Typography>
+                    <MenuItem key={setting.text} onClick={setting.handler}>
+                      <Typography textAlign="center">{setting.text}</Typography>
                     </MenuItem>
                   ))}
                 </Menu>
