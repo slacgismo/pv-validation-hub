@@ -20,7 +20,7 @@ export default function Header () {
   const navigate = useNavigate();
   const [anchorElUser, setAnchorElUser] = useState(null);
 
-  const userMenu = [
+  const userInfoMenu = [
     {
       "text": "profile",
       "handler": () => {
@@ -53,53 +53,23 @@ export default function Header () {
 
   const pages = ['Analyses', 'Datasets', 'Dashboard'];
 
+  const checkUserLoggedOut = () => {
+    return cookies.get("user") === undefined || cookies.get("user") === null || cookies.get("user") === "";
+  };
+
   return (
     <Box sx={{ display: 'flex '}}>
       <AppBar position="static" sx={{ backgroundColor: "white" }}>
         <Container maxWidth="xl">
           <Toolbar disableGutters>
             <Logo redirect="/" />
-
             <NavMenu pages={pages} onClose={handleCloseNavMenu} />
-
             {
-              cookies.get("user") === undefined || cookies.get("user") === null || cookies.get("user") === "" ?
-                <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
-                  <Button onClick={() => handleCloseNavMenu("login")} variant="outlined">Login</Button>
-
-                  <Button onClick={() => handleCloseNavMenu("register")} variant="contained">Register</Button>
-                </Box>
-                :
-                <Box sx={{ flexGrow: 0 }}>
-                  <Tooltip title="Open settings">
-                    <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                      <Avatar alt="User" src={faker.image.avatar()} />
-                    </IconButton>
-                  </Tooltip>
-
-                  <Menu
-                    sx={{ mt: '45px' }}
-                    id="menu-appbar"
-                    anchorEl={anchorElUser}
-                    anchorOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    keepMounted
-                    transformOrigin={{
-                      vertical: 'top',
-                      horizontal: 'right',
-                    }}
-                    open={Boolean(anchorElUser)}
-                    onClose={handleCloseUserMenu}
-                  >
-                    {userMenu.map((item) => (
-                      <MenuItem key={item.text} onClick={item.handler}>
-                        <Typography textAlign="center">{item.text}</Typography>
-                      </MenuItem>
-                    ))}
-                  </Menu>
-                </Box>
+              checkUserLoggedOut() ?
+              <UserLoggedInMenu onClick={handleCloseNavMenu} /> :
+              <UserInfoMenu userInfoMenu={userInfoMenu} anchorElUser={anchorElUser}
+                            onClickUserInfoMenu={handleOpenUserMenu}
+                            onCloseUserMenu={handleCloseUserMenu} />
             }
           </Toolbar>
         </Container>
@@ -142,6 +112,52 @@ function NavMenu({ pages, onClose }) {
           <Typography textTransform="none">{page}</Typography>
         </Button>
       ))}
+    </Box>
+  );
+}
+
+function UserLoggedInMenu({ onClick }) {
+  return (
+    <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
+      <Button onClick={() => onClick("login")} variant="outlined">Login</Button>
+      <Button onClick={() => onClick("register")} variant="contained">Register</Button>
+    </Box>
+  );
+}
+
+function UserInfoMenu({ userInfoMenu, anchorElUser, onClickUserInfoMenu, onCloseUserMenu }) {
+  return (
+    <Box sx={{ flexGrow: 0 }}>
+      <Tooltip title="Open settings">
+        <IconButton onClick={onClickUserInfoMenu} sx={{ p: 0 }}>
+          <Avatar alt="User" src={faker.image.avatar()} />
+        </IconButton>
+      </Tooltip>
+
+      <Menu
+        sx={{ mt: '45px' }}
+        id="menu-appbar"
+        anchorEl={anchorElUser}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        keepMounted
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        open={Boolean(anchorElUser)}
+        onClose={onCloseUserMenu}
+      >
+        {
+          userInfoMenu.map((item) => (
+            <MenuItem key={item.text} onClick={item.handler}>
+              <Typography textAlign="center">{item.text}</Typography>
+            </MenuItem>
+          ))
+        }
+      </Menu>
     </Box>
   );
 }
