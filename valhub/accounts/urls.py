@@ -7,6 +7,5 @@ urlpatterns = [
     path('register', views.register, name='register'),
     path('login', views.login, name='login'),
     path('account/', views.AccountList.as_view()),
-    # re_path(r'^account\/(?P<pk>.+)$', views.AccountDetail.as_view()),
-    path('account/<int:pk>/', views.AccountDetail.as_view()),
+    path('account/<int:pk>', views.AccountDetail.as_view()),
 ]
