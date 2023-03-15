@@ -13,8 +13,8 @@ export const UserService = {
             client.get(url)
                 .then(response => {
                     console.log('send url: ', url, ", get response: ", response);
-                    setUserDetails(response.data[0]);
-                    console.log(response.data[0]);
+                    setUserDetails(response.data);
+                    console.log(response.data);
                     setIsLoading(false);
                 })
                 .catch(error => {

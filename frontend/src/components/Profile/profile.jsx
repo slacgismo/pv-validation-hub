@@ -9,14 +9,13 @@ export default function Profile() {
     const cookies = new Cookies();
     const userInfo = cookies.get("user");
 
-    // TODO: check userInfo existence by token instead of plain text password
+    // TODO: check userInfo existence by token instead of plain uuid
     let url = userInfo !== null && userInfo !== undefined ?
-                       "/account/?username=" + userInfo["username"] + "&&" + "password=" + userInfo["password"]
-                       : "";
-
+                       "/account/" + userInfo.uuid : "";
+    
     const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
 
-    console.log("reqponse: ", userResponse)
+    console.log("response: ", userResponse)
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
