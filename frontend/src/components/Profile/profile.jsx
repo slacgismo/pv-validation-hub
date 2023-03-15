@@ -1,4 +1,4 @@
-import { Avatar, Card, CardContent, CardMedia, CircularProgress, Grid, Typography } from "@mui/material";
+import { Avatar, Card, CardContent, CardMedia, CircularProgress, Grid, Typography, TextField, Button, CardActions } from "@mui/material";
 import { Box } from "@mui/system";
 import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
@@ -24,16 +24,13 @@ export default function Profile() {
                     isLoading ? <CircularProgress /> :
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={3}>
-                                <Card
-                                    variant="outlined"
-                                >
+                                <Card variant="outlined">
                                     <CardMedia align="center" sx={{ marginTop: 1, marginBottom: 2 }}>
                                         <Avatar
                                             sx={{ height: 170, width: 174 }}
                                             alt={userResponse.firstName}
                                             src={faker.image.avatar()}
                                         />
-
                                     </CardMedia>
                                     <CardContent align="center">
                                         <Typography variant="h5">
@@ -56,87 +53,39 @@ export default function Profile() {
                                             marginTop: 2,
                                             marginBottom: 2
                                         },
-                                        '& .MuiTypography-body2': {
-                                            color: "gray",
-                                            align: "right"
-                                        },
                                         '& .MuiTypography-body1': {
-                                            align: "right",
+                                            align: 'center',
                                             justifyContent: 'flex-end'
                                         },
-                                        marginBottom: 0.5
+                                        marginBottom: 0.5,
+                                        marginTop: 0.5
                                     }}>
-                                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                                            <Grid container spacing={10}>
-                                                <Grid item xs={2}>
-                                                    <Typography variant="body1">
-                                                        Full Name
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={8}>
-                                                    <Typography variant="body2">
-                                                        {userResponse.firstName + " " + userResponse.lastName}
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Box>
-                                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                                            <Grid container spacing={10}>
-                                                <Grid item xs={2}>
-                                                    <Typography variant="body1">
-                                                        Email
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={8}>
-                                                    <Typography variant="body2">
-                                                        {userResponse.email}
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Box>
-                                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                                            <Grid container spacing={10}>
-                                                <Grid item xs={2}>
-                                                    <Typography variant="body1">
-                                                        Address
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={8}>
-                                                    <Typography variant="body2">
-                                                        {faker.address.city() + ", " + faker.address.stateAbbr()}
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Box>
-                                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                                            <Grid container spacing={10}>
-                                                <Grid item xs={2}>
-                                                    <Typography variant="body1">
-                                                        Username
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={8}>
-                                                    <Typography variant="body2">
-                                                        {userResponse.username}
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Box>
-                                        <Box>
-                                            <Grid container spacing={10}>
-                                                <Grid item xs={2}>
-                                                    <Typography variant="body1">
-                                                        Github
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={8}>
-                                                    <Typography variant="body2">
-                                                        <a href={userResponse.github}>{userResponse.github}</a>
-                                                    </Typography>
-                                                </Grid>
-                                            </Grid>
-                                        </Box>
+                                        <InfoRow title="Full Name"
+                                                 defaultValue={userResponse.firstName + " " + userResponse.lastName}
+                                                 disabled={false}
+                                        />
+                                        <InfoRow title="Email"
+                                                 defaultValue={userResponse.email}
+                                                 disabled={false}
+                                        />
+                                        <InfoRow title="Address"
+                                                 defaultValue={faker.address.city() + ", " + faker.address.stateAbbr()}
+                                                 disabled={false}
+                                        />
+                                        <InfoRow title="Username"
+                                                 defaultValue={userResponse.username}
+                                                 disabled={true}
+                                        />
+                                        <InfoRow title="Github"
+                                                 defaultValue={""}
+                                                 disabled={false}
+                                        />
                                     </CardContent>
+                                    <CardActions>
+                                        <Button variant="contained">
+                                            <Typography textTransform="none">Update Profile</Typography>
+                                        </Button>
+                                    </CardActions>
                                 </Card>
                             </Grid>
                         </Grid>
@@ -144,5 +93,28 @@ export default function Profile() {
                     <BlurryPage />
             }
         </Box >
+    )
+}
+
+function InfoRow({ title, defaultValue, disabled }) {
+    return (
+        <Box>
+            <Grid container spacing={5}>
+                <Grid item xs={2} alignItems="center" justifyContent="center">
+                    <Typography variant="body1">
+                        {title}
+                    </Typography>
+                </Grid>
+                <Grid item xs={8}>
+                    <TextField fullWidth
+                            hiddenLabel
+                            size="small"
+                            defaultValue={defaultValue}
+                            disabled={disabled}
+                            variant="filled"
+                    />
+                </Grid>
+            </Grid>
+        </Box> 
     )
 }

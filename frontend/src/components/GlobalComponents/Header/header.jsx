@@ -119,8 +119,16 @@ function NavMenu({ pages, onClose }) {
 function UserLoggedInMenu({ onClick }) {
   return (
     <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
-      <Button onClick={() => onClick("login")} variant="outlined">Login</Button>
-      <Button onClick={() => onClick("register")} variant="contained">Register</Button>
+      <Button onClick={() => onClick("login")} variant="outlined">
+        <Typography textTransform="none">
+          Sign In
+        </Typography>
+      </Button>
+      <Button onClick={() => onClick("register")} variant="contained">
+        <Typography textTransform="none">
+          Register
+        </Typography>
+      </Button>
     </Box>
   );
 }
