@@ -4,22 +4,45 @@ import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { UserService } from "../../services/user_service"
 import { faker } from "@faker-js/faker";
+import { useState } from "react";
 
 export default function Profile() {
+    // todo(jrl): abstract user cookie information
     const cookies = new Cookies();
-    const userInfo = cookies.get("user");
+    const user = cookies.get("user");
 
-    // TODO: check userInfo existence by token instead of plain uuid
-    let url = userInfo !== null && userInfo !== undefined ?
-                       "/account/" + userInfo.uuid : "";
+    // todo(jrl): check userInfo existence by token instead of plain uuid
+    // todo(jrl): abstract user information request and response
+    let url = user !== null && user !== undefined ?
+                       "/account/" + user.uuid : "";
     
+    console.log("url to be sent: ", url);
     const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
+    console.log("user response: ", userResponse);
+
+    // prepare for user profile fields update
+    const [githubLink, setUserGithubLink] = useState('');
+    const [emailLink, setUserEmailLink] = useState('');
+
+    const handleTextChange = (setState) => (event) => {
+        setState(event.target.value);
+    };
+
+    const handleProfileUpdateClick = (_) => {
+        const updatedProfile = {
+            "email": emailLink,
+            "githubLink": githubLink,
+        };
+        const ret = UserService.updateUserProfile(user.uuid, updatedProfile);
+        console.log("ret value: ", ret);
+        // window.location.reload();
+    };
 
     console.log("response: ", userResponse)
     return (
         <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
             {
-                userInfo !== undefined ?
+                user !== undefined ?
                     isLoading ? <CircularProgress /> :
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={3}>
@@ -61,11 +84,12 @@ export default function Profile() {
                                     }}>
                                         <InfoRow title="Full Name"
                                                  defaultValue={userResponse.firstName + " " + userResponse.lastName}
-                                                 disabled={false}
+                                                 disabled={true}
                                         />
                                         <InfoRow title="Email"
                                                  defaultValue={userResponse.email}
                                                  disabled={false}
+                                                 onChange={handleTextChange(setUserEmailLink)}
                                         />
                                         <InfoRow title="Address"
                                                  defaultValue={faker.address.city() + ", " + faker.address.stateAbbr()}
@@ -76,13 +100,14 @@ export default function Profile() {
                                                  disabled={true}
                                         />
                                         <InfoRow title="Github"
-                                                 defaultValue={""}
+                                                 defaultValue={userResponse.githubLink}
                                                  disabled={false}
+                                                 onChange={handleTextChange(setUserGithubLink)}
                                         />
                                     </CardContent>
                                     <CardActions>
-                                        <Button variant="contained">
-                                            <Typography textTransform="none">Update Profile</Typography>
+                                        <Button variant="contained" onClick={handleProfileUpdateClick}>
+                                            <Typography textTransform="none">Update profile</Typography>
                                         </Button>
                                     </CardActions>
                                 </Card>
@@ -95,7 +120,7 @@ export default function Profile() {
     )
 }
 
-function InfoRow({ title, defaultValue, disabled }) {
+function InfoRow({ title, defaultValue, disabled, onChange }) {
     return (
         <Box>
             <Grid container spacing={5}>
@@ -111,6 +136,7 @@ function InfoRow({ title, defaultValue, disabled }) {
                             defaultValue={defaultValue}
                             disabled={disabled}
                             variant="filled"
+                            onChange={onChange}
                     />
                 </Grid>
             </Grid>

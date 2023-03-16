@@ -1,5 +1,4 @@
 from django.db import models
-import uuid
 
 
 class Account(models.Model):
@@ -13,7 +12,7 @@ class Account(models.Model):
     email = models.CharField(max_length=100, null=True)
     firstName = models.CharField(max_length=32, null=True)
     lastName = models.CharField(max_length=32, null=True)
-    githubLink = models.URLField(max_length=200, null=True, blank=True)
+    githubLink = models.URLField(max_length=200, blank=True)
     def __str__(self) -> str:
         return "{}".format(self.username)
     class Meta:

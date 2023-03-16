@@ -25,7 +25,10 @@ export const UserService = {
                 })
         }, [url]);
         return [isLoading, error, userDetails];
-
+    },
+    updateUserProfile(uuid, updatedProfile) {
+        const url = "/account/"+uuid;
+        return client.put(url, updatedProfile).data;
     },
     register(username, email, password, first_name, last_name) {
         let url = "/register";

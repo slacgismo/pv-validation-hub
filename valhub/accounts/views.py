@@ -54,43 +54,36 @@ class AccountList(APIView):
         return JsonResponse(serializer.data, safe=False)
 
     def post(self, request):
-        # data = JSONParser().parse(data=request.data)
         serializer = AccountSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return JsonResponse(serializer.data, status=201)
         return JsonResponse(serializer.errors, status=400)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class AccountDetail(APIView):
     """
     Retrieve, update or delete a user.
     """
+
     @csrf_exempt
-    def get_object(self, pk):
+    def get(self, request, pk):
         try:
-            return Account.objects.get(pk=pk)
+            account = self.get_object(pk=pk)
+            serializer = AccountSerializer(account)
+            return JsonResponse(serializer.data)
         except Account.DoesNotExist:
             return HttpResponse(status=404)
 
     @csrf_exempt
-    def get(self, request, pk):
-        account = self.get_object(pk=pk)
-        _account = Account(
-            uuid=account.uuid,
-            username=account.username, 
-            email=account.email,
-            firstName=account.firstName,
-            lastName=account.lastName,
-            )
-        serializer = AccountSerializer(_account)
-        return JsonResponse(serializer.data)
-
-    @csrf_exempt
     def put(self, request, pk):
-        account = self.get_object(pk=pk)
-        serializer = AccountSerializer(account, data=request.data)
+        try:
+            account = self.get_object(pk=pk)
+        except Account.DoesNotExist:
+            return HttpResponse(status=404)
+
+        # update origin account
+        serializer = AccountSerializer(account, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return JsonResponse(serializer.data)
@@ -98,6 +91,9 @@ class AccountDetail(APIView):
 
     @csrf_exempt
     def delete(self, request, pk):
-        account = self.get_object(pk=pk)
+        try:
+            account = self.get_object(pk=pk)
+        except Account.DoesNotExist:
+            return HttpResponse(status=404)
         account.delete()
         return HttpResponse(status=204)
