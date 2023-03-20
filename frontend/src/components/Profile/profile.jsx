@@ -1,13 +1,59 @@
 import { Avatar, Card, CardContent, CardMedia, CircularProgress, Grid, Typography, TextField, Button, CardActions } from "@mui/material";
 import { Box } from "@mui/system";
+import { styled } from '@mui/material/styles';
+import Dialog from '@mui/material/Dialog';
+import DialogContent from '@mui/material/DialogContent';
+import DialogAction from '@mui/material/DialogActions';
 import Cookies from 'universal-cookie';
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { UserService } from "../../services/user_service"
 import { faker } from "@faker-js/faker";
 import { useState } from "react";
 
+const UpdateDialog = styled(Dialog)(({ theme }) => ({
+    '& .MuiDialogContent-root': {
+      padding: theme.spacing(2),
+    },
+    '& .MuiDialogActions-root': {
+      padding: theme.spacing(1),
+    },
+}));
+
+// Dialog that shows whether user profile successfully updated or not. 
+function ProfileUpdateDialog({ open, onClose }) {
+    return (
+        <UpdateDialog open={open} >
+            <DialogContent dividers>
+                <Typography gutterBottom>
+                    Update Succeed!
+                </Typography>
+            </DialogContent>
+            <DialogAction>
+                <Button autoFocus onClick={onClose}>
+                    <Typography variant="body2">
+                        Done
+                    </Typography>
+                </Button>
+            </DialogAction>
+        </UpdateDialog>
+    )
+}
+
+const ProfileCardContent = styled(CardContent)(({ theme }) => ({
+    '& .MuiTypography-root': {
+        marginTop: theme.spacing(2),
+        marginBottom: theme.spacing(2),
+    },
+    '& .MuiTypography-body1': {
+        align: 'center',
+        justifyContent: 'flex-end'
+    },
+    marginBottom: 0.5,
+    marginTop: 0.5
+}));
+
 export default function Profile() {
-    // todo(jrl): abstract user cookie information
+    // todo(jrl): abstract user cookie information to a service
     const cookies = new Cookies();
     const user = cookies.get("user");
 
@@ -23,6 +69,7 @@ export default function Profile() {
     // prepare for user profile fields update
     const [githubLink, setUserGithubLink] = useState('');
     const [emailLink, setUserEmailLink] = useState('');
+    const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
 
     const handleTextChange = (setState) => (event) => {
         setState(event.target.value);
@@ -33,9 +80,10 @@ export default function Profile() {
             "email": emailLink,
             "githubLink": githubLink,
         };
+        // todo: check return value
         const ret = UserService.updateUserProfile(user.uuid, updatedProfile);
         console.log("ret value: ", ret);
-        // window.location.reload();
+        setUpdateDialogOpen(true);
     };
 
     console.log("response: ", userResponse)
@@ -70,18 +118,7 @@ export default function Profile() {
                             </Grid>
                             <Grid item xs={12} md={9}>
                                 <Card variant="outlined">
-                                    <CardContent sx={{
-                                        '& .MuiTypography-root': {
-                                            marginTop: 2,
-                                            marginBottom: 2
-                                        },
-                                        '& .MuiTypography-body1': {
-                                            align: 'center',
-                                            justifyContent: 'flex-end'
-                                        },
-                                        marginBottom: 0.5,
-                                        marginTop: 0.5
-                                    }}>
+                                    <ProfileCardContent>
                                         <InfoRow title="Full Name"
                                                  defaultValue={userResponse.firstName + " " + userResponse.lastName}
                                                  disabled={true}
@@ -104,7 +141,7 @@ export default function Profile() {
                                                  disabled={false}
                                                  onChange={handleTextChange(setUserGithubLink)}
                                         />
-                                    </CardContent>
+                                    </ProfileCardContent>
                                     <CardActions>
                                         <Button variant="contained" onClick={handleProfileUpdateClick}>
                                             <Typography textTransform="none">Update profile</Typography>
@@ -112,6 +149,10 @@ export default function Profile() {
                                     </CardActions>
                                 </Card>
                             </Grid>
+                            <ProfileUpdateDialog
+                                open={updateDialogOpen}
+                                onClose={() => { setUpdateDialogOpen(false) } }
+                            />
                         </Grid>
                     :
                     <BlurryPage />
@@ -120,6 +161,8 @@ export default function Profile() {
     )
 }
 
+// InfoRow represents a single row of specific user profile information with a title.
+// It can be specified to whether editable or not.
 function InfoRow({ title, defaultValue, disabled, onChange }) {
     return (
         <Box>
