@@ -69,7 +69,7 @@ class AccountDetail(APIView):
     @csrf_exempt
     def get(self, request, pk):
         try:
-            account = self.get_object(pk=pk)
+            account = Account.objects.get(pk=pk)
             serializer = AccountSerializer(account)
             return JsonResponse(serializer.data)
         except Account.DoesNotExist:
@@ -78,7 +78,7 @@ class AccountDetail(APIView):
     @csrf_exempt
     def put(self, request, pk):
         try:
-            account = self.get_object(pk=pk)
+            account = Account.objects.get(pk=pk)
         except Account.DoesNotExist:
             return HttpResponse(status=404)
 
@@ -92,7 +92,7 @@ class AccountDetail(APIView):
     @csrf_exempt
     def delete(self, request, pk):
         try:
-            account = self.get_object(pk=pk)
+            account = Account.objects.get(pk=pk)
         except Account.DoesNotExist:
             return HttpResponse(status=404)
         account.delete()
