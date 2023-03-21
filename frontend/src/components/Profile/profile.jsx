@@ -77,8 +77,8 @@ export default function Profile() {
 
     const handleProfileUpdateClick = (_) => {
         const updatedProfile = {
-            "email": emailLink,
-            "githubLink": githubLink,
+            "email": emailLink === '' ? userResponse.email : emailLink,
+            "githubLink": githubLink === '' ? userResponse.githubLink : githubLink,
         };
         // todo: check return value
         const ret = UserService.updateUserProfile(user.uuid, updatedProfile);
