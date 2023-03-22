@@ -52,7 +52,7 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
       "portMappings": [
         {
           "containerPort": 3000,
-          "hostPort": 3000
+          "hostPort": 8080
         }
       ],
       "memory": 512,
