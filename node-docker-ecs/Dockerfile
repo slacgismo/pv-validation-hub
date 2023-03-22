@@ -15,7 +15,6 @@ COPY . .
 
 # Make docker-entrypoint.sh executable
 RUN chmod +x docker-entrypoint.sh
-RUN cp docker-entrypoint.sh /usr/local/bin
 
 # Make port 3000 available to the world outside this container
 EXPOSE 3000
