@@ -9,7 +9,6 @@ COPY package*.json ./
 
 # Install any needed packages specified in package.json
 RUN yarn install --frozen-lockfile --non-interactive
-RUN apk add iptables
 
 # Copying the rest of the code to the working directory
 COPY . .
