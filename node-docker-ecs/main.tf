@@ -33,11 +33,13 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   })
 }
 
-
 resource "aws_ecs_cluster" "pv-validation-hub-test-cluster" {
   name = "pv-validation-hub-test-cluster" # Naming the cluster
 }
 
+resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
+  name = "/ecs/pv-validation-hub-test-task" # Naming the log group
+}
 
 resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
   family                   = "pv-validation-hub-test-task" # Naming our first task
@@ -54,7 +56,17 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
         }
       ],
       "memory": 512,
-      "cpu": 256
+      "cpu": 256,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${aws_cloudwatch_log_group.ecs_task_log_group.name}",
+          "awslogs-stream-prefix": "pv-validation-hub-test-task",
+          "awslogs-create-group": "true",
+          "awslogs-region": "us-east-1"
+        },
+      "command": ["/bin/sh", "/app/docker-entrypoint.sh"]
+      }
     }
   ]
   DEFINITION
@@ -65,21 +77,21 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 }
 
- data "aws_iam_policy_document" "assume_role_policy" {
-   statement {
-     actions = ["sts:AssumeRole"]
+data "aws_iam_policy_document" "assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
 
-     principals {
-       type        = "Service"
-       identifiers = ["ecs-tasks.amazonaws.com"]
-     }
-   }
- }
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
 
- resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
-   role       = aws_iam_role.ecs_task_execution_role.name
-   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
- }
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
 
 resource "aws_alb" "application_load_balancer" {
   name               = "pv-validation-hub-test-lb-tf" # Naming our load balancer
