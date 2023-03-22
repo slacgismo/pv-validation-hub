@@ -3,20 +3,6 @@ provider "aws" {
   region  = "us-east-1"
 }
 
-#locals {
-#  vpc_id = "vpc-a27c77ca"
-  # refers to pv-validation-kubernetes subnet
-#  subnet_id_1 = "subnet-01920f4e2aeb35b55"
-#  subnet_id_2 = "subnet-03602b3cf6a313769"
-#  ecs_task_execution_role_arn = "arn:aws:iam::041414866712:role/ecsTaskExecutionRole"
-#  ecs_task_execution_role_name = "ecsTaskExecutionRole"
-#}
-
-
-# resource "aws_ecr_repository" "pv-validation-hub-test-ecr-repo" {
-#   name = "pv-validation-hub"
-# }
-
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = var.ecs_task_execution_role_name
   assume_role_policy = jsonencode({
