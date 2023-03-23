@@ -59,7 +59,7 @@ export default function Header () {
 
   return (
     <Box sx={{ display: 'flex '}}>
-      <AppBar position="static" sx={{ backgroundColor: "white" }}>
+      <AppBar position="fixed" sx={{ backgroundColor: "white" }}>
         <Container maxWidth="xl">
           <Toolbar disableGutters>
             <Logo redirect="/" />
