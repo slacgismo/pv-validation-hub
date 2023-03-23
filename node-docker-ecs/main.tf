@@ -38,7 +38,7 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
       "portMappings": [
         {
           "containerPort": 3000,
-          "hostPort": 8080
+          "hostPort": 3000
         }
       ],
       "memory": 512,
@@ -127,6 +127,6 @@ resource "aws_ecs_service" "valhub_my_first_service" {
   network_configuration {
     subnets          = [aws_subnet.pv-validation-hub_a.id, aws_subnet.pv-validation-hub_b.id]
     assign_public_ip = true
-    security_groups  = [aws_security_group.load_balancer_security_group.id]
+    security_groups  = [aws_security_group.valhub_ecs_service_security_group.id]
   }
 }
