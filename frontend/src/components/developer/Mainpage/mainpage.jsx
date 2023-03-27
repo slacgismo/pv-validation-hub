@@ -11,8 +11,10 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import Checkbox from '@mui/material/Checkbox';
 import MailIcon from '@mui/icons-material/Mail';
 import ArticleIcon from '@mui/icons-material/Article';
+import CommentIcon from '@mui/icons-material/Comment'
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
@@ -30,55 +32,6 @@ export default function DeveloperHome() {
 
   return (
     <Container sx={{ position: 'fixed', top: '10%' }}>
-          {/* <Toolbar> */}
-            {/* <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton> */}
-            {/* <Typography variant="h6" noWrap component="div">
-              Responsive drawer
-            </Typography>
-          </Toolbar> */}
-
-          {/* <Box
-            component="nav"
-            // sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-            aria-label="mailbox folders"
-          > */}
-            {/* The implementation can be swapped with js to avoid SEO duplication of links. */}
-            {/* <Drawer
-              // container={container}
-              variant="temporary"
-              open={false}
-              onClose={handleDrawerToggle}
-              ModalProps={{
-                keepMounted: true, // Better open performance on mobile.
-              }}
-              sx={{
-                display: { xs: 'block', sm: 'none' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-              }}
-            >
-              {drawer}
-            </Drawer> */}
-
-            {/* <Drawer
-              variant="permanent"
-              sx={{
-                flexShrink: 0,
-                display: { xs: 'none', sm: 'block' },
-                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-              }}
-              open
-            >
-              {drawer}
-            </Drawer>
-          </Box> */}
           <Grid container alignItems="center" spacing={2}>
             <Grid item xs = {3}>
               <Box component="Nav" aria-label="mailbox folders" sx={{display: 'flex'}}>
@@ -87,7 +40,9 @@ export default function DeveloperHome() {
                   <Divider />
                   <List>
                     {['Submissions', 'Participated Analyses', 'Used Datasets'].map((text, index) => (
-                      <ListItem key={text} disablePadding>
+                      <ListItem
+                        key={text}
+                        disablePadding>
                         <ListItemButton>
                           <ListItemIcon>
                             {index % 2 === 0 ? <ArticleIcon /> : <AssessmentIcon />}
@@ -117,33 +72,40 @@ export default function DeveloperHome() {
             <Grid item xs = {9}>
                 <Box
                   component="main"
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
                   sx={{
                     overflow: 'auto',
                     border: '1px solid rgba(0, 0, 0, 0.12)',
                     }}
                 >
                   <Toolbar />
-                  <Typography paragraph>
-                    Lorem ipsum dolor sit amet. asdfasfd
-                  </Typography>
-                  <Typography paragraph>
-                    Consequat mauris nunc congue nisi vitae suscipit.
-                  </Typography>
-                  <Typography paragraph>
-                    Consequat mauris nunc congue nisi vitae suscipit.
-                  </Typography>
-                  <Typography paragraph>
-                    Consequat mauris nunc congue nisi vitae suscipit.
-                  </Typography>
-                  <Typography paragraph>
-                    Consequat mauris nunc congue nisi vitae suscipit.
-                  </Typography>
-                  <Typography paragraph>
-                    Consequat mauris nunc congue nisi vitae suscipit.
-                  </Typography>
-                  <Typography paragraph>
-                    Consequat mauris nunc congue nisi vitae suscipit.
-                  </Typography>
+                    <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
+                      {[0, 1, 2, 3].map((value) => {
+                        const labelId = `checkbox-list-label-${value}`;
+                        return (
+                          <ListItem
+                            key={value}
+                            disablePadding
+                          >
+                            <ListItemButton role={undefined} dense>
+                              <ListItemText id={labelId} primary={`Submission record ${value + 1}`} />
+                              <ListItemIcon>
+                                <CommentIcon />
+                                <Checkbox
+                                  edge="start"
+                                  // checked={checked.indexOf(value) !== -1}
+                                  tabIndex={-1}
+                                  disableRipple
+                                  inputProps={{ 'aria-labelledby': labelId }}
+                                />
+                              </ListItemIcon>
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                  </List>
                 </Box>
             </Grid>
           </Grid>
