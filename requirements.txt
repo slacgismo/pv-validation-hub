@@ -5,3 +5,4 @@ requests
 djangorestframework
 django-cors-headers
 psycopg2
+bcrypt

@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view
 from .serializers import AccountSerializer
 from .models import Account
 import json
+import bcrypt
 
 
 @csrf_exempt
@@ -18,9 +19,15 @@ def register(request):
     _password = request.data["password"]
     _firstName = request.data["firstName"]
     _lastName = request.data["lastName"]
+    _passwordSalt = bcrypt.gensalt()
+    _encodePwd = _password.encode('utf-8')
+    _passwordHash = bcrypt.hashpw(_encodePwd, _passwordSalt)
+
     account = Account(
         username = _username, 
-        password = _password, 
+        password = _password,
+        passwordSalt = _passwordSalt.decode("utf-8"),
+        passwordHash = _passwordHash.decode("utf-8"),
         email = _useremail,
         firstName = _firstName,
         lastName = _lastName,
@@ -35,9 +42,13 @@ def register(request):
 def login(request):
     _username = request.data['username']
     _password = request.data['password']
-    account = Account.objects.get(username=_username)
+    _encodePwd = _password.encode('utf-8')
 
-    if account.password == _password:
+    account = Account.objects.get(username=_username)
+    _encodeSalt = account.passwordSalt.encode('utf-8')
+    user_hashed_pwd = bcrypt.hashpw(_encodePwd, _encodeSalt)
+
+    if user_hashed_pwd.decode('utf-8') == account.passwordHash:
         data = {
             'uuid': str(account.uuid),
         }

@@ -10,6 +10,8 @@ class Account(models.Model):
     uuid = models.AutoField(primary_key=True)
     username = models.CharField(max_length=32)
     password = models.CharField(max_length=32)
+    passwordSalt = models.CharField(max_length=256)
+    passwordHash = models.CharField(max_length=256)
     email = models.CharField(max_length=100, null=True)
     firstName = models.CharField(max_length=32, null=True)
     lastName = models.CharField(max_length=32, null=True)

@@ -7,4 +7,4 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         # model = User
         model = Account
-        fields = ('uuid', 'username', 'password', 'firstName', 'lastName', 'email', 'githubLink')
+        fields = ('uuid', 'username', 'password', 'passwordSalt', 'passwordHash', 'firstName', 'lastName', 'email', 'githubLink')
