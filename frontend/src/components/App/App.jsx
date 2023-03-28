@@ -11,7 +11,7 @@ import Analyses from '../Analyses/Analyses';
 import Analysis from '../Analysis/Analysis';
 import Submission from '../Submission/Submission';
 import Profile from '../Profile/profile';
-import DeveloperHome from '../developer/Mainpage/mainpage';
+import DeveloperHome from '../Developer/Mainpage/mainpage';
 
 function App() {
   return (

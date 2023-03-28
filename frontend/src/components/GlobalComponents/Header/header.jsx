@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from 'react';
 import Cookies from 'universal-cookie';
 import { faker } from "@faker-js/faker";
+import Divider from '@mui/material/Divider';
 
 export default function Header () {
   const cookies = new Cookies();
@@ -22,17 +23,26 @@ export default function Header () {
 
   const userInfoMenu = [
     {
-      "text": "profile",
+      "text": "Developer",
       "handler": () => {
-        navigate("/profile/"+cookies.get("user").id);
-      }
+        navigate("/developer");
+      },
+      "border": true,
     },
     {
-      "text": "logout",
+      "text": "Profile",
+      "handler": () => {
+        navigate("/profile/"+cookies.get("user").id);
+      },
+      "border": false,
+    },
+    {
+      "text": "Logout",
       "handler": () => {
         cookies.remove("user", {path: "/"});
         navigate("/");
-      }
+      },
+      "border": false,
     }
   ];
 
@@ -160,9 +170,12 @@ function UserInfoMenu({ userInfoMenu, anchorElUser, onClickUserInfoMenu, onClose
       >
         {
           userInfoMenu.map((item) => (
-            <MenuItem key={item.text} onClick={item.handler}>
-              <Typography textAlign="center">{item.text}</Typography>
-            </MenuItem>
+            <Box>
+              <MenuItem key={item.text} onClick={item.handler}>
+                <Typography textAlign="center">{item.text}</Typography>
+              </MenuItem>
+              { item.border ? <Divider /> : <Box /> }
+            </Box>
           ))
         }
       </Menu>

@@ -77,9 +77,9 @@ export default function Login() {
                 password: password
             }).then(response => {
                 cookies.set("user", {
-                    "uuid" : response.data.uuid,
-                    "username" : username,
-                    "password" : password
+                    uuid : response.data.uuid,
+                    username : username,
+                    password : password
                 },
                 { path: '/', sameSite: "strict" });
                 navigate("/");
