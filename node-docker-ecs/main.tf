@@ -1,6 +1,6 @@
 provider "aws" {
   version = "~> 2.0"
-  region  = "us-east-1"
+  region  = "us-west-2"
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
@@ -24,7 +24,7 @@ resource "aws_ecs_cluster" "pv-validation-hub-test-cluster" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
-  name = "/ecs/pv-validation-hub-test-task" # Naming the log group
+  name = "/ecs/pv-validation-hub-test-task1" # Naming the log group
 }
 
 resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
@@ -49,7 +49,7 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
           "awslogs-group": "${aws_cloudwatch_log_group.ecs_task_log_group.name}",
           "awslogs-stream-prefix": "pv-validation-hub-test-task",
           "awslogs-create-group": "true",
-          "awslogs-region": "us-east-1"
+          "awslogs-region": "us-west-2"
         },
       "command": ["/bin/sh", "/app/docker-entrypoint.sh"]
       }
@@ -130,3 +130,17 @@ resource "aws_ecs_service" "valhub_my_first_service" {
     security_groups  = [aws_security_group.valhub_ecs_service_security_group.id]
   }
 }
+
+resource "aws_db_instance" "pv-validation-hub-rds-test" {
+  identifier             = "pv-validation-hub-rds-test"
+  instance_class         = "db.t3.micro"
+  allocated_storage      = 20
+  engine                 = "postgres"
+  engine_version         = "14.5"
+  username               = "postgres"
+  password               = var.db_password
+  db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
+  publicly_accessible    = true
+  skip_final_snapshot    = true
+}
+
