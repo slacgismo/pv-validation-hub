@@ -30,6 +30,15 @@ services:
     depends_on:
       - db
 
+  s3:
+    build: ./s3Emulator
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "5000:5000"
+
   react-client:
     stdin_open: true
     build: ./frontend
@@ -41,6 +50,7 @@ services:
       - "3000:3000"
     depends_on:
       - api
+      - s3
 
 volumes:
  valhub:
