@@ -12,18 +12,23 @@ export const UserService = {
         useEffect(() => {
             client.get(url)
                 .then(response => {
+                    console.log('send url: ', url, ", get response: ", response);
                     setUserDetails(response.data);
                     console.log(response.data);
                     setIsLoading(false);
                 })
                 .catch(error => {
+                    console.log('send url: ', url, ", get error: ", error);
                     setError(error);
                     setUserDetails({});
                     setIsLoading(false);
                 })
         }, [url]);
         return [isLoading, error, userDetails];
-
+    },
+    updateUserProfile(uuid, updatedProfile) {
+        const url = "/account/"+uuid;
+        return client.put(url, updatedProfile).data;
     },
     register(username, email, password, first_name, last_name) {
         let url = "/register";

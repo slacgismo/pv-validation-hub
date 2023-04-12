@@ -16,6 +16,7 @@ describe("Rendering", () => {
         expect(screen.getAllByRole('button', {Name: "share"})).toBeTruthy();
     });
 });
+
 describe("Analysis Cards", () => {
     it("Should navigate to each analysis page when the card was clicked", async () => {
         const navigate = jest.fn();

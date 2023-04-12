@@ -40,6 +40,7 @@ export default function Dashboard() {
     const closeModal = () => {
         setIsOpen(false);
     }
+
     const openModal = () => {
         setIsOpen(true);
     }
@@ -78,14 +79,13 @@ export default function Dashboard() {
         )
     }
     return (
-        <Container
-        >
-
+        <Container>
             <Box sx={{ flexGrow: 1, marginTop: 3 }}>
                 <Typography variant="h2" gutterBottom>
-                    Analysis Sets
+                    Analytical Tasks
                 </Typography>
             </Box>
+
             <Grid container spacing={2}>
                 <Grid item>
                     <Box sx={{ flexGrow: 1, marginTop: 3 }}>
@@ -102,10 +102,8 @@ export default function Dashboard() {
                             <Box sx={{ marginTop: 2, marginBottom: 1 }}>
                                 <Button
                                     variant="contained"
-                                    onClick={() => {
-                                        openModal();
-                                    }}>
-                                    Upload Analysis
+                                    onClick={() => {openModal();}}>
+                                    Upload Submission
                                 </Button>
                             </Box>
                     }

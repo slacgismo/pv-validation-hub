@@ -70,14 +70,19 @@ export default function Login() {
         let username = loginStates.username;
         let password = loginStates.password;
         let usernameError = validateUsername(username);
+
         if (usernameError === "" && password !== "") {
             client.post("/login", {
                 username: username,
                 password: password
             }).then(response => {
-                console.log(response);
-                cookies.set("user", response.data, { path: '/', sameSite: "strict" });
-                navigate("/dashboard");
+                cookies.set("user", {
+                    uuid : response.data.uuid,
+                    username : username,
+                    password : password
+                },
+                { path: '/', sameSite: "strict" });
+                navigate("/");
             }).catch(error => {
                 setShowAlert("block");
                 setTimeout(() => { setShowAlert("none") }, 10);
@@ -111,7 +116,6 @@ export default function Login() {
                 }}
                 noValidate
                 autoComplete="off"
-
             >
                 <div>
                     <Typography variant="h4" gutterBottom>Sign In</Typography>
