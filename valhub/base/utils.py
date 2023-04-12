@@ -3,7 +3,6 @@ from django.utils.deconstruct import deconstructible
 import os
 import uuid
 import boto3
-import botocore
 
 
 @deconstructible

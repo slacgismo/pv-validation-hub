@@ -16,6 +16,7 @@ import { FileUploader } from "react-drag-drop-files";
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { AnalysisService } from "../../services/analysis_service";
 import { faker } from "@faker-js/faker";
+
 export default function Analysis() {
 
     const cookies = new Cookies();
@@ -24,8 +25,6 @@ export default function Analysis() {
 
     const [value, setValue] = useState(0);
 
-    const [showButton, setShowButton] = useState(false);
-
     const [isOpen, setIsOpen] = useState(false);
 
     const [isLoading, error, card, analysis_id] = AnalysisService.useGetCardDetails();
@@ -33,9 +32,11 @@ export default function Analysis() {
     const closeModal = () => {
         setIsOpen(false);
     }
+
     const openModal = () => {
         setIsOpen(true);
     }
+
     const fileTypes = ["ZIP", "IPYNB"];
 
     const [file, setFile] = useState(null);
@@ -44,19 +45,13 @@ export default function Analysis() {
         setFile(file);
     };
 
-    const setValues = (index) => {
-        return {
-            id: `tab-${index}`,
-            'aria-controls': `tabpanel-${index}`,
-        };
-    }
-
     const handleUpload = () => {
-        let response = AnalysisService.uploadAlgorithm(analysis_id, user.id, file);
+        let response = AnalysisService.uploadAlgorithm(analysis_id, user.user_id, file);
+        console.log("response: ", response);
         closeModal();
     }
+
     const handleChange = (event, newValue) => {
-        newValue === 2 ? setShowButton(true) : setShowButton(false);
         setValue(newValue);
     };
 
@@ -66,66 +61,67 @@ export default function Analysis() {
                 <Box sx={{
                     flexGrow: 1,
                     marginTop: 3,
-                    marginLeft: 2,
-                    marginRight: 2,
                     height: 200,
                     backgroundImage: `url(${faker.image.abstract(1200, 300)})`
                 }}>
-                    <Box sx={{ flexGrow: 1, marginTop: 4, marginLeft: 1 }}>
+                    <Box sx={{ flexGrow: 1, marginTop: 4, marginLeft: 2 }}>
                         <Typography color={"white"} variant="h4" gutterBottom>
                             {card.analysis_name}
                         </Typography>
                     </Box>
-                    <Box sx={{ flexGrow: 1, marginTop: 2, marginLeft: 1 }}>
+                    <Box sx={{ flexGrow: 1, marginTop: 2, marginLeft: 2 }}>
                         <Typography color={"white"} variant="body2" gutterBottom>
                             {card.short_description}
                         </Typography>
                     </Box>
                 </Box>
+
                 <Box sx={{ width: '100%' }}>
                     <Box sx={{ borderBottom: 1, borderColor: 'divider', marginRight: 2 }}>
                         <Grid container spacing={2}>
                             <Grid item xs={6} md={10}>
                                 <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-                                    <Tab label="Overview" {...setValues(0)} />
-                                    <Tab label="Data" {...setValues(1)} />
-                                    <Tab label="Leaderboard" {...setValues(2)} />
-                                    <Tab label="Rules" {...setValues(3)} />
-                                    <Tab label="Submission" {...setValues(4)} />
-                                    <Tab label="Discussion" {...setValues(5)} />
+                                    <Tab label="Overview" />
+                                    <Tab label="Data" />
+                                    <Tab label="Leaderboard" />
+                                    <Tab label="Rules" />
+                                    <Tab label="Submission" />
+                                    <Tab label="Discussion" />
                                 </Tabs>
                             </Grid>
+
                             <Grid item xs={6} md={2}>
                                 {
-                                    showButton ?
-                                        user !== undefined || user != null ?
-                                            <Button
-                                                align="right"
-                                                variant="contained"
-                                                onClick={() => {
-                                                    openModal();
-                                                }}
-                                                sx={{
-                                                    backgroundColor: "black",
-                                                    width: "100%",
-                                                    height: "70%",
-                                                    fontSize: "small",
-                                                    marginTop: 1
-                                                }}>
-                                                Upload Algorithm
-                                            </Button>
-                                            : null
-                                        : null
+                                    (user !== undefined || user != null) &&
+                                    <Button
+                                        align="right"
+                                        variant="contained"
+                                        onClick={() => {
+                                            openModal();
+                                        }}
+                                        sx={{
+                                            backgroundColor: "black",
+                                            width: "100%",
+                                            height: "70%",
+                                            fontSize: "small",
+                                            marginTop: 1
+                                        }}>
+                                        <Typography>
+                                            Upload Algorithm
+                                        </Typography>
+                                    </Button>
                                 }
                             </Grid>
                         </Grid>
                     </Box>
+
                     <TabPanel value={value} index={0}>
                         <Overview
                             title={"Overview of " + card.analysis_name}
                             description={card.description}
                         />
                     </TabPanel>
+
                     <TabPanel value={value} index={1}>
                         {
                             user === undefined || user == null ?
@@ -137,18 +133,20 @@ export default function Analysis() {
                                 />
                         }
                     </TabPanel>
+
                     <TabPanel value={value} index={2} >
                         <Leaderboard
                             analysis_id={analysis_id}
                         />
                     </TabPanel>
-                    <TabPanel value={value} index={3}>
 
+                    <TabPanel value={value} index={3}>
                         <Rules
                             title={card.analysis_name}
                             description={card.ruleset}
                         />
                     </TabPanel>
+
                     <TabPanel value={value} index={4}>
                         {
                             user === undefined || user == null ?
@@ -160,6 +158,7 @@ export default function Analysis() {
                                 />
                         }
                     </TabPanel>
+
                     <TabPanel value={value} index={5}>
                         {user === undefined || user == null ?
                             <BlurryPage />
@@ -171,13 +170,12 @@ export default function Analysis() {
 
                     </TabPanel>
                 </Box>
+
                 <ReactModal
                     isOpen={isOpen}
                     contentLabel="Upload Algorithm"
                     ariaHideApp={false}
-                    sx={{
-                        height: 400
-                    }}
+                    sx={{ height: 400 }}
                     parentSelector={() => document.querySelector('#root')}
                 >
                     <Box>

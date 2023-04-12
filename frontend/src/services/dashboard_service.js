@@ -70,7 +70,6 @@ export const DashboardService = {
                 })
         }, [analysisUrl]);
         return [isAnalysesLoading, analysesError, analysesDetails];
-
     },
     useGetLeaderBoard(leaderBoardUrl) {
         console.log(leaderBoardUrl);
@@ -111,22 +110,6 @@ export const DashboardService = {
                 })
         }, [submissionUrl]);
         return [isSubmissionLoading, submissionError, submissionDetails];
-    },
-    uploadAnalysis(user_id, analysis_name, description, short_description, file, rule_set, dataset_description) {
-        let uploadAnalysisUrl = "/analysis/upload";
-        let form_data = new FormData();
-        console.log(user_id);
-        form_data.append("evaluation_script", file);
-        form_data.append("user_id", user_id);
-        form_data.append("analysis_name", analysis_name);
-        form_data.append("short_description ", short_description);
-        form_data.append("ruleset ", rule_set);
-        form_data.append("dataset_description", dataset_description);
-        form_data.append("description", description);
-        client.post(uploadAnalysisUrl, form_data, {
-            Accept: '*/*',
-            "content-type": 'multipart/form-data'
-        });
     },
     getImageObjects(analysis_id) {
         return create_fake_image_array_list(4);
