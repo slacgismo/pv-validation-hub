@@ -18,6 +18,6 @@ class AnalysisSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super(AnalysisSerializer, self).to_representation(instance)
         data["analysis_id"] = instance.analysis_id
-        data["creator"] = {"id": instance.creator.id,
-                           "username": instance.creator.username}
+        # data["creator"] = {"uuid": instance.creator.uuid,
+        #                    "username": instance.creator.username}
         return data

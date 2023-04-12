@@ -10,19 +10,10 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useEffect } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
-import { UploadAnalysis } from "../Analysis/UploadAnalysis/UploadAnalysis";
-import ReactModal from "react-modal";
-import CancelIcon from '@mui/icons-material/Cancel';
-import Cookies from 'universal-cookie';
 import { faker } from "@faker-js/faker";
-import Footer from "../GlobalComponents/Footer/footer";
 
 export default function Dashboard() {
-
     const navigate = useNavigate();
-    const cookies = new Cookies();
-    let user = cookies.get("user");
-
     const [analysisId, setAnalysisId] = useState();
 
     useEffect(() => {
@@ -35,49 +26,10 @@ export default function Dashboard() {
         setAnalysisId(card_id);
     };
 
-    const [isOpen, setIsOpen] = useState(false);
-
-    const closeModal = () => {
-        setIsOpen(false);
-    }
-
-    const openModal = () => {
-        setIsOpen(true);
-    }
-
-    //const [isLoading, isError, cardDetails] = ApiService.useApiGet(DashboardService.getAnalysisSetApi());
     const [isLoading, isError, cardDetails] = DashboardService.useGetAnalysisSet("/analysis/home");
-    const render_card = (card, index) => {
-        return (
-            <Grid item xs={2} sm={4} md={4} key={index}>
-                <Card sx={{ maxWidth: 345, height: 380 }} key={card.analysis_id} onClick={() => handleCardClick(card.analysis_id, card.analysis_name)}>
-                    <CardHeader
-                        avatar={
-                            <Avatar
-                                alt={card.creator.username[0].toUpperCase()}
-                                src={faker.image.avatar()}
-                                aria-label="Analysis"
-                            />
-                        }
-                        sx={{ height: 61 }}
-                        title={card.analysis_name}
-                        subheader={card.creator.username}
-                    />
-                    <CardMedia
-                        component="img"
-                        height="194"
-                        src={faker.image.abstract(640,480,true)}
-                        alt={card.analysis_name}
-                    />
-                    <CardContent>
-                        <Typography variant="body2" color="text.secondary">
-                            {card.short_description != undefined && card.short_description.length > 100 ? card.short_description.slice(0, 100) + "....." : card.short_description}
-                        </Typography>
-                    </CardContent>
-                </Card>
-            </Grid>
-        )
-    }
+
+    console.log("cardDetails: ", cardDetails);
+
     return (
         <Container>
             <Box sx={{ flexGrow: 1, marginTop: 3 }}>
@@ -94,21 +46,8 @@ export default function Dashboard() {
                         </Typography>
                     </Box>
                 </Grid>
-                <Grid item>
-                    {
-                        user == undefined || user == null ?
-                            null
-                            :
-                            <Box sx={{ marginTop: 2, marginBottom: 1 }}>
-                                <Button
-                                    variant="contained"
-                                    onClick={() => {openModal();}}>
-                                    Upload Submission
-                                </Button>
-                            </Box>
-                    }
-                </Grid>
             </Grid>
+
             <Box sx={{ flexGrow: 1, marginTop: 3, marginBottom: 10 }}>
                 {
                     isLoading ?
@@ -117,41 +56,44 @@ export default function Dashboard() {
                         </Box>
                         :
                         <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }} alignItems="stretch">
-                            {cardDetails.map(render_card)}
+                            {
+                                cardDetails.map((card, index) => (
+                                    <CustomizedCard index={index} card={card} onClick={handleCardClick} />
+                                ))
+                            }
                         </Grid>
                 }
             </Box>
-            <ReactModal
-                isOpen={isOpen}
-                contentLabel="Upload Analysis"
-                ariaHideApp={false}
-                sx={{
-                    height: 400
-                }}
-                parentSelector={() => document.querySelector('#root')}
-            >
-                <Box>
-                    <Grid container spacing={2}>
-                        <Grid item xs={11}>
-                            <Typography sx={{ marginLeft: 45 }} variant="h5">
-                                PV Validation Hub Analysis Upload
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={1}>
-                            <CancelIcon
-                                sx={{
-                                    "&:hover": {
-                                        color: "#ADD8E6",
-                                        cursor: "pointer"
-                                    },
-                                    color: "#18A0FB"
-                                }}
-                                onClick={() => closeModal()} />
-                        </Grid>
-                    </Grid>
-                    <UploadAnalysis closeModelFunc={closeModal} user_id={user != null || user != undefined ? user.id : user} />
-                </Box>
-            </ReactModal>
-        </Container >
+        </Container>
+    )
+}
+
+function CustomizedCard({ index, card, onClick }) {
+    return (
+        <Grid item xs={2} sm={4} md={4} key={index}>
+            <Card sx={{ maxWidth: 345, height: 380 }} key={card.analysis_id} onClick={() => onClick(card.analysis_id, card.analysis_name)}>
+                <CardHeader
+                    avatar={
+                        <Avatar
+                            src={faker.image.avatar()}
+                            aria-label="Analysis"
+                        />
+                    }
+                    sx={{ height: 61 }}
+                    title={card.analysis_name}
+                />
+                <CardMedia
+                    component="img"
+                    height="194"
+                    src={faker.image.abstract(640,480,true)}
+                    alt={card.analysis_name}
+                />
+                <CardContent>
+                    <Typography variant="body2" color="text.secondary">
+                        {card.short_description != undefined && card.short_description.length > 100 ? card.short_description.slice(0, 100) + "....." : card.short_description}
+                    </Typography>
+                </CardContent>
+            </Card>
+        </Grid>
     )
 }

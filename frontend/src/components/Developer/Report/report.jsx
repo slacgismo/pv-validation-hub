@@ -11,6 +11,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
 
 export default function SubmissionReport() {
@@ -44,6 +45,11 @@ export default function SubmissionReport() {
           <Table aria-label="simple table">
             <TableHead>
               <TableRow>
+                <TableCell colSpan={3} align="center">
+                  <Typography variant="h6" style={{ fontWeight: 'bold' }}>Table: average error by data issue</Typography>
+                </TableCell>
+              </TableRow>
+              <TableRow>
                 <TableCell>Data set label</TableCell>
                 <TableCell align="right">Average MAE</TableCell>
               </TableRow>
@@ -75,6 +81,7 @@ export default function SubmissionReport() {
                 alt='img0'
                 loading="lazy"
               />
+              <Typography variant="subtitle1">Plot: histogram of errors by data issue</Typography>
             </ImageListItem>
           <ImageListItem key='img1'>
               <img
@@ -82,6 +89,7 @@ export default function SubmissionReport() {
                 alt='img1'
                 loading="lazy"
               />
+              <Typography variant="subtitle1">Plot: histogram of errors by data set frequency</Typography>
             </ImageListItem>
         </ImageList>
       </ListItem>

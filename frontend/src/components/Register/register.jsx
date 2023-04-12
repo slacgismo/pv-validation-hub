@@ -1,4 +1,4 @@
-import { Box, Button, TextField } from '@mui/material';
+import { Box, Button, TextField, Grid } from '@mui/material';
 import { Container } from '@mui/system';
 import { useState } from 'react';
 import Validation from '../../services/validation_service';
@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { useNavigate } from "react-router-dom";
 import { UserService } from '../../services/user_service';
+
 export default function Register(props) {
 
     const [registerStates, setRegisterStates] = useState({
@@ -40,7 +41,7 @@ export default function Register(props) {
     function isValidEmail(email) {
         let isValid = /\S+@\S+\.\S+/.test(email);
         if (!isValid) {
-            return "Invalid Email!";
+            return "Invalid Email";
         }
         return "";
     }
@@ -60,7 +61,7 @@ export default function Register(props) {
 
         }
         else if (password.length < 8) {
-            errorStatement = "Password must be atleast 8 characters";
+            errorStatement = "Password must be at least 8 characters";
         }
         return errorStatement;
     }
@@ -80,17 +81,27 @@ export default function Register(props) {
         let userNameError = validateUsername(registerStates.username);
         let passwordError = passwordValidation(registerStates.password);
         let confirmPasswordError = confirmPasswordValidation(registerStates.confirmPassword, registerStates.password);
+
         if (firstNameError !== "" || lastNameError !== ""
             || emailError !== "" || userNameError !== "" ||
             passwordError !== "" || confirmPasswordError !== "") {
-            setRegistrationErrors(prevState => ({
-                [registrationErrors.first_name]: firstNameError,
-                [registrationErrors.last_name]: lastNameError,
-                [registrationErrors.email]: emailError,
-                [registrationErrors.username]: userNameError,
-                [registrationErrors.password]: passwordError,
-                [registrationErrors.confirmPassword]: confirmPasswordError
-            }));
+
+            console.log("firstNameError: ", firstNameError);
+            console.log("lastNameError: ", lastNameError);
+            console.log("emailError: ", emailError);
+            console.log("userNameError: ", userNameError);
+            console.log("passwordError: ", passwordError);
+            console.log("confirmPasswordError: ", confirmPasswordError);
+
+            setRegistrationErrors({
+                first_name: firstNameError,
+                last_name: lastNameError,
+                email: emailError,
+                username: userNameError,
+                password: passwordError,
+                confirmPassword: confirmPasswordError
+            });
+            console.log("here is the registration error: ", registrationErrors);
         }
         else {
             setRegistrationErrors(prevState => ({
@@ -116,29 +127,7 @@ export default function Register(props) {
     }
 
     return (
-        <Container
-            sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                p: 1,
-                m: 1,
-            }}
-        >
-            {/* <Box sx={{ display: 'flex' }}>
-                <div>
-                    <Typography variant="h4" gutterBottom>
-                        PV Validation Hub - Developer Role
-                    </Typography>
-                </div>
-                <div>
-                    <Typography variant="body1" gutterBottom>
-                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quos
-                        blanditiis tenetur unde suscipit, quam beatae rerum inventore consectetur,
-                        neque doloribus, cupiditate numquam dignissimos laborum fugiat deleniti? Eum
-                        quasi quidem quibusdam.
-                    </Typography>
-                </div>
-            </Box> */}
+        <Grid container justifyContent="center" alignItems="center" sx={{ mt: '10px' }}>
             <Box
                 component="form"
                 sx={{
@@ -227,6 +216,6 @@ export default function Register(props) {
                     <Button variant="contained" onClick={submitHandler}>Register</Button>
                 </div>
             </Box>
-        </Container>
+        </Grid>
     );
 }
