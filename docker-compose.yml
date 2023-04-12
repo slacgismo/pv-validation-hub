@@ -51,6 +51,13 @@ services:
     depends_on:
       - api
       - s3
-
+  sqs:
+    image: softwaremill/elasticmq:latest
+    ports:
+      - "9324:9324"
+    environment:
+      - "ELASTICMQ_OPTS=-Dconfig.file=/opt/docker/custom.conf"
+    volumes:
+      - ./custom.conf:/opt/docker/custom.conf
 volumes:
  valhub:

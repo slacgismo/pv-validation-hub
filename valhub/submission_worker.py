@@ -440,18 +440,26 @@ def process_submission_callback(body):
 
 ############ queue functions #############
 
-
 def get_or_create_sqs_queue(queue_name):
     """
     Returns:
         Returns the SQS Queue object
     """
-    sqs = boto3.resource(
-        "sqs",
-        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
-        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-    )
+    # Use the Docker endpoint URL for local development
+    if os.environ.get("DEPLOYMENT_ENVIRONMENT") == "local":
+        sqs = boto3.resource(
+            "sqs",
+            endpoint_url='http://localhost:9324'
+        )
+    # Use the production AWS environment for other environments
+    else:
+        sqs = boto3.resource(
+            "sqs",
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+        )
+
     if queue_name == "":
         queue_name = "valhub_submission_queue"
     # Check if the queue exists. If no, then create one
@@ -466,6 +474,7 @@ def get_or_create_sqs_queue(queue_name):
         queue = sqs.create_queue(QueueName=queue_name,
                                  Attributes={'FifoQueue': 'true'})
     return queue
+
 
 
 def get_analysis_pk():

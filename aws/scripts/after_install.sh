@@ -20,7 +20,7 @@ if [ -d ~/pv-validation-hub ]; then
     rm -rf ~/pv-validation-hub
 fi
 mkdir -vp ~/pv-validation-hub
-aws s3 cp s3://pv-insight-pipeline-bucket/deploy.zip ~/pv-validation-hub/deploy.zip
+aws s3 cp s3://pv-validation-hub-bucket/deploy.zip ~/pv-validation-hub/deploy.zip
 cd ~/pv-validation-hub
 unzip deploy.zip
 

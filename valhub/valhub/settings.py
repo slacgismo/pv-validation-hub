@@ -173,8 +173,8 @@ else:
 if hostname is not None:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'test',  # db_name,
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': db_name,  # db_name,
             'USER': username,
             'PASSWORD': password,
             'HOST': hostname,

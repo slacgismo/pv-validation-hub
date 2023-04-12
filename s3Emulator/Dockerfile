@@ -4,6 +4,8 @@ FROM python:3.9-slim-buster
 # Set the working directory
 WORKDIR /app
 
+RUN mkdir /pv-validation-hub-bucket
+
 # Copy the required files to the working directory
 COPY . .
 
