@@ -38,6 +38,8 @@ services:
       HOST: 0.0.0.0
     ports:
       - "5000:5000"
+    depends_on:
+      - api
 
   react-client:
     stdin_open: true
@@ -51,6 +53,7 @@ services:
     depends_on:
       - api
       - s3
+      
   sqs:
     image: softwaremill/elasticmq:latest
     ports:
@@ -59,5 +62,8 @@ services:
       - "ELASTICMQ_OPTS=-Dconfig.file=/opt/docker/custom.conf"
     volumes:
       - ./custom.conf:/opt/docker/custom.conf
+    depends_on:
+      - api
+
 volumes:
  valhub:
