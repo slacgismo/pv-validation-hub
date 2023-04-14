@@ -4,7 +4,11 @@ FROM python:3.9-slim-buster
 # Set the working directory
 WORKDIR /app
 
-RUN mkdir /pv-validation-hub-bucket
+RUN mkdir -p /pv-validation-hub-bucket/data_files/analysis_1/
+RUN mkdir -p /pv-validation-hub-bucket/data_files/general/
+
+RUN mkdir -p /pv-validation-hub-bucket/evaluation_scripts/
+RUN mkdir -p /pv-validation-hub-bucket/submission_files/
 
 # Copy the required files to the working directory
 COPY . .
