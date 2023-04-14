@@ -28,8 +28,4 @@ RUN python3 -m pip install -r requirements.txt
 
 RUN cd ./valhub
 RUN python3 manage.py makemigrations
-CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf", "&&", \
-     "python3", "manage.py", "migrate", "&&", \
-     "python3", "manage.py", "createsuperuser", "--noinput", \
-     "--username=$DJANGO_ADMIN_USERNAME", "--email=admin@example.com", \
-     "&&", "python3", "manage.py", "runserver", "0.0.0.0:$PORT"]
+CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]
