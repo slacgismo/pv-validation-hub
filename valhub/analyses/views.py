@@ -50,7 +50,7 @@ def create_analysis(request):
         # upload package to s3 and upload evaluation_script_path
         evaluation_script_path = serializer.instance.evaluation_script.path
         # print("evaluation_script_path: {}".format(evaluation_script_path))
-        bucket_name = "pv-insight-application-bucket"
+        bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
             "evaluation_scripts", "analysis_{}.zip".format(analysis_id))
 

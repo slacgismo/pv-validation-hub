@@ -69,7 +69,7 @@ def analysis_submission(request, analysis_id):
         # upload package to s3 and upload evaluation_script_path
         submission_path = serializer.instance.algorithm.path
         # print("submission_path: {}".format(submission_path))
-        bucket_name = "pv-insight-application-bucket"
+        bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
             "submission_files", "submission_{}.zip".format(submission_id))
         object_url = upload_to_s3_bucket(
