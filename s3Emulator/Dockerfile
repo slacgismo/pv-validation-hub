@@ -18,8 +18,6 @@ RUN pip install -r requirements.txt
 # Move simulated bucket to location 
 RUN mv ./pv-validation-hub-bucket /
 
-RUN ./devprep.sh
-
 # Install the required dependencies
 RUN pip install flask boto3
 
