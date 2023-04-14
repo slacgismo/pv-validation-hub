@@ -7,7 +7,9 @@ WORKDIR /app
 # Copy the required files to the working directory
 COPY . .
 
-RUN mv pv-validation-hub-bucket /
+RUN pip install -r requirements.txt
+
+RUN mv ./pv-validation-hub-bucket /
 
 # Install the required dependencies
 RUN pip install flask boto3
