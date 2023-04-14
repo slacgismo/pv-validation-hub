@@ -51,13 +51,8 @@ export default function DeveloperHome() {
       handler: () => { handleNavClick("home") },
     },
     {
-      title: 'Participanted Analyses',
+      title: 'Available Analyses',
       icon: <AssessmentIcon />,
-      handler: () => {},
-    },
-    {
-      title: 'Used Datasets',
-      icon: <ArticleIcon />,
       handler: () => {},
     }
   ];
@@ -83,7 +78,7 @@ export default function DeveloperHome() {
                 ))}
               </List>
               <Divider />
-              <List>
+{/*              <List>
                 {['Bookmark'].map((text, index) => (
                   <ListItem key={text} disablePadding>
                     <ListItemButton>
@@ -94,7 +89,7 @@ export default function DeveloperHome() {
                     </ListItemButton>
                   </ListItem>
                 ))}
-              </List>
+                </List> */}
             </Drawer>
           </Box>
         </Grid>
