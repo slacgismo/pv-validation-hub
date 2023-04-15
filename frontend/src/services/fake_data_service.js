@@ -237,7 +237,7 @@ export function fake_number_of_submission(number) {
     return submission_array;
 }
 
-export function fake_submissio_details(){
+export function fake_submission_details(){
     return {
         user_id: faker.datatype.uuid,
         user_name: faker.datatype.username,

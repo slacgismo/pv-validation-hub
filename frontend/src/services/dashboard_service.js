@@ -1,6 +1,7 @@
 import {
     create_fake_image_array_list,
-    fake_discussion_output
+    fake_discussion_output,
+    create_fake_leaderboard_array
 } from './fake_data_service';
 import client from './api_service';
 import { useEffect, useState } from 'react';
@@ -81,7 +82,8 @@ export const DashboardService = {
             client.get(leaderBoardUrl)
                 .then(leaderboardResponse => {
                     setLeaderboardIsLoading(false);
-                    setLeaderboardDetails(this.formatResponse(leaderboardResponse.data));
+                    // setLeaderboardDetails(this.formatResponse(leaderboardResponse.data));
+                    setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(10)));
                 })
                 .catch(error => {
                     setLeaderboardError(error);

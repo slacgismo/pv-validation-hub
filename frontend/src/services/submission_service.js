@@ -1,7 +1,7 @@
 import {
     fake_date_between_output,
     fake_number_of_submission,
-    fake_submissio_details
+    fake_submission_details
 } from "./fake_data_service"
 
 export const SubmissionService = {
@@ -12,6 +12,6 @@ export const SubmissionService = {
         return fake_number_of_submission(20);
     },
     getSubmissionDetails(user_id, submission_id) {
-        return fake_submissio_details();
+        return fake_submission_details();
     }
 }
