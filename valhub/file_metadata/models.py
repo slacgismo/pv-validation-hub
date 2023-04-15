@@ -1,5 +1,5 @@
 from django.db import models
-from systemmetadata.models import SystemMetadata
+from system_metadata.models import SystemMetadata
 
 class FileMetadata(models.Model):
     file_id = models.AutoField(primary_key=True)

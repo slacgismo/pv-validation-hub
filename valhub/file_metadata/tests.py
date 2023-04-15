@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from systemmetadata.models import SystemMetadata
+from system_metadata.models import SystemMetadata
 from .models import FileMetadata
 
 class FileMetadataTestCase(TestCase):
