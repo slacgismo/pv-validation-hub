@@ -90,7 +90,8 @@ export const DashboardService = {
                     setLeaderboardDetails([]);
                     setLeaderboardIsLoading(false);
                 })*/
-                setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(10)));
+                setLeaderboardIsLoading(false);
+                setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(5)));
         }, [leaderBoardUrl]);
         return [isLeaderboardLoading, leaderboardError, leaderboardDetails];
     },
