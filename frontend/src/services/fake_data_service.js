@@ -52,18 +52,18 @@ export function create_fake_submission_array(number) {
 }
 
 export function create_fake_leaderboard_row(ranking_number) {
-    let developer_group = faker.name.fullName();
+    let created_by = faker.name.fullName();
     let score = faker.datatype.number();
-    let submission = <a href={faker.internet.url()}><LaunchIcon /></a>;
+    let algorithm = <a href={faker.internet.url()}><LaunchIcon /></a>;
     let last_updated = faker.helpers.arrayElement([
         faker.datatype.number({ 'min': 1, 'max': 23 }) + 'h',
         faker.datatype.number({ 'min': 1, 'max': 30 }) + 'd'
     ]);
     return {
         ranking_number,
-        developer_group,
+        created_by,
         score,
-        submission,
+        algorithm,
         last_updated
     }
 }

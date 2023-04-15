@@ -97,7 +97,7 @@ export default function Submission(props) {
             minWidth: 50,
             align: 'center',
             format: (value) => {
-                value = value.replace("/media/", "//");
+                // value = value.replace("/media/", "//");
                 return (<a href={value} download><DownloadIcon /></a>);
             }
         },

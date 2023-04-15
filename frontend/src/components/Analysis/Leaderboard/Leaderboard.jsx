@@ -30,7 +30,7 @@ export default function Leaderboard(props) {
             width: 100,
             renderCell: (params) => {
                 let value = params.row.algorithm;
-                value = value.replace("/media/", "//");
+                // value = value.replace("/media/", "//");
                 return (<a href={value} download><DownloadIcon /></a>);
             }
         },
