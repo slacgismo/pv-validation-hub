@@ -109,7 +109,7 @@ INSTALLED_APPS = [
     'submissions.apps.SubmissionsConfig',
     'system_metadata.apps.SystemmetadataConfig',
     'file_metadata.apps.FilemetadataConfig',
-    'validation_tests.apps.SystemmetadataConfig',
+    'validation_tests.apps.ValidationTestsConfig',
     'backend.apps.BackendConfig',
     'rest_framework',
     'corsheaders',
