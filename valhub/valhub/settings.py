@@ -106,7 +106,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'analyses.apps.AnalysesConfig',
-    'jobs.apps.JobsConfig',
+    'submissions.apps.SubmissionsConfig',
+    'system_metadata.apps.SystemmetadataConfig',
+    'file_metadata.apps.FilemetadataConfig',
+    'validation_tests.apps.SystemmetadataConfig',
     'backend.apps.BackendConfig',
     'rest_framework',
     'corsheaders',

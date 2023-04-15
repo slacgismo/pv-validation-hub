@@ -22,7 +22,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = 'valhub.settings'
 django.setup()
 
 from analyses.models import Analysis
-from jobs.models import Submission
+from submissions.models import Submission
 
 
 # base

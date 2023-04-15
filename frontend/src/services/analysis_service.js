@@ -28,7 +28,7 @@ export const AnalysisService = {
             user_id != null && user_id != undefined &&
             file != null && file != undefined
             ) {
-            let url = "/jobs/analysis/" + analysis_id + "/submission";
+            let url = "/submissions/analysis/" + analysis_id + "/submission";
             let form_data = new FormData();
             form_data.append("algorithm", file);
             form_data.append("user_id", user_id);

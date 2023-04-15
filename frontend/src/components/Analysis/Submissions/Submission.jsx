@@ -111,7 +111,7 @@ export default function Submission(props) {
             }
         }
     ]
-    let url = "jobs/analysis/" + props.analysis_id + "/user_submission/" + props.user_id;
+    let url = "submissions/analysis/" + props.analysis_id + "/user_submission/" + props.user_id;
     const [isLoading, error, rows] = DashboardService.useGetSubmissions(url);
     return (
         isLoading ? <CircularProgress /> :

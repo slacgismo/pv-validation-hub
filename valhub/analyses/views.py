@@ -13,8 +13,8 @@ import boto3
 import os
 
 from .models import Analysis
-from jobs.models import Submission
-from jobs.serializers import SubmissionDetailSerializer
+from submissions.models import Submission
+from submissions.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 from accounts.models import Account
