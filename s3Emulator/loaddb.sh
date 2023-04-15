@@ -22,8 +22,15 @@ JSON_DATA=$(cat <<EOF
     "short_description": "Time shift validation analysis evaluates the reliability and 
     accuracy of forecasting models by comparing shifted time series data and 
     generated forecasts against the original data.",
-    "ruleset": "Some ruleset data",
-    "dataset_description": "A description of the dataset",
+    "ruleset": "Some ruleset data. Lorem ipsum dolor sit amet, 
+    consectetur adipiscing elit. Fusce euismod felis a mi aliquam, sit amet consequat mi aliquet. 
+    Vestibulum consectetur, purus vel ullamcorper ullamcorper, 
+    libero sapien pharetra sapien, eget varius lorem dui auctor magna.",
+    "dataset_description": "A description of the dataset. Lorem ipsum dolor sit amet, 
+    consectetur adipiscing elit. Fusce euismod felis a mi aliquam, sit amet consequat mi aliquet. 
+    Vestibulum consectetur, purus vel ullamcorper ullamcorper, 
+    libero sapien pharetra sapien, eget varius lorem dui auctor magna.
+",
     "evaluation_script": "@$EVAL_SCRIPT",
     "max_concurrent_submission_evaluation": 100
 }
