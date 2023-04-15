@@ -79,17 +79,18 @@ export const DashboardService = {
         const [leaderboardError, setLeaderboardError] = useState(null);
 
         useEffect(() => {
+            /*
             client.get(leaderBoardUrl)
                 .then(leaderboardResponse => {
                     setLeaderboardIsLoading(false);
-                    // setLeaderboardDetails(this.formatResponse(leaderboardResponse.data));
-                    setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(10)));
+                    setLeaderboardDetails(this.formatResponse(leaderboardResponse.data));
                 })
                 .catch(error => {
                     setLeaderboardError(error);
                     setLeaderboardDetails([]);
                     setLeaderboardIsLoading(false);
-                })
+                })*/
+                setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(10)));
         }, [leaderBoardUrl]);
         return [isLeaderboardLoading, leaderboardError, leaderboardDetails];
     },
