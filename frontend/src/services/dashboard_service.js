@@ -38,13 +38,14 @@ export const DashboardService = {
             else{
                 let element = {
                     id: id,
+                    developer_group: resp["developer_group"],
                     algorithm: resp["algorithm"],
                     created_by: resp["created_by"],
                     execution_time: faker.helpers.arrayElement([66.19317770004272,100.97519278526306]),
                     status: null,
                     metrics: null,
                     error: faker.helpers.arrayElement([23.137764944250826,4.846236274675835]),
-                    data_requirement: null
+                    data_requirement: "MAE"
                 }
                 id += 1;
                 finalResponse.push(element);
