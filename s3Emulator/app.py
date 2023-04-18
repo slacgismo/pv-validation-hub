@@ -1,5 +1,6 @@
 from flask import Flask, request
 import os
+import sys
 
 app = Flask(__name__)
 
@@ -10,12 +11,12 @@ def put_object(bucket_name, object_name):
     object_content = request.data
 
     # Create the local directory for the bucket if it doesn't exist
-    bucket_dir = f"{bucket_name}/"
+    bucket_dir = f"/{bucket_name}/"
     if not os.path.exists(bucket_dir):
         os.makedirs(bucket_dir)
 
     # Store the object in the local file system
-    with open(f"{bucket_dir}{object_name}", "wb") as f:
+    with open(f"/{bucket_dir}/{object_name}", "wb") as f:
         f.write(object_content)
 
     return "", 204
@@ -24,7 +25,8 @@ def put_object(bucket_name, object_name):
 def get_object(bucket_name, object_name):
     # Retrieve the object from the local file system
     try:
-        with open(f"{bucket_name}/{object_name}", "rb") as f:
+        print(f"file path to get: /{bucket_name}/{object_name}", file=sys.stderr)
+        with open(f"/{bucket_name}/{object_name}", "rb") as f:
             object_content = f.read()
     except FileNotFoundError:
         return "Object not found", 404
