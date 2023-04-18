@@ -16,20 +16,20 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-# import pandas as pd
-# import ast
-# import os
-# from importlib import import_module
-# import inspect
-# import time
-# from collections import ChainMap
-# from sklearn.metrics import mean_absolute_error
-# import seaborn as sns
-# import matplotlib.pyplot as plt
-# import json
+#import pandas as pd
+#import ast
+import os
+from importlib import import_module
+#import inspect
+#import time
+#from collections import ChainMap
+#from sklearn.metrics import mean_absolute_error
+#import seaborn as sns
+#import matplotlib.pyplot as plt
+import json
 import requests
 import tarfile
-
+import shutil
 is_s3_emulation = True
 
 def run(module_to_import_s3_path):
@@ -46,14 +46,26 @@ def run(module_to_import_s3_path):
     print(r.status_code)
     print(r.content)
     if r.status_code == 200:
-        with open(target_module_tarball_path, 'wb') as f:
-            f.write(r.raw.read())
-
-        with tarfile.open(target_module_tarball_path) as f:
-            f.extractall(target_module_path)
-
+        with open(target_module_tarball_path, "wb") as f:
+            f.write(r.content)
+        with tarfile.open(target_module_tarball_path, "r:gz") as tar:
+            tar.extractall(target_module_path)
         
-        
+#    def search_module_file(start_dir):
+#        for root, dirs, files in os.walk(start_dir):
+#            for file in files:
+#                if file.endswith("module.py"):
+#                    return os.path.join(root, file)
+#        return None
+
+#    module_to_import = search_module_file(target_module_path)
+#    print(module_to_import)
+    old_dir = target_module_path + '/'
+    new_dir = '/pv-validation-hub-bucket/evaluation_scripts/time-shift/'
+    file_name = 'pvanalytics-osd-module.py'
+
+    shutil.move(old_dir + file_name, new_dir + file_name)
+    module = import_module('pvanalytics-osd-module')
 
 
     # # Generate list for us to store all of our results for the module
