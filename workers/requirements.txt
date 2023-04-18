@@ -5,3 +5,9 @@ djangorestframework==3.14.0
 django-cors-headers==3.13.0
 psycopg2-binary
 psycopg2
+pandas
+matplotlib
+scikit-learn
+seaborn
+
+########## add analytical task/evaluation script dependcies here to be pre-installed on the runner.
