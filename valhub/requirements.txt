@@ -6,4 +6,3 @@ djangorestframework==3.14.0
 django-cors-headers==3.13.0
 psycopg2-binary
 psycopg2
-bcrypt
