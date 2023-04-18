@@ -15,7 +15,7 @@ def put_object(bucket_name, object_name):
         os.makedirs(bucket_dir)
 
     # Store the object in the local file system
-    with open(f"{bucket_dir}{object_name}", "wb") as f:
+    with open(f"/{bucket_dir}/{object_name}", "wb") as f:
         f.write(object_content)
 
     return "", 204
@@ -24,7 +24,7 @@ def put_object(bucket_name, object_name):
 def get_object(bucket_name, object_name):
     # Retrieve the object from the local file system
     try:
-        with open(f"{bucket_name}/{object_name}", "rb") as f:
+        with open(f"/{bucket_name}/{object_name}", "rb") as f:
             object_content = f.read()
     except FileNotFoundError:
         return "Object not found", 404
