@@ -1,7 +1,7 @@
 import axios from "axios";
+import hubapi from "../config/environment";
 
 const client = axios.create({
-//  baseURL: "http://3.136.161.205:8090",
-  baseURL: "http://0.0.0.0:8005",
+  baseURL: hubapi.api.baseUrl.app,
 });
 export default client;

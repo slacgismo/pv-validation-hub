@@ -21,4 +21,8 @@ urlpatterns = [
     path('submissions/', include('submissions.urls')),
     path('', include('accounts.urls')),
     path('admin/', admin.site.urls),
+    path('file_metadata/', include('file_metadata.urls')),
+    path('system_metadata/', include('system_metadata.urls')),
+    path('validation_tests/', include('validation_tests.urls')),
+    path('healthy/', include('healthcheck.urls')),
 ]
