@@ -58,6 +58,25 @@ def pull_from_s3(s3_file_path):
     return target_file_path
 
 
+def push_to_s3(local_file_path, s3_file_path):
+    if s3_file_path.startswith('/'):
+        s3_file_path = s3_file_path[1:]
+
+    if is_s3_emulation:
+        s3_file_full_path = 'http://s3:5000/' + s3_file_path
+    else:
+        s3_file_full_path = 's3://' + s3_file_path
+    
+    if is_s3_emulation:
+        with open(local_file_path, "rb") as f:
+            file_content = f.read()
+            r = requests.put(s3_file_full_path, data=file_content)
+            if r.status_code != 204:
+                print(f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
+    else:
+        raise NotImplementedError("real s3 mode not implemented")
+
+
 def convert_compressed_file_path_to_directory(compressed_file_path):
     path_components = compressed_file_path.split('/')
     path_components[-1] = path_components[-1].split('.')[0]
@@ -282,4 +301,5 @@ def run(module_to_import_s3_path):
 
 
 if __name__ == '__main__':
-    run('pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz')
+    # run('pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz')
+    push_to_s3('/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json', 'pv-validation-hub-bucket/test_bucket/test_subfolder/res.json')
