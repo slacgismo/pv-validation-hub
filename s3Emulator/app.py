@@ -16,11 +16,7 @@ def put_object(bucket_name, object_name):
         os.makedirs(os.path.dirname(full_path))
 
     # Store the object in the local file system
-<<<<<<< HEAD
     with open(full_path, "wb") as f:
-=======
-    with open(f"/{bucket_dir}/{object_name}", "wb") as f:
->>>>>>> origin/merge-changes
         f.write(object_content)
 
     return "", 204
@@ -29,12 +25,8 @@ def put_object(bucket_name, object_name):
 def get_object(bucket_name, object_name):
     # Retrieve the object from the local file system
     try:
-<<<<<<< HEAD
         print(f"file path to get: {os.path.join('/', bucket_name, object_name)}", file=sys.stderr)
         with open(os.path.join('/', bucket_name, object_name), "rb") as f:
-=======
-        with open(f"/{bucket_name}/{object_name}", "rb") as f:
->>>>>>> origin/merge-changes
             object_content = f.read()
     except FileNotFoundError:
         return "Object not found", 404
