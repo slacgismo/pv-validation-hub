@@ -150,3 +150,35 @@ resource "aws_route_table_association" "public_e" {
   subnet_id      = aws_subnet.pv-validation-hub_e.id
   route_table_id = aws_route_table.public.id
 }
+
+######### Outputs for use in other modules
+
+output "rds_subnet_group_id" {
+  value = aws_db_subnet_group.rds_subnet_group.id
+}
+
+output "vpc_id" {
+  value = aws_vpc.pv-validation-hub.id
+}
+
+output "subnet_ids" {
+  value = [
+    aws_subnet.pv-validation-hub_a.id,
+    aws_subnet.pv-validation-hub_b.id,
+    aws_subnet.pv-validation-hub_c.id,
+    aws_subnet.pv-validation-hub_d.id,
+    aws_subnet.pv-validation-hub_e.id,
+  ]
+}
+
+output "load_balancer_security_group_id" {
+  value = aws_security_group.load_balancer_security_group.id
+}
+
+output "valhub_ecs_service_security_group_id" {
+  value = aws_security_group.valhub_ecs_service_security_group.id
+}
+
+output "rds_security_group_id" {
+  value = aws_security_group.rds_security_group.id
+}

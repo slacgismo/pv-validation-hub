@@ -96,3 +96,20 @@ resource "aws_route53_record" "my_dns_record" {
     evaluate_target_health = false
   }
 }
+
+######### OUTPUTS ############
+
+
+output "s3_bucket_name" {
+  value = aws_s3_bucket.my_bucket.id
+}
+
+output "cloudfront_distribution_id" {
+  value = aws_cloudfront_distribution.my_distribution.id
+}
+
+output "dns_record_name" {
+  value = aws_route53_record.my_dns_record.fqdn
+}
+
+
