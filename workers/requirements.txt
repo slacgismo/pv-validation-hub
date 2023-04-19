@@ -5,6 +5,3 @@ seaborn
 boto3
 
 ########## add analytical task/evaluation script dependcies here to be pre-installed on the runner.
-s3:5000//pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/pvanalytics-osd-module.py
-curl http://localhost:5000/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/pvanalytics-osd-module.py -o pvanalytics-osd-module.py
-curl -O s3:5000/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1:pvanalytics-osd-module.py
