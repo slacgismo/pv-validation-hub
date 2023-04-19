@@ -30,42 +30,81 @@ import json
 import requests
 import tarfile
 import shutil
+import sys
+import zipfile
+
 is_s3_emulation = True
+
+def pull_from_s3(s3_file_path):
+    if s3_file_path.startswith('/'):
+        s3_file_path = s3_file_path[1:]
+
+    if is_s3_emulation:
+        s3_file_full_path = 'http://s3:5000/' + s3_file_path
+    else:
+        s3_file_full_path = 's3://' + s3_file_path
+    
+    target_file_path = os.path.join('/tmp/', s3_file_full_path.split('/')[-1])
+
+    if is_s3_emulation:
+        r = requests.get(s3_file_full_path, stream=True)
+        if r.status_code != 200:
+            print(f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}", file=sys.stderr)
+        with open(target_file_path, "wb") as f:
+            f.write(r.content)
+    else:
+        raise NotImplementedError("real s3 mode not implemented")
+
+    return target_file_path
+
+
+def convert_compressed_file_path_to_directory(compressed_file_path):
+    path_components = compressed_file_path.split('/')
+    path_components[-1] = path_components[-1].split('.')[0]
+    path_components = '/'.join(path_components)
+    return path_components
+
+
+def get_file_extension(path):
+    return path.split('/')[-1].split('.')[-1]
+
+
+def decompress_file(path):
+    if (get_file_extension(path) == 'gz'):
+        with tarfile.open(path, "r:gz") as tar:
+            tar.extractall(convert_compressed_file_path_to_directory(path))
+    else:
+        with zipfile.ZipFile(path, 'r') as zip_ref:
+            zip_ref.extractall(convert_compressed_file_path_to_directory(path))
+    return convert_compressed_file_path_to_directory(path)
+
+
+def get_module_file_name(module_dir):
+    for root, _, files in os.walk(module_dir, topdown=True):
+        for name in files:
+            if name.endswith('.py'):
+                return name.split('/')[-1]
+
+
+def get_module_name(module_dir):
+    return get_module_file_name(module_dir)[:-3]
+
 
 def run(module_to_import_s3_path):
     # Load in the module that we're going to test on.
-    module_to_import_s3_path = 'pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz'
-    if is_s3_emulation:
-        module_to_import_s3_full_path = 'http://s3:5000/' + module_to_import_s3_path
-    else:
-        module_to_import_s3_full_path = 's3://' + module_to_import_s3_path
 
-    target_module_tarball_path = '/tmp/archive.tar.gz'
-    target_module_path = '/tmp/cpd-module'
-    r = requests.get(module_to_import_s3_full_path, stream=True)
-    print(r.status_code)
-    print(r.content)
-    if r.status_code == 200:
-        with open(target_module_tarball_path, "wb") as f:
-            f.write(r.content)
-        with tarfile.open(target_module_tarball_path, "r:gz") as tar:
-            tar.extractall(target_module_path)
-        
-#    def search_module_file(start_dir):
-#        for root, dirs, files in os.walk(start_dir):
-#            for file in files:
-#                if file.endswith("module.py"):
-#                    return os.path.join(root, file)
-#        return None
+    target_module_compressed_file_path = pull_from_s3(module_to_import_s3_path)
+    
+    target_module_path = decompress_file(target_module_compressed_file_path)
 
-#    module_to_import = search_module_file(target_module_path)
-#    print(module_to_import)
-    old_dir = target_module_path + '/'
-    new_dir = '/pv-validation-hub-bucket/evaluation_scripts/time-shift/'
-    file_name = 'pvanalytics-osd-module.py'
+    # get current directory, i.e. directory of runner.py file
+    new_dir = os.path.dirname(os.path.abspath(__file__))
 
-    shutil.move(old_dir + file_name, new_dir + file_name)
-    module = import_module('pvanalytics-osd-module')
+    file_name = get_module_file_name(target_module_path)
+    module_name = get_module_name(target_module_path)
+
+    shutil.move(os.path.join(target_module_path, file_name), os.path.join(new_dir, file_name))
+    module = import_module(module_name)
 
 
     # # Generate list for us to store all of our results for the module
@@ -243,4 +282,4 @@ def run(module_to_import_s3_path):
 
 
 if __name__ == '__main__':
-    run('')
+    run('pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz')
