@@ -1,9 +1,9 @@
 #!/bin/sh
 
 # Define function to query Django API route
-function query_api {
+query_api() {
     response=$(curl -s api:8005/healthy/)
-    echo $response
+    echo "$response"
 }
 
 # Query API every 5 seconds

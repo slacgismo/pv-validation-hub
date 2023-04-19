@@ -111,7 +111,6 @@ INSTALLED_APPS = [
     'file_metadata.apps.FilemetadataConfig',
     'validation_tests.apps.ValidationTestsConfig',
     'backend.apps.BackendConfig',
-    'healthcheck.apps.HealthcheckConfig',
     'rest_framework',
     'corsheaders',
     'django.contrib.admin',
