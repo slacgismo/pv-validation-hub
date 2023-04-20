@@ -34,3 +34,10 @@ class Submission(models.Model):
     result = models.TextField(null=True, blank=True)
     status = models.CharField(
         max_length=30, choices=STATUS_OPTIONS, db_index=True, default=SUBMITTING)
+
+    # mae - mean average error 
+    # mrt - mean run time
+
+    mae = models.FloatField(null=True, blank=True)
+    mrt = models.FloatField(null=True, blank=True)
+    data_requirements = models.JSONField(null=True, blank=True)

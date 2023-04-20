@@ -20,4 +20,7 @@ urlpatterns = [
         views.analysis_user_submission,
         name="analysis_user_submission",
     ),
+    path("leaderboard", 
+         views.leaderboard_update, 
+         name="leaderboard_update"),
 ]
