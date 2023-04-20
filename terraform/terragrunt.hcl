@@ -1,8 +1,13 @@
 # terragrunt.hcl
+locals {
+  project_tag = try(terraform.workspace_var("project_tag"), "default_project_tag")
+  project_pa_number = try(terraform.workspace_var("project_pa_number"), "default_project_pa_number")
+}
 
 inputs = {
   project_tags = {
-    Project = "TESS"
+    Project = local.project_tag
+    project-pa-number = local.project_pa_number
   }
 }
 
