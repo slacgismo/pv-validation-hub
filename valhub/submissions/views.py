@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
+from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
 from rest_framework import status
@@ -23,6 +24,7 @@ from .models import Submission
 
 # Create your views here.
 
+is_s3_emulation = True
 
 @api_view(["POST"])
 @csrf_exempt
@@ -38,14 +40,23 @@ def analysis_submission(request, analysis_id):
 
     # check if the analysis queue exists or not
     try:
-        sqs = boto3.resource(
-            "sqs",
-            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
-            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-        )
-        queue_name = "valhub_submission_queue_{}.fifo".format(analysis_id)
-        # queue_name = "valhub_submission_queue.fifo"
+        if is_s3_emulation:
+            sqs = boto3.resource(
+                "sqs",
+                endpoint_url='http://localhost:9324',
+                region_name='elasticmq',
+                aws_secret_access_key='x',
+                aws_access_key_id='x',
+                use_ssl=False
+            )
+        else:
+            sqs = boto3.resource(
+                "sqs",
+                region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+                aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+                aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+            )
+        queue_name = "valhub_submission_queue"
         queue = sqs.get_queue_by_name(QueueName=queue_name)
     except botocore.exceptions.ClientError as ex:
         response_data = {"error": "Queue does not exist"}
@@ -71,7 +82,7 @@ def analysis_submission(request, analysis_id):
         # print("submission_path: {}".format(submission_path))
         bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
-            "submission_files", "submission_{}.zip".format(submission_id))
+            "submission_files", f"submission_user_{user_id}", f"submission_{submission_id}", f"{submission_path.split('/')[-1]}")
         object_url = upload_to_s3_bucket(
             bucket_name, submission_path, upload_path)
         if object_url is None:
@@ -84,7 +95,7 @@ def analysis_submission(request, analysis_id):
 
         # send a message to SQS queue
         message = json.dumps(
-            {"analysis_pk": analysis_id, "submission_pk": submission_id})
+            {"analysis_pk": int(analysis_id), "submission_pk": int(submission_id), "user_pk": int(user_id)})
         # print("message: {}".format(message))
         # print("submission_pk: {}".format(json.loads(message)["submission_pk"]))
         response = queue.send_message(
@@ -114,10 +125,29 @@ def submission_detail(request, analysis_id, submission_id):
             'analysis_id': str(submission.analysis.analysis_id),
             'user_id': str(submission.created_by.id),
             'algorithm': str(submission.algorithm),
-            'result': str(submission.result)
+            'result': str(submission.result),
+            'status': str(submission.status)
         }
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["PUT"])
+@csrf_exempt
+def change_submission_status(request, analysis_id, submission_id):
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
+        response_data = {"error": "submission does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+    submission.status = request.data['status']
+    try:
+        submission.save()
+    except ValidationError as e:
+        response_data = {"error": "invalid submission status"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+    response_data = {"success": f"submission {submission_id} status changed to {request.data['status']}"}
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])

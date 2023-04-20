@@ -14,17 +14,26 @@ import signal
 import json
 import time
 import urllib.request
-import django
-from django.utils import timezone
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'valhub.settings'
+is_s3_emulation = True
 
-django.setup()
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
 
-from analyses.models import Analysis
-from submissions.models import Submission
+# import django
+# from django.utils import timezone
 
-api:8005/analyses/request
+# os.environ['DJANGO_SETTINGS_MODULE'] = 'valhub.settings'
+
+# django.setup()
+
+# from analyses.models import Analysis
+# from submissions.models import Submission
+
+# api:8005/analyses/request
 
 # base
 BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
@@ -402,8 +411,8 @@ def process_submission_message(message):
     and send the submission object for evaluation
     """
     analysis_id = message.get("analysis_pk")
-    # phase_id = message.get("phase_pk")
     submission_id = message.get("submission_pk")
+    user_id = message.get("user_pk")
     submission_instance = extract_submission_data(submission_id)
 
     # so that the further execution does not happen
@@ -447,10 +456,14 @@ def get_or_create_sqs_queue(queue_name):
         Returns the SQS Queue object
     """
     # Use the Docker endpoint URL for local development
-    if os.environ.get("DEPLOYMENT_ENVIRONMENT") == "local":
+    if is_s3_emulation:
         sqs = boto3.resource(
             "sqs",
-            endpoint_url='http://localhost:9324'
+            endpoint_url='http://localhost:9324',
+            region_name='elasticmq',
+            aws_secret_access_key='x',
+            aws_access_key_id='x',
+            use_ssl=False
         )
     # Use the production AWS environment for other environments
     else:
@@ -503,35 +516,39 @@ def main():
             WORKER_LOGS_PREFIX, BASE_TEMP_DIR
         )
     )
-    create_dir_as_python_package(COMPUTE_DIRECTORY_PATH)
-    sys.path.append(COMPUTE_DIRECTORY_PATH)
+    # create_dir_as_python_package(COMPUTE_DIRECTORY_PATH)
+    # sys.path.append(COMPUTE_DIRECTORY_PATH)
 
-    q_params = {}
+    # q_params = {}
     # q_params["end_date__gt"] = timezone.now()
 
     # primary key
-    analysis_pk = get_analysis_pk()  # os.environ.get("ANALYSIS_PK")
-    if analysis_pk:
-        q_params["pk"] = analysis_pk
+    # analysis_pk = get_analysis_pk()  # os.environ.get("ANALYSIS_PK")
+    # if analysis_pk:
+    #     q_params["pk"] = analysis_pk
 
     # load analysis
-    maximum_concurrent_submissions, analysis = load_analysis_and_return_max_submissions(
-        q_params)
+    # maximum_concurrent_submissions, analysis = load_analysis_and_return_max_submissions(
+    #     q_params)
     # print(maximum_concurrent_submissions)
 
     # create submission directory
-    create_dir_as_python_package(SUBMISSION_DATA_BASE_DIR)
+    # create_dir_as_python_package(SUBMISSION_DATA_BASE_DIR)
 
     # create message queue
-    queue_name = os.environ.get(
-        "CHALLENGE_QUEUE", "valhub_submission_queue_{}.fifo".format(analysis_pk))
-    print("queue_name: {}".format(queue_name))
-    queue = get_or_create_sqs_queue(queue_name)
+    # queue_name = os.environ.get(
+    #     "CHALLENGE_QUEUE", "valhub_submission_queue_{}.fifo".format(analysis_pk))
+    # print("queue_name: {}".format(queue_name))
+    queue = get_or_create_sqs_queue("valhub_submission_queue")
     # print(queue)
 
     # infinite loop to listen and process messages
     while True:
-        for message in queue.receive_messages():
+        messages = queue.receive_messages(
+            MaxNumberOfMessages=1,
+            VisibilityTimeout=7200
+        )
+        for message in messages:
             logger.info(
                 "{} Processing message body: {}".format(
                     WORKER_LOGS_PREFIX, message.body
