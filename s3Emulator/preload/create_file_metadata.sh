@@ -5,6 +5,11 @@ API_BASE_URL="http://api:8005/file_metadata/filemetadata/"
 # Read the CSV file and skip the header
 tail -n +2 file_metadata.csv | while IFS=, read -r file_id system_id file_name timezone data_sampling_frequency issue subissue
 do
+  # Use a default value for empty subissue
+  if [ -z "$subissue" ]; then
+    subissue="N/A"
+  fi
+
   # Create a JSON object from the CSV row
   json_data=$(jq -n \
                 --arg file_id "$file_id" \
