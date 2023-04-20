@@ -1,6 +1,6 @@
 #!/bin/bash
 
-API_URL="http://api:8005/analysis/create"
+API_URL="http://api:8005/analysis/create/"
 ANALYSIS_NAME="Time Shift Analysis"
 DESCRIPTION="Time shift validation analysis is a statistical technique used to evaluate the accuracy and consistency of forecasting models. 
     It involves shifting time series data and comparing forecasts against actual values. 
