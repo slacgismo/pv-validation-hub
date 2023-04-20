@@ -131,3 +131,16 @@ def leaderboard(request, analysis_id):
     response_data = SubmissionDetailSerializer(submission_list, many=True)
 
     return Response(response_data, status=status.HTTP_200_OK)
+
+# Update this later to only accept route calls from within localhost or own container 
+@api_view(["POST"])
+def create_new_analysis(request):
+    # Remove user_id related code
+    serializer = AnalysisSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        response_data = serializer.data
+        return Response(response_data, status=status.HTTP_201_CREATED)
+    else:
+        response_data = serializer.errors
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)

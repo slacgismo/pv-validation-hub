@@ -12,13 +12,6 @@ class Analysis(models.Model):
     short_description = models.TextField(null=True, blank=True)
     ruleset = models.TextField(null=True, blank=True)
     dataset_description = models.TextField(null=True, blank=True)
-
-    # creator = models.ForeignKey(
-    #     Account,
-    #     related_name="analysis_creator",
-    #     on_delete=models.CASCADE,
-    # )
-
     evaluation_script = models.FileField(max_length=1000, upload_to=RandomFileName(
         "evaluation_scripts"))  # url to zip file
     # annotation_file_name = models.FilePathField(default="test_annotation.txt", path="")
