@@ -3,7 +3,7 @@ FROM python:3.9-slim-buster
 
 WORKDIR /
 
-RUN apt-get update && apt-get install git sudo curl -y
+RUN apt-get update && apt-get install git sudo curl jq gawk -y
 RUN git clone https://github.com/kperrynrel/time-shift-validation-hub.git
 
 # Set the working directory
