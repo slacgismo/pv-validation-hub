@@ -8,4 +8,4 @@ chmod +x *
 
 ./create_systemmetadata.sh
 
-
+./create_file_metadata.sh
