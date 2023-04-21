@@ -1,4 +1,5 @@
 from django.utils.deconstruct import deconstructible
+from urllib.parse import urljoin
 
 import os
 import uuid
@@ -22,7 +23,16 @@ class RandomFileName(object):
         filename = os.path.join(path, filename)
         return filename
 
+# Add this function to utils.py
+def get_environment():
+    try:
+        environment = os.environ["ENVIRONMENT"]
+    except KeyError:
+        environment = "LOCAL"
+    return environment
 
+
+# Modify the upload_to_s3_bucket function
 def upload_to_s3_bucket(bucket_name, local_path, upload_path):
     if is_s3_emulation:
         upload_path = os.path.join(bucket_name, upload_path)

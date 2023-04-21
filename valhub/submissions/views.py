@@ -5,9 +5,8 @@ from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import (
-    api_view,
-)
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import JSONParser
 
 import os
 import json
@@ -15,7 +14,7 @@ import boto3
 import botocore
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket
+from base.utils import upload_to_s3_bucket, get_environment
 from accounts.models import Account
 from .models import Submission
 
@@ -43,7 +42,7 @@ def analysis_submission(request, analysis_id):
         if is_s3_emulation:
             sqs = boto3.resource(
                 "sqs",
-                endpoint_url='http://localhost:9324',
+                endpoint_url='http://sqs:9324',
                 region_name='elasticmq',
                 aws_secret_access_key='x',
                 aws_access_key_id='x',
@@ -189,3 +188,37 @@ def analysis_user_submission(request, analysis_id, user_id):
     # response_data = serializers.serialize('json', submissions)
     response_data = SubmissionSerializer(submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(["PUT", "POST"])
+@csrf_exempt
+@parser_classes([JSONParser])
+def leaderboard_update(request):
+    if request.method in ["PUT", "POST"]:
+        submission_id = request.data.get("submission_id")
+        mae = request.data.get("mae")
+        mrt = request.data.get("mrt")
+        data_requirements = request.data.get("data_requirements")
+
+        if not submission_id:
+            return Response({"error": "submission_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            submission = Submission.objects.get(submission_id=submission_id)
+        except Submission.DoesNotExist:
+            return Response({"error": "submission does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if mae is not None:
+            submission.mae = mae
+
+        if mrt is not None:
+            submission.mrt = mrt
+
+        if data_requirements is not None:
+            submission.data_requirements = data_requirements
+
+        submission.save()
+
+        response_data = SubmissionSerializer(submission).data
+        return Response(response_data, status=status.HTTP_200_OK)
+    else:
+        return Response({"error": "Invalid request method"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
