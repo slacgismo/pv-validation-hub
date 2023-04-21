@@ -12,14 +12,16 @@ upload_submission() {
   local data_requirements=$(jq -c '.data_requirements' "$data_file")
 
   curl -X POST -H "Content-Type: application/json" \
-       -d "{
-         \"analysis_id\": $ANALYSIS_ID,
-         \"user_id\": $USER_ID,
-         \"status\": \"$STATUS\",
-         \"mae\": $mae,
-         \"mrt\": $mrt,
-         \"data_requirements\": $data_requirements
-       }" \
+       -d "[
+         {
+           \"analysis_id\": $ANALYSIS_ID,
+           \"user_id\": $USER_ID,
+           \"status\": \"$STATUS\",
+           \"mae\": $mae,
+           \"mrt\": $mrt,
+           \"data_requirements\": $data_requirements
+         }
+       ]" \
        "${API_BASE_URL}submissions/preload_submissions"
 }
 

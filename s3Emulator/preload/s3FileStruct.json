@@ -1,0 +1,26 @@
+{
+    "pv-validation-hub-bucket":{
+        "data_files": {
+            "analytical": "/",
+            "ground_truth": "/"
+        },
+        "evaluation_scripts": {
+            "example-1": "/",
+            "example-2": "/"
+        },
+        "static": {
+            "build": "front-end",
+            "admin": "api"
+        },
+        "submission_files": {
+            "submission_user_1": {
+                "submission_1": "/",
+                "submission_2": "/"
+            },
+            "submission_user_2": {
+                "submission_1": "/",
+                "submission_2": "/"
+            }
+        }
+    }
+}
