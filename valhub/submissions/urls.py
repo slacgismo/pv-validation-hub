@@ -26,5 +26,7 @@ urlpatterns = [
     path("preload_submissions", 
          views.preload_submissions, 
          name="preload_submissions"),
-
+    path("submission_results/<int:submission_id>",
+        views.get_submission_results,
+        name="get_submission_results"),
 ]

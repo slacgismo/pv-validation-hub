@@ -1,13 +1,15 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.core.files.storage import FileSystemStorage, default_storage
 
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import JSONParser
 
+import mimetypes
 import os
 import json
 import boto3
@@ -137,16 +139,13 @@ def submission_detail(request, analysis_id, submission_id):
 def user_submission(request, user_id):
     # get user account
     try:
-        user = Account.objects.get(id=user_id)
+        user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
         response_data = {"error": "User account does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
-    submissions = Submission.objects.filter(created_by=user)
-
-    return Response(serializer.data)
-    # response_data = serializers.serialize('json', submissions)
-    response_data = SubmissionSerializer(submissions, many=True).data
+    user_submissions = Submission.objects.filter(created_by=user)
+    response_data = SubmissionSerializer(user_submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -237,3 +236,41 @@ def preload_submissions(request):
         submission.save()
 
     return JsonResponse({"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+@csrf_exempt
+def get_submission_results(request, submission_id):
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
+        response_data = {"error": "submission does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    user_id = submission.created_by.uuid
+    bucket_name = "pv-validation-hub-bucket"
+    results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
+
+    if get_environment() == "LOCAL":
+        storage = FileSystemStorage(location="http://s3:5000/")
+    else:
+        storage = default_storage
+
+    _, file_list = storage.listdir(results_directory)
+    png_files = [file for file in file_list if file.lower().endswith(".png")]
+
+    if not png_files:
+        return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
+
+    # Assuming you want to return the first .png file in the list
+    png_file = png_files[0]
+    png_file_path = os.path.join(results_directory, png_file)
+    file_url = storage.url(png_file_path)
+    response = requests.get(file_url)
+
+    if response.status_code == 200:
+        content_type, _ = mimetypes.guess_type(png_file)
+        response = HttpResponse(response.content, content_type=content_type)
+        response['Content-Disposition'] = f"attachment; filename={png_file}"
+        return response
+    else:
+        return JsonResponse({"error": "Error retrieving .png file"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

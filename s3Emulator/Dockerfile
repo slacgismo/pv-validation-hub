@@ -16,6 +16,10 @@ WORKDIR /app/preload
 
 RUN chmod +x *
 
+WORKDIR /app/route_testing
+
+RUN chmod +x *
+
 WORKDIR /app
 
 # Install Requirements
