@@ -65,3 +65,39 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
                                                                 upload_path)
     
     return object_url
+
+def download_from_s3_bucket(bucket_name, object_key, local_path=None, download_file=False):
+    """Download an object from S3 bucket and return object URL (or array of URLs)"""
+
+    environment = get_environment()
+
+    if environment == "LOCAL":
+        s3_url = "http://s3:5000/"
+        object_url = urljoin(s3_url, f"{bucket_name}/{object_key}")
+
+        if download_file and local_path:
+            response = requests.get(object_url)
+            if response.status_code == 200:
+                with open(local_path, 'wb') as f:
+                    f.write(response.content)
+            else:
+                return None
+
+    else:
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+        )
+
+        try:
+            if download_file and local_path:
+                s3.download_file(bucket_name, object_key, local_path)
+            bucket_location = s3.get_bucket_location(Bucket=bucket_name)
+            object_url = "https://{}.s3.{}.amazonaws.com/{}".format(bucket_name,
+                                                                    bucket_location['LocationConstraint'],
+                                                                    object_key)
+        except:
+            return None
+
+    return object_url

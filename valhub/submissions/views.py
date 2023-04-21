@@ -3,23 +3,19 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 from django.http import JsonResponse, HttpResponse
 from django.core.files.storage import default_storage
-from storages.backends.s3boto3 import S3Boto3Storage
-from io import BytesIO
 
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import JSONParser
 
-import zipfile
-import mimetypes
 import os
 import json
 import boto3
 import botocore
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket, get_environment
+from base.utils import upload_to_s3_bucket, get_environment, download_from_s3_bucket
 from accounts.models import Account
 from .models import Submission
 
@@ -256,33 +252,33 @@ def get_submission_results(request, submission_id):
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
 
-    if get_environment() == "LOCAL":
-        storage = S3Boto3Storage(bucket_name=bucket_name, endpoint_url="http://s3:5000/")
+    environment = get_environment()
+    if environment == "LOCAL":
+        storage_endpoint_url = "http://s3:5000/"
     else:
         storage = default_storage
 
-    _, file_list = storage.listdir(results_directory)
+    _, file_list = storage.listdir(results_directory) if environment != "LOCAL" else os.listdir(os.path.join(bucket_name, results_directory))
     png_files = [file for file in file_list if file.lower().endswith(".png")]
 
     if not png_files:
         return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
 
-    zip_buffer = BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for png_file in png_files:
-            png_file_path = os.path.join(results_directory, png_file)
-            file_url = storage.url(png_file_path)
-            response = requests.get(file_url)
+    file_urls = []
+    for png_file in png_files:
+        png_file_path = os.path.join(results_directory, png_file)
+        
+        if environment == "LOCAL":
+            file_url = urljoin(storage_endpoint_url, f"{bucket_name}/{png_file_path}")
+        else:
+            file_url = download_from_s3_bucket(bucket_name, png_file_path, download_file=False)
+        
+        if file_url:
+            file_urls.append(file_url)
+        else:
+            return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            if response.status_code == 200:
-                zip_file.writestr(png_file, response.content)
-            else:
-                return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    zip_buffer.seek(0)
-    response = HttpResponse(zip_buffer, content_type="application/zip")
-    response['Content-Disposition'] = f"attachment; filename=submission_{submission_id}_results.zip"
-    return response
+    return JsonResponse({"file_urls": file_urls})
 
 @api_view(["GET"])
 @csrf_exempt
