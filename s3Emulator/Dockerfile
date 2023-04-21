@@ -3,7 +3,7 @@ FROM python:3.9-slim-buster
 
 WORKDIR /
 
-RUN apt-get update && apt-get install git sudo curl jq gawk -y
+RUN apt-get update && apt-get install git sudo curl jq gawk nano -y
 RUN git clone https://github.com/kperrynrel/time-shift-validation-hub.git
 
 # Set the working directory
@@ -23,8 +23,8 @@ RUN pip install -r requirements.txt
 
 # Move simulated bucket to location 
 RUN mv ./pv-validation-hub-bucket /
-RUN mv /time-shift-validation-hub/data/file_data/* /pv-validation-hub-bucket/data_files/analytical/
-RUN mv /time-shift-validation-hub/data/validation_data/* /pv-validation-hub-bucket/data_files/ground_truth/
+RUN mv /time-shift-validation-hub/data/file_data/* /pv-validation-hub-bucket/data_files/1/analytical/
+RUN mv /time-shift-validation-hub/data/validation_data/* /pv-validation-hub-bucket/data_files/1/ground_truth/
 # Install the required dependencies
 RUN pip install flask boto3
 

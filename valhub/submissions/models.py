@@ -31,7 +31,7 @@ class Submission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
     algorithm = models.FileField(max_length=1000, upload_to=RandomFileName(
         "submission_files"))
-    result = models.TextField(null=True, blank=True)
+    result = models.TextField(null=True, blank=True, default='')
     status = models.CharField(
         max_length=30, choices=STATUS_OPTIONS, db_index=True, default=SUBMITTING)
 

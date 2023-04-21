@@ -23,7 +23,8 @@ export const AnalysisService = {
         }, [analysis_id]);
         return [isAnalysisLoading, analysiserror, analysisDetails, analysis_id];
     },
-    async uploadAlgorithm(analysis_id, user_id, file) {
+    uploadAlgorithm(analysis_id, user_id, file) {
+        user_id = "1";
         if (analysis_id != null && analysis_id != undefined && 
             user_id != null && user_id != undefined &&
             file != null && file != undefined

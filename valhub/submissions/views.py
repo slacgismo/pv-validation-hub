@@ -12,6 +12,7 @@ import os
 import json
 import boto3
 import botocore
+import logging
 
 from analyses.models import Analysis
 from base.utils import upload_to_s3_bucket, get_environment
@@ -28,6 +29,7 @@ is_s3_emulation = True
 @api_view(["POST"])
 @csrf_exempt
 def analysis_submission(request, analysis_id):
+    logging.error(f"request.data = {request.data}")
     """API Endpoint for making a submission to a analysis"""
     # check if the analysis exists or not
     # print("analysis_id: {}".format(analysis_id))
@@ -36,6 +38,8 @@ def analysis_submission(request, analysis_id):
     except Analysis.DoesNotExist:
         response_data = {"error": "Analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+    
+    logging.error("analysis exists")
 
     # check if the analysis queue exists or not
     try:
@@ -48,6 +52,22 @@ def analysis_submission(request, analysis_id):
                 aws_access_key_id='x',
                 use_ssl=False
             )
+            # sqs = boto3.client(
+            #     "sqs",
+            #     endpoint_url='http://localhost:9324',
+            #     region_name='elasticmq',
+            #     aws_secret_access_key='x',
+            #     aws_access_key_id='x',
+            #     use_ssl=False
+            # )
+            # sqs = boto3.client(
+            #     "sqs",
+            #     endpoint_url='http://localhost:9324',
+            #     region_name='elasticmq',
+            #     aws_secret_access_key='x',
+            #     aws_access_key_id='x',
+            #     use_ssl=False
+            # )
         else:
             sqs = boto3.resource(
                 "sqs",
@@ -55,16 +75,17 @@ def analysis_submission(request, analysis_id):
                 aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
                 aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
             )
-        queue_name = "valhub_submission_queue"
+        queue_name = "valhub_submission_queue.fifo"
         queue = sqs.get_queue_by_name(QueueName=queue_name)
     except botocore.exceptions.ClientError as ex:
+        logging.error(f"botocore.exceptions.ClientError = {ex}")
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     # get user account
     user_id = request.data["user_id"]
     try:
-        user = Account.objects.get(id=user_id)
+        user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
         response_data = {"error": "User account does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
@@ -72,6 +93,7 @@ def analysis_submission(request, analysis_id):
     serializer = SubmissionSerializer(data=request.data)
 
     if serializer.is_valid():
+        logging.error("serializer is valid")
         serializer.save(analysis=analysis, created_by=user)
         submission_id = int(serializer.instance.submission_id)
         # print("submission_id: {}".format(submission_id))
@@ -82,6 +104,7 @@ def analysis_submission(request, analysis_id):
         bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
             "submission_files", f"submission_user_{user_id}", f"submission_{submission_id}", f"{submission_path.split('/')[-1]}")
+        logging.error(f"bucket_name: {bucket_name}\nsubmission_path: {submission_path}\nupload_path: {upload_path}")
         object_url = upload_to_s3_bucket(
             bucket_name, submission_path, upload_path)
         if object_url is None:
@@ -104,7 +127,9 @@ def analysis_submission(request, analysis_id):
         # response_data = serializers.serialize('json', [serializer.instance])
         response_data = SubmissionSerializer(serializer.instance).data
     else:
+        logging.error("serializer is not valid")
         response_data = serializer.errors
+        logging.error(f"serializer.errors = {response_data}")
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(response_data, status=status.HTTP_200_OK)

@@ -19,7 +19,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["submission_id"] = instance.submission_id
         data["analysis"] = {"analysis_id": instance.analysis.analysis_id,
                             "analysis_name": instance.analysis.analysis_name}
-        data["created_by"] = {"id": instance.created_by.id,
+        data["created_by"] = {"id": instance.created_by.uuid,
                               "username": instance.created_by.username}
         data["submitted_at"] = instance.submitted_at
         data["result"] = instance.result
