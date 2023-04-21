@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
+from django.http import JsonResponse
 
 from rest_framework.response import Response
 from rest_framework import status
@@ -204,3 +205,33 @@ def leaderboard_update(request):
         return Response(response_data, status=status.HTTP_200_OK)
     else:
         return Response({"error": "Invalid request method"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+# Preloader route is not for regular use. It is meant only to create examples quickly for demonstration purposes.
+@api_view(["POST"])
+@csrf_exempt
+def preload_submissions(request):
+    data = request.data
+    if not isinstance(data, list):
+        return JsonResponse({"error": "Invalid data format. Expected a list of submissions."}, status=status.HTTP_400_BAD_REQUEST)
+
+    for submission_data in data:
+        analysis_id = submission_data.get('analysis_id')
+        user_id = submission_data.get('user_id')
+
+        try:
+            analysis = Analysis.objects.get(pk=analysis_id)
+            user = Account.objects.get(id=user_id)
+        except (Analysis.DoesNotExist, Account.DoesNotExist):
+            continue
+
+        submission = Submission(
+            analysis=analysis,
+            created_by=user,
+            algorithm=submission_data.get('algorithm'),
+            mae=submission_data.get('mae'),
+            mrt=submission_data.get('mrt'),
+            status=Submission.FINISHED
+        )
+        submission.save()
+
+    return JsonResponse({"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK)

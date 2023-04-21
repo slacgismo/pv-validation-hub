@@ -23,4 +23,8 @@ urlpatterns = [
     path("leaderboard", 
          views.leaderboard_update, 
          name="leaderboard_update"),
+    path("preload_submissions", 
+         views.preload_submissions, 
+         name="preload_submissions"),
+
 ]
