@@ -15,11 +15,10 @@ class RandomFileName(object):
         self.path = path
 
     def __call__(self, instance, filename):
-        extension = os.path.splitext(filename)[1]
         path = self.path
         if "id" in self.path and instance.pk:
             path = self.path.format(id=instance.pk)
-        filename = "{}{}".format(uuid.uuid4(), extension)
+        filename = "{}_{}".format(uuid.uuid4(), filename)
         filename = os.path.join(path, filename)
         return filename
 
