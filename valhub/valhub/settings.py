@@ -112,6 +112,7 @@ INSTALLED_APPS = [
     'validation_tests.apps.ValidationTestsConfig',
     'backend.apps.BackendConfig',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -139,6 +140,10 @@ CORS_ORIGIN_ALLOW_ALL = True
 # ]
 
 ROOT_URLCONF = 'valhub.urls'
+
+AUTH_USER_MODEL = 'accounts.Account'
+
+LOGIN_URL = '/login'
 
 TEMPLATES = [
     {

@@ -1,14 +1,18 @@
 from django.http import HttpResponse, JsonResponse
-from rest_framework.parsers import JSONParser
-from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+import django.contrib.auth as auth
+
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
 
 from .serializers import AccountSerializer
 from .models import Account
 import json
-import bcrypt
+import logging
 
 
 @csrf_exempt
@@ -19,79 +23,59 @@ def register(request):
     _password = request.data["password"]
     _firstName = request.data["firstName"]
     _lastName = request.data["lastName"]
-    _passwordSalt = bcrypt.gensalt()
-    _encodePwd = _password.encode('utf-8')
-    _passwordHash = bcrypt.hashpw(_encodePwd, _passwordSalt)
 
-    account = Account(
-        username = _username, 
-        password = _password,
-        passwordSalt = _passwordSalt.decode("utf-8"),
-        passwordHash = _passwordHash.decode("utf-8"),
-        email = _useremail,
-        firstName = _firstName,
-        lastName = _lastName,
+    account = Account.objects.create_user(
+        username=_username,
+        email=_useremail,
+        password=_password,
+        firstName=_firstName,
+        lastName=_lastName,
     )
-    account.save()
+
     serializer = AccountSerializer(account)
     return JsonResponse(serializer.data)
-
 
 @csrf_exempt
 @api_view(["POST"])
 def login(request):
     _username = request.data['username']
     _password = request.data['password']
-    _encodePwd = _password.encode('utf-8')
 
-    account = Account.objects.get(username=_username)
-    _encodeSalt = account.passwordSalt.encode('utf-8')
-    user_hashed_pwd = bcrypt.hashpw(_encodePwd, _encodeSalt)
+    user = auth.authenticate(request, username=_username, password=_password)
 
-    if user_hashed_pwd.decode('utf-8') == account.passwordHash:
+    logging.error(f"uuid: {user.uuid}")
+
+    if user is not None:
+        auth.login(request, user)
+
+        # get or create login token for the user
+        token = Token.objects.get_or_create(user=user)
         data = {
-            'uuid': str(account.uuid),
+            'token': str(token[0].key),
         }
+
         dump = json.dumps(data)
         return HttpResponse(dump, content_type='application/json', status=200)
     else:
         return HttpResponse("wrong password", status=400)
 
-@method_decorator(csrf_exempt, name='dispatch')
-class AccountList(APIView):
-    def get(self, request):
-        accounts = Account.objects.all()
-        serializer = AccountSerializer(accounts, many=True)
-        return JsonResponse(serializer.data, safe=False)
-
-    def post(self, request):
-        serializer = AccountSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse(serializer.data, status=201)
-        return JsonResponse(serializer.errors, status=400)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class AccountDetail(APIView):
     """
     Retrieve, update or delete a user.
     """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     @csrf_exempt
-    def get(self, request, pk):
-        try:
-            account = Account.objects.get(pk=pk)
-            serializer = AccountSerializer(account)
-            return JsonResponse(serializer.data)
-        except Account.DoesNotExist:
-            return HttpResponse(status=404)
+    def get(self, request):
+        serializer = AccountSerializer(request.user)
+        return JsonResponse(serializer.data)
 
     @csrf_exempt
-    def put(self, request, pk):
-        try:
-            account = Account.objects.get(pk=pk)
-        except Account.DoesNotExist:
-            return HttpResponse(status=404)
+    def put(self, request):
+        account = request.user
 
         # update origin account
         serializer = AccountSerializer(account, data=request.data, partial=True)
@@ -101,10 +85,7 @@ class AccountDetail(APIView):
         return JsonResponse(serializer.errors, status=400)
 
     @csrf_exempt
-    def delete(self, request, pk):
-        try:
-            account = Account.objects.get(pk=pk)
-        except Account.DoesNotExist:
-            return HttpResponse(status=404)
+    def delete(self, request):
+        account = request.user
         account.delete()
         return HttpResponse(status=204)
