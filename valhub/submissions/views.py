@@ -220,7 +220,8 @@ def preload_submissions(request):
 
         try:
             analysis = Analysis.objects.get(pk=analysis_id)
-            user = Account.objects.get(id=user_id)
+            user = Account.objects.get(uuid=user_id)
+            
         except (Analysis.DoesNotExist, Account.DoesNotExist):
             continue
 
