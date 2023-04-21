@@ -2,7 +2,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 from django.http import JsonResponse, HttpResponse
-from django.core.files.storage import FileSystemStorage, default_storage
+from django.core.files.storage import default_storage
+from storages.backends.s3boto3 import S3Boto3Storage
 from io import BytesIO
 
 from rest_framework.response import Response
@@ -256,7 +257,7 @@ def get_submission_results(request, submission_id):
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
 
     if get_environment() == "LOCAL":
-        storage = FileSystemStorage(location="http://s3:5000/")
+        storage = S3Boto3Storage(bucket_name=bucket_name, endpoint_url="http://s3:5000/")
     else:
         storage = default_storage
 
@@ -266,7 +267,6 @@ def get_submission_results(request, submission_id):
     if not png_files:
         return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
 
-    # Create a zip file with all .png files
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
         for png_file in png_files:
