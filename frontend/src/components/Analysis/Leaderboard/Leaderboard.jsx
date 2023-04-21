@@ -16,9 +16,9 @@ export default function Leaderboard(props) {
             groupable: false,
             renderCell: (params) => {
                 let value = params.value;
-                return value != null || value != undefined ?
+                return params.row.developer_group /* value != null || value != undefined ?
                     <Link href={`/profile/${value.id}`} underline="hover" > {value.username}</Link>
-                    : null
+                    : null */
             }
         },
         {
@@ -30,7 +30,7 @@ export default function Leaderboard(props) {
             width: 100,
             renderCell: (params) => {
                 let value = params.row.algorithm;
-                value = value.replace("/media/", "//");
+                // value = value.replace("/media/", "//");
                 return (<a href={value} download><DownloadIcon /></a>);
             }
         },

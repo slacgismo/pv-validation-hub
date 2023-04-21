@@ -1,5 +1,0 @@
-.terraform/
-.terraform*
-terraform.tfstate*
-
-node_modules

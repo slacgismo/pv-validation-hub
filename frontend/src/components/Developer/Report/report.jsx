@@ -77,7 +77,7 @@ export default function SubmissionReport() {
         <ImageList sx={{ width: '100%', bgcolor: 'background.paper' }}>
           <ImageListItem key='img0'>
               <img
-                src='https://lh3.google.com/u/0/d/15ZzS3SBekKSe2BMd3ZL5OSnlHl3VhkbP=w3376-h1756-iv1'
+                src='https://cdn.discordapp.com/attachments/1082129393784193034/1096567880818110575/histo-dsf.png'
                 alt='img0'
                 loading="lazy"
               />
@@ -85,7 +85,7 @@ export default function SubmissionReport() {
             </ImageListItem>
           <ImageListItem key='img1'>
               <img
-                src='https://lh3.googleusercontent.com/u/0/drive-viewer/AAOQEOS5_wNFtuoF_MuXAlJhQzACQY5tT9b_hxFP_DpCBcJnMJPbbyu6ajYfXb1cJxEStWPN26m9BiyGRsIrMapwxpxNAl3IYA=w2226-h1756'
+                src='https://cdn.discordapp.com/attachments/1082129393784193034/1096567941182537758/histo-di.png'
                 alt='img1'
                 loading="lazy"
               />

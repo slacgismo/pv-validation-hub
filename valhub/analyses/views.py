@@ -13,8 +13,8 @@ import boto3
 import os
 
 from .models import Analysis
-from jobs.models import Submission
-from jobs.serializers import SubmissionDetailSerializer
+from submissions.models import Submission
+from submissions.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 from accounts.models import Account
@@ -50,7 +50,7 @@ def create_analysis(request):
         # upload package to s3 and upload evaluation_script_path
         evaluation_script_path = serializer.instance.evaluation_script.path
         # print("evaluation_script_path: {}".format(evaluation_script_path))
-        bucket_name = "pv-insight-application-bucket"
+        bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
             "evaluation_scripts", "analysis_{}.zip".format(analysis_id))
 
@@ -131,3 +131,16 @@ def leaderboard(request, analysis_id):
     response_data = SubmissionDetailSerializer(submission_list, many=True)
 
     return Response(response_data, status=status.HTTP_200_OK)
+
+# Update this later to only accept route calls from within localhost or own container 
+@api_view(["POST"])
+def create_new_analysis(request):
+    # Remove user_id related code
+    serializer = AnalysisSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        response_data = serializer.data
+        return Response(response_data, status=status.HTTP_201_CREATED)
+    else:
+        response_data = serializer.errors
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)

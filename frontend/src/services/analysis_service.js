@@ -28,19 +28,19 @@ export const AnalysisService = {
             user_id != null && user_id != undefined &&
             file != null && file != undefined
             ) {
-            let url = "/jobs/analysis/" + analysis_id + "/submission";
+            let url = "/submissions/analysis/" + analysis_id + "/submission";
             let form_data = new FormData();
             form_data.append("algorithm", file);
             form_data.append("user_id", user_id);
             form_data.append("analysis_id", analysis_id);
+
+            console.log("form: ", form_data);
+
             client.post(url, form_data, {
                 Accept: '*/*',
                 "content-type": 'multipart/form-data'
-            });
-            await client.post(url, {
-                analysis_id: analysis_id,
-                user_id: user_id,
-                file: file
+            }).then(response => {
+                console.log(response);
             });
         }
     },

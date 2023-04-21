@@ -85,7 +85,7 @@ Parameters:
   S3BucketArn:
     Description: S3 Bucket Arn
     Type: String
-    Default: arn:aws:s3:::pv-insight-pipeline-bucket
+    Default: arn:aws:s3:::pv-validation-hub-bucket
   
   RDSSecurityGroupId:
     Description: RDS Security Group Id

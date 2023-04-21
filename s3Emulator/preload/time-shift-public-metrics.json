@@ -1,0 +1,6 @@
+{
+    "module": "pvanalytics-cpd-module", 
+    "mean_mean_absolute_error": 2.9835552075176195, 
+    "mean_run_time": 51.68567451834679, 
+    "data_requirements": ["time_series", "latitude", "longitude", "data_sampling_frequency"]
+}

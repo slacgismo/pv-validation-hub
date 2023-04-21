@@ -1,6 +1,7 @@
 import {
     create_fake_image_array_list,
-    fake_discussion_output
+    fake_discussion_output,
+    create_fake_leaderboard_array
 } from './fake_data_service';
 import client from './api_service';
 import { useEffect, useState } from 'react';
@@ -37,13 +38,14 @@ export const DashboardService = {
             else{
                 let element = {
                     id: id,
+                    developer_group: resp["developer_group"],
                     algorithm: resp["algorithm"],
                     created_by: resp["created_by"],
                     execution_time: faker.helpers.arrayElement([66.19317770004272,100.97519278526306]),
                     status: null,
                     metrics: null,
                     error: faker.helpers.arrayElement([23.137764944250826,4.846236274675835]),
-                    data_requirement: null
+                    data_requirement: "MAE"
                 }
                 id += 1;
                 finalResponse.push(element);
@@ -78,6 +80,7 @@ export const DashboardService = {
         const [leaderboardError, setLeaderboardError] = useState(null);
 
         useEffect(() => {
+            /*
             client.get(leaderBoardUrl)
                 .then(leaderboardResponse => {
                     setLeaderboardIsLoading(false);
@@ -87,7 +90,9 @@ export const DashboardService = {
                     setLeaderboardError(error);
                     setLeaderboardDetails([]);
                     setLeaderboardIsLoading(false);
-                })
+                })*/
+                setLeaderboardIsLoading(false);
+                setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(5)));
         }, [leaderBoardUrl]);
         return [isLeaderboardLoading, leaderboardError, leaderboardDetails];
     },

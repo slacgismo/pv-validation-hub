@@ -6,7 +6,13 @@ RUN mkdir valhub
 WORKDIR /root/valhub
 COPY . .
 
+# Set Django admin username and password
+ARG admin_username
+ARG admin_password
 ARG djangosk
+
+ENV DJANGO_ADMIN_USERNAME=$admin_username
+ENV DJANGO_ADMIN_PASSWORD=$admin_password
 ENV DJANGO_SECRET_KEY=${djangosk}
 ENV PORT 8005
 EXPOSE 8005
@@ -22,4 +28,4 @@ RUN python3 -m pip install -r requirements.txt
 
 RUN cd ./valhub
 RUN python3 manage.py makemigrations
-CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"] 
+CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]
