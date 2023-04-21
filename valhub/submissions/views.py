@@ -231,7 +231,8 @@ def preload_submissions(request):
             algorithm=submission_data.get('algorithm'),
             mae=submission_data.get('mae'),
             mrt=submission_data.get('mrt'),
-            status=Submission.FINISHED
+            status=Submission.FINISHED,
+            data_requirements=submission_data.get('data_requirements').get('data_requirements')
         )
         submission.save()
 

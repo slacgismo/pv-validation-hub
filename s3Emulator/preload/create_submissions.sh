@@ -16,10 +16,13 @@ upload_submission() {
          {
            \"analysis_id\": $ANALYSIS_ID,
            \"user_id\": $USER_ID,
+           \"algorithm\": \"dummy_algorithm\",
            \"status\": \"$STATUS\",
            \"mae\": $mae,
            \"mrt\": $mrt,
-           \"data_requirements\": $data_requirements
+           \"data_requirements\": {
+             \"data_requirements\": $data_requirements
+           }
          }
        ]" \
        "${API_BASE_URL}submissions/preload_submissions"
