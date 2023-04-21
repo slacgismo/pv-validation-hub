@@ -239,8 +239,6 @@ def preload_submissions(request):
 
     return JsonResponse({"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK)
 
-from .utils import download_from_s3_bucket
-
 @api_view(["GET"])
 @csrf_exempt
 def get_submission_results(request, submission_id):
