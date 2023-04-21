@@ -25,7 +25,7 @@ function App() {
               <Route path='/analyses' element={<Analyses/>}/>
               <Route path='/analysis/:analysis_id' element={<Analysis/>}/>
               <Route path='/submission/:submission_id' element={<Submission/>}/>
-              <Route path="/profile/:user_id" element={<Profile/>}/>
+              <Route path="/profile" element={<Profile/>}/>
               <Route path="/developer" element={<DeveloperHome/>}/>
               <Route path="/" element={<Homepage/>}/>
             </Routes>

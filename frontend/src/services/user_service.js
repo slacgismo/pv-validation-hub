@@ -1,14 +1,16 @@
 import client from "./api_service";
 import { useEffect, useState } from "react";
-import { faker } from "@faker-js/faker";
 
 export const UserService = {
-
-    useGetUserDetails(url) {
+    useGetUserDetails(url, token) {
         const [userDetails, setUserDetails] = useState();
         const [isLoading, setIsLoading] = useState(true);
         const [error, setError] = useState(null);
 
+        // set authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
+
+        // set request
         useEffect(() => {
             client.get(url)
                 .then(response => {
@@ -26,8 +28,11 @@ export const UserService = {
         }, [url]);
         return [isLoading, error, userDetails];
     },
-    updateUserProfile(uuid, updatedProfile) {
-        const url = "/account/"+uuid;
+    updateUserProfile(token, updatedProfile) {
+        const url = "/account";
+        // set authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
+
         return client.put(url, updatedProfile).data;
     },
     register(username, email, password, first_name, last_name) {

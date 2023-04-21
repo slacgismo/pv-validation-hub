@@ -60,10 +60,10 @@ export default function Profile() {
     // todo(jrl): check userInfo existence by token instead of plain uuid
     // todo(jrl): abstract user information request and response
     let url = user !== null && user !== undefined ?
-                       "/account/" + user.uuid : "";
+                       "/account" : "";
     
     console.log("url to be sent: ", url);
-    const [isLoading, error, userResponse] = UserService.useGetUserDetails(url);
+    const [isLoading, error, userResponse] = UserService.useGetUserDetails(url, user.token);
     console.log("user response: ", userResponse);
 
     // prepare for user profile fields update
@@ -81,7 +81,7 @@ export default function Profile() {
             "githubLink": githubLink === '' ? userResponse.githubLink : githubLink,
         };
         // todo: check return value
-        const ret = UserService.updateUserProfile(user.uuid, updatedProfile);
+        const ret = UserService.updateUserProfile(user.token, updatedProfile);
         console.log("ret value: ", ret);
         setUpdateDialogOpen(true);
     };

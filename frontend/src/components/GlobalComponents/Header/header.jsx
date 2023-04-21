@@ -32,7 +32,7 @@ export default function Header () {
     {
       "text": "Profile",
       "handler": () => {
-        navigate("/profile/"+cookies.get("user").id);
+        navigate("/profile");
       },
       "border": false,
     },
