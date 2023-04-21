@@ -459,7 +459,7 @@ def get_or_create_sqs_queue(queue_name):
     if is_s3_emulation:
         sqs = boto3.resource(
             "sqs",
-            endpoint_url='http://localhost:9324',
+            endpoint_url='http://sqs:9324',
             region_name='elasticmq',
             aws_secret_access_key='x',
             aws_access_key_id='x',
