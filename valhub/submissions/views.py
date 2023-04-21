@@ -269,7 +269,7 @@ def get_submission_results(request, submission_id):
         png_file_path = os.path.join(results_directory, png_file)
         
         if environment == "LOCAL":
-            file_url = urljoin(storage_endpoint_url, f"/{bucket_name}/{png_file_path}")
+            file_url = urljoin(storage_endpoint_url, f"{bucket_name}/{png_file_path}")
         else:
             file_url = download_from_s3_bucket(bucket_name, png_file_path, download_file=False)
         
