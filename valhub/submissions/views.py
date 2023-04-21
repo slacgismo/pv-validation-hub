@@ -239,6 +239,8 @@ def preload_submissions(request):
 
     return JsonResponse({"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK)
 
+from .utils import download_from_s3_bucket
+
 @api_view(["GET"])
 @csrf_exempt
 def get_submission_results(request, submission_id):
@@ -249,7 +251,7 @@ def get_submission_results(request, submission_id):
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     user_id = submission.created_by.uuid
-    bucket_name = "pv-validation-hub-bucket"
+    bucket_name = "/pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
 
     environment = get_environment()
@@ -258,7 +260,12 @@ def get_submission_results(request, submission_id):
     else:
         storage = default_storage
 
-    _, file_list = storage.listdir(results_directory) if environment != "LOCAL" else os.listdir(os.path.join(bucket_name, results_directory))
+    if environment != "LOCAL":
+        _, file_list = storage.listdir(results_directory)
+    else:
+        local_directory = os.path.join(bucket_name, results_directory)
+        file_list = os.listdir(local_directory) if os.path.exists(local_directory) else []
+
     png_files = [file for file in file_list if file.lower().endswith(".png")]
 
     if not png_files:
