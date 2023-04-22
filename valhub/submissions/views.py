@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import JSONParser
 
+import requests
 import os
 import json
 import boto3
@@ -18,6 +19,7 @@ from analyses.models import Analysis
 from base.utils import upload_to_s3_bucket, get_environment, download_from_s3_bucket
 from accounts.models import Account
 from .models import Submission
+from urllib.parse import urljoin
 
 from .serializers import SubmissionSerializer, SubmissionDetailSerializer
 from .models import Submission
@@ -255,10 +257,16 @@ def get_submission_results(request, submission_id):
     environment = get_environment()
     if environment == "LOCAL":
         storage_endpoint_url = "http://s3:5000/"
+        directory_url = urljoin(storage_endpoint_url, f"{bucket_name}/{results_directory}/list")
+        response = requests.get(directory_url)
+        if response.status_code != 200:
+            return JsonResponse({"error": "Error retrieving results list"}, 
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        file_list = response.json()
     else:
         storage = default_storage
+        _, file_list = storage.listdir(results_directory)
 
-    _, file_list = storage.listdir(results_directory) if environment != "LOCAL" else os.listdir(os.path.join("/", bucket_name, results_directory))
     png_files = [file for file in file_list if file.lower().endswith(".png")]
 
     if not png_files:
