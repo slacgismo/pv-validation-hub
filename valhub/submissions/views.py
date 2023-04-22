@@ -258,7 +258,7 @@ def get_submission_results(request, submission_id):
     else:
         storage = default_storage
 
-    _, file_list = storage.listdir(results_directory) if environment != "LOCAL" else os.listdir(os.path.join(bucket_name, results_directory))
+    _, file_list = storage.listdir(results_directory) if environment != "LOCAL" else os.listdir(os.path.join("/", bucket_name, results_directory))
     png_files = [file for file in file_list if file.lower().endswith(".png")]
 
     if not png_files:

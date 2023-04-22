@@ -33,7 +33,7 @@ def get_object(bucket_name, object_name):
 
     # Retrieve the object from the local file system
     try:
-        with open(f"{bucket_name}/{object_name}", "rb") as f:
+        with open(f"/{bucket_name}/{object_name}", "rb") as f:
             object_content = f.read()
     except FileNotFoundError:
         return "Object not found", 404
