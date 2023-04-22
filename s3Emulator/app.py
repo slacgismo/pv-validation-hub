@@ -5,7 +5,7 @@ import sys
 app = Flask(__name__)
 
 # Define a simple S3-like API
-@app.route("/<bucket_name>/<path:object_name>", methods=["PUT"])
+@app.route("/put_object/<bucket_name>/<path:object_name>", methods=["PUT"])
 def put_object(bucket_name, object_name):
     # Get the content of the object from the request
     object_content = request.data
@@ -21,7 +21,8 @@ def put_object(bucket_name, object_name):
 
     return "", 204
 
-@app.route("/<bucket_name>/<path:object_name>", methods=["GET"])
+
+@app.route("/get_object/<bucket_name>/<path:object_name>", methods=["GET"])
 def get_object(bucket_name, object_name):
     # Retrieve the object from the local file system
     try:
@@ -32,6 +33,29 @@ def get_object(bucket_name, object_name):
         return "Object not found", 404
 
     return object_content, 200
+
+
+@app.route("/list_bucket/<bucket_name>/<path:prefix>", methods=["GET"])
+def get_bucket(bucket_name, prefix):
+    # Retrieve the object from the local file system
+    print(f"enter get_bucket()", file=sys.stderr)
+    if not (os.path.exists(os.path.join('/', bucket_name)) and os.path.isdir(os.path.join('/', bucket_name))):
+        return "Bucket not found", 404
+    print(f"bucket {bucket_name} exists", file=sys.stderr)
+    ret = {
+        'Contents': []
+    }
+
+    for dir_path, dir_names, file_names in os.walk(os.path.join('/', bucket_name, prefix)):
+        if dir_path == os.path.join('/', bucket_name, prefix):
+            print(f"dir_path: {dir_path}\nfile_names: {file_names}", file=sys.stderr)
+            for file_name in file_names:
+                full_file_name = os.path.join(dir_path, file_name)
+                key = '/'.join(full_file_name.split('/')[2:])
+                ret['Contents'].append({'Key' : key})
+    print(f"ret: {ret}", file=sys.stderr)
+    return ret, 200
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

@@ -35,7 +35,7 @@ def get_environment():
 def upload_to_s3_bucket(bucket_name, local_path, upload_path):
     if is_s3_emulation:
         upload_path = os.path.join(bucket_name, upload_path)
-        s3_file_full_path = 'http://s3:5000/' + upload_path
+        s3_file_full_path = 'http://s3:5000/put_object/' + upload_path
         with open(local_path, "rb") as f:
             file_content = f.read()
             r = requests.put(s3_file_full_path, data=file_content)

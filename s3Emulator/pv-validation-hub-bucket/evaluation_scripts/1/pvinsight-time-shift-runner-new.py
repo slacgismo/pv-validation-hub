@@ -40,7 +40,7 @@ def pull_from_s3(s3_file_path):
         s3_file_path = s3_file_path[1:]
 
     if is_s3_emulation:
-        s3_file_full_path = 'http://s3:5000/' + s3_file_path
+        s3_file_full_path = 'http://s3:5000/get_object/' + s3_file_path
     else:
         s3_file_full_path = 's3://' + s3_file_path
     
@@ -63,7 +63,7 @@ def push_to_s3(local_file_path, s3_file_path):
         s3_file_path = s3_file_path[1:]
 
     if is_s3_emulation:
-        s3_file_full_path = 'http://s3:5000/' + s3_file_path
+        s3_file_full_path = 'http://s3:5000/put_object/' + s3_file_path
     else:
         s3_file_full_path = 's3://' + s3_file_path
     

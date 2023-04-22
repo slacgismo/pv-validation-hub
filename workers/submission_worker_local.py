@@ -17,6 +17,104 @@ import urllib.request
 
 is_s3_emulation = True
 
+def pull_from_s3(s3_file_path):
+    if s3_file_path.startswith('/'):
+        s3_file_path = s3_file_path[1:]
+
+    if is_s3_emulation:
+        s3_file_full_path = 'http://s3:5000/get_object/' + s3_file_path
+        # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
+    else:
+        s3_file_full_path = 's3://' + s3_file_path
+    
+    target_file_path = os.path.join('/tmp/', s3_file_full_path.split('/')[-1])
+
+    if is_s3_emulation:
+        r = requests.get(s3_file_full_path, stream=True)
+        if r.status_code != 200:
+            print(f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}", file=sys.stderr)
+        with open(target_file_path, "wb") as f:
+            f.write(r.content)
+    else:
+        raise NotImplementedError("real s3 mode not implemented")
+
+    return target_file_path
+
+
+def push_to_s3(local_file_path, s3_file_path):
+    if s3_file_path.startswith('/'):
+        s3_file_path = s3_file_path[1:]
+
+    if is_s3_emulation:
+        s3_file_full_path = 'http://s3:5000/put_object/' + s3_file_path
+    else:
+        s3_file_full_path = 's3://' + s3_file_path
+    
+    if is_s3_emulation:
+        with open(local_file_path, "rb") as f:
+            file_content = f.read()
+            r = requests.put(s3_file_full_path, data=file_content)
+            if r.status_code != 204:
+                print(f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
+    else:
+        raise NotImplementedError("real s3 mode not implemented")
+    
+
+def list_s3_bucket(s3_dir):
+    if s3_dir.startswith('/'):
+        s3_dir = s3_dir[1:]
+
+    if is_s3_emulation:
+        s3_dir_full_path = 'http://s3:5000/list_bucket/' + s3_dir
+        # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
+    else:
+        s3_dir_full_path = 's3://' + s3_dir
+
+    all_files = []
+    if is_s3_emulation:
+        r = requests.get(s3_dir_full_path)
+        ret = r.json()
+        for entry in ret['Contents']:
+            all_files.append(os.path.join(s3_dir.split('/')[0], entry['Key']))
+    
+    return all_files
+
+
+def convert_compressed_file_path_to_directory(compressed_file_path):
+    path_components = compressed_file_path.split('/')
+    path_components[-1] = path_components[-1].split('.')[0]
+    path_components = '/'.join(path_components)
+    return path_components
+
+
+def get_file_extension(path):
+    return path.split('/')[-1].split('.')[-1]
+
+
+def decompress_file(path):
+    if (get_file_extension(path) == 'gz'):
+        with tarfile.open(path, "r:gz") as tar:
+            tar.extractall(convert_compressed_file_path_to_directory(path))
+    else:
+        with zipfile.ZipFile(path, 'r') as zip_ref:
+            zip_ref.extractall(convert_compressed_file_path_to_directory(path))
+    return convert_compressed_file_path_to_directory(path)
+
+
+def get_module_file_name(module_dir):
+    for root, _, files in os.walk(module_dir, topdown=True):
+        for name in files:
+            if name.endswith('.py'):
+                return name.split('/')[-1]
+
+
+def get_module_name(module_dir):
+    return get_module_file_name(module_dir)[:-3]
+
+
+
+
+
 SUBMITTING = "submitting"
 SUBMITTED = "submitted"
 RUNNING = "running"
@@ -79,7 +177,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-django.db.close_old_connections()
+# django.db.close_old_connections()
 
 
 class GracefulKiller:
@@ -209,12 +307,12 @@ def download_and_extract_zip_file(file_name, download_location, extract_location
 ############ analysis functions #############
 
 
-def extract_analysis_data(analysis):
-    analysis_data_directory = ANALYSIS_DATA_DIR.format(
-        analysis_id=analysis.analysis_id
-    )
-    # create analysis directory as package
-    create_dir_as_python_package(analysis_data_directory)
+def extract_analysis_data(analysis_id, current_evaluation_dir):
+    # analysis_data_directory = ANALYSIS_DATA_DIR.format(
+    #     analysis_id=analysis.analysis_id
+    # )
+    # # create analysis directory as package
+    # create_dir_as_python_package(analysis_data_directory)
 
     # "https://github.com/slacgismo/pv-validation-hub/raw/mengdiz/examples/analysis_1.zip"
     # print(analysis.evaluation_script)
@@ -264,26 +362,34 @@ def extract_analysis_data(analysis):
         raise
 
 
-def load_analysis(analysis):
+# def load_analysis(analysis):
+#     # data, eval_script
+#     create_dir_as_python_package(ANALYSIS_DATA_BASE_DIR)
+#     # phases = challenge.challengephase_set.all()
+#     extract_analysis_data(analysis)
+
+
+def load_analysis(analysis_id):
+    # try:
+    #     analysis = Analysis.objects.get(**q_params)
+    #     # analysis = Analysis()
+    #     # analysis.analysis_id = 1
+    # except Analysis.DoesNotExist:
+    #     logger.exception(
+    #         "{} Analysis with pk {} doesn't exist".format(
+    #             WORKER_LOGS_PREFIX, q_params["pk"]
+    #         )
+    #     )
+    #     raise
     # data, eval_script
-    create_dir_as_python_package(ANALYSIS_DATA_BASE_DIR)
+    # create_dir_as_python_package(ANALYSIS_DATA_BASE_DIR)
     # phases = challenge.challengephase_set.all()
-    extract_analysis_data(analysis)
 
+    current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "current_evaluation")
+    if not os.path.exists(current_evaluation_dir):
+        os.makedirs(current_evaluation_dir)
 
-def load_analysis_and_return_max_submissions(q_params):
-    try:
-        analysis = Analysis.objects.get(**q_params)
-        # analysis = Analysis()
-        # analysis.analysis_id = 1
-    except Analysis.DoesNotExist:
-        logger.exception(
-            "{} Analysis with pk {} doesn't exist".format(
-                WORKER_LOGS_PREFIX, q_params["pk"]
-            )
-        )
-        raise
-    load_analysis(analysis)
+    extract_analysis_data(analysis_id, current_evaluation_dir)
     maximum_concurrent_submissions = analysis.max_concurrent_submission_evaluation
     return maximum_concurrent_submissions, analysis
 
@@ -410,14 +516,14 @@ def process_submission_message(message):
     Extracts the submission related metadata from the message
     and send the submission object for evaluation
     """
-    analysis_id = message.get("analysis_pk")
-    submission_id = message.get("submission_pk")
-    user_id = message.get("user_pk")
-    submission_instance = extract_submission_data(submission_id)
+    analysis_id = int(message.get("analysis_pk"))
+    submission_id = int(message.get("submission_pk"))
+    user_id = int(message.get("user_pk"))
+    # submission_instance = extract_submission_data(submission_id)
 
-    # so that the further execution does not happen
-    if not submission_instance:
-        return
+    # # so that the further execution does not happen
+    # if not submission_instance:
+    #     return
 
     run_submission(
         analysis_id,
@@ -565,5 +671,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    files = list_s3_bucket('pv-validation-hub-bucket/evaluation_scripts/1/')
+    print(files)
+    paths = []
+    for file in files:
+        paths.append(pull_from_s3(file))
+
+    print(paths)
+
     logger.info("{} Quitting Submission Worker.".format(WORKER_LOGS_PREFIX))
