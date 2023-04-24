@@ -1,12 +1,12 @@
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes, authentication_classes
 from rest_framework.parsers import JSONParser
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 import os
 import json
@@ -27,6 +27,8 @@ from .models import Submission
 is_s3_emulation = True
 
 @api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 @csrf_exempt
 def analysis_submission(request, analysis_id):
     logging.error(f"request.data = {request.data}")
@@ -52,22 +54,6 @@ def analysis_submission(request, analysis_id):
                 aws_access_key_id='x',
                 use_ssl=False
             )
-            # sqs = boto3.client(
-            #     "sqs",
-            #     endpoint_url='http://localhost:9324',
-            #     region_name='elasticmq',
-            #     aws_secret_access_key='x',
-            #     aws_access_key_id='x',
-            #     use_ssl=False
-            # )
-            # sqs = boto3.client(
-            #     "sqs",
-            #     endpoint_url='http://localhost:9324',
-            #     region_name='elasticmq',
-            #     aws_secret_access_key='x',
-            #     aws_access_key_id='x',
-            #     use_ssl=False
-            # )
         else:
             sqs = boto3.resource(
                 "sqs",
@@ -82,14 +68,7 @@ def analysis_submission(request, analysis_id):
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    # get user account
-    user_id = request.data["user_id"]
-    try:
-        user = Account.objects.get(uuid=user_id)
-    except Account.DoesNotExist:
-        response_data = {"error": "User account does not exist"}
-        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-
+    user = request.user
     serializer = SubmissionSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -103,23 +82,22 @@ def analysis_submission(request, analysis_id):
         # print("submission_path: {}".format(submission_path))
         bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
-            "submission_files", f"submission_user_{user_id}", f"submission_{submission_id}", f"{submission_path.split('/')[-1]}")
-        logging.error(f"bucket_name: {bucket_name}\nsubmission_path: {submission_path}\nupload_path: {upload_path}")
+            "submission_files", f"submission_user_{user.uuid}", f"submission_{submission_id}", f"{submission_path.split('/')[-1]}")
+
         object_url = upload_to_s3_bucket(
             bucket_name, submission_path, upload_path)
         if object_url is None:
             response_data = {"error": "Cannot upload file to S3 bucket"}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-        # print("object_url: {}".format(object_url))
+
         Submission.objects.filter(submission_id=submission_id).update(
             algorithm=object_url, status=Submission.SUBMITTED)
         # serializer.save(algorithm=object_url)
 
         # send a message to SQS queue
         message = json.dumps(
-            {"analysis_pk": int(analysis_id), "submission_pk": int(submission_id), "user_pk": int(user_id)})
-        # print("message: {}".format(message))
-        # print("submission_pk: {}".format(json.loads(message)["submission_pk"]))
+            {"analysis_pk": int(analysis_id), "submission_pk": int(submission_id), "user_pk": int(user.uuid)})
+
         response = queue.send_message(
             MessageBody=message, MessageGroupId="1", MessageDeduplicationId=str(submission_id))
 
@@ -175,8 +153,11 @@ def change_submission_status(request, analysis_id, submission_id):
 
 
 @api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 @csrf_exempt
-def user_submission(request, user_id):
+def user_submission(request):
+    """Get all the submissions of a user"""
     # get user account
     try:
         user = Account.objects.get(id=user_id)
@@ -193,8 +174,11 @@ def user_submission(request, user_id):
 
 
 @api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 @csrf_exempt
-def analysis_user_submission(request, analysis_id, user_id):
+def analysis_user_submission(request, analysis_id):
+    """Get all the submissions related to a single analysis of a user"""
     # check if the analysis exists or not
     try:
         analysis = Analysis.objects.get(pk=analysis_id)
@@ -202,15 +186,8 @@ def analysis_user_submission(request, analysis_id, user_id):
         response_data = {"error": "Analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    # get user account
-    try:
-        user = Account.objects.get(id=user_id)
-    except Account.DoesNotExist:
-        response_data = {"error": "User account does not exist"}
-        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-
+    user = request.user
     submissions = Submission.objects.filter(analysis=analysis, created_by=user)
-    # response_data = serializers.serialize('json', submissions)
     response_data = SubmissionSerializer(submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
 

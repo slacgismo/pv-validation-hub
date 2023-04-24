@@ -20,7 +20,7 @@ urlpatterns = [
         views.user_submission,
         name="user_submission",
     ),
-    path("analysis/<int:analysis_id>/user_submission/<int:user_id>",
+    path("analysis/<int:analysis_id>/user_submission",
         views.analysis_user_submission,
         name="analysis_user_submission",
     ),

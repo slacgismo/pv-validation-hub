@@ -1,5 +1,4 @@
 import { DashboardService } from "../../../services/dashboard_service";
-import AppTable from "../../GlobalComponents/AppTable/AppTable";
 import PropTypes from 'prop-types';
 import { Box, CircularProgress, Link } from "@mui/material";
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
@@ -94,4 +93,3 @@ export default function Leaderboard(props) {
 Leaderboard.props = {
     analysis_id: PropTypes.string
 }
-

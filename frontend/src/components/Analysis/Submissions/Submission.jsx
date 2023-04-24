@@ -9,6 +9,7 @@ import RunCircleIcon from '@mui/icons-material/RunCircle';
 import SmsFailedIcon from '@mui/icons-material/SmsFailed';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import LinkIcon from '@mui/icons-material/Link';
+import Cookies from 'universal-cookie';
 export default function Submission(props) {
 
     const status_to_icon = {
@@ -19,11 +20,7 @@ export default function Submission(props) {
         "finished": <Tooltip title="Finished"><CloudDoneIcon /></Tooltip>
     }
 
-    const get_score_from_result = (value) => {
-        if (value == null && value == undefined) return null;
-        let value_obj = JSON.parse(value);
-        if (value_obj == null && value_obj == undefined) return null;
-        let result = value_obj["result"];
+    const get_score_from_result = (result) => {
         if (result == null && result == undefined) return null;
         let final_score = 0;
         let count = 1;
@@ -35,11 +32,7 @@ export default function Submission(props) {
         return final_score;
     }
 
-    const get_evaluation_time = (value) => {
-        if (value == null && value == undefined) return null;
-        let value_obj = JSON.parse(value);
-        if (value_obj == null && value_obj == undefined) return null;
-        let time = value_obj["execution_time"];
+    const get_evaluation_time = (time) => {
         if (time == null && time == undefined) return null;
         return time;
     }
@@ -49,7 +42,7 @@ export default function Submission(props) {
             id: 'analysis',
             label: 'Analysis ID',
             minWidth: 50,
-            aligh: 'center',
+            align: 'center',
             format: (value) => {
                 return value != null ? value.analysis_id : null
             }
@@ -67,7 +60,7 @@ export default function Submission(props) {
             id: 'submitted_at',
             label: 'Submitted Date',
             minWidth: 100,
-            aligh: 'left',
+            align: 'left',
             format: (value) => {
                 return value != undefined || value != null ? value.split("T")[0] : null
             }
@@ -76,7 +69,7 @@ export default function Submission(props) {
             id: 'execution_time',
             label: 'Execution Time',
             minWidth: 100,
-            aligh: 'center',
+            align: 'center',
             key: 'result',
             format: (value) => {
                 return get_evaluation_time(value);
@@ -111,14 +104,22 @@ export default function Submission(props) {
             }
         }
     ]
-    let url = "submissions/analysis/" + props.analysis_id + "/user_submission/" + props.user_id;
-    const [isLoading, error, rows] = DashboardService.useGetSubmissions(url);
+
+    const cookies = new Cookies();
+    const user = cookies.get("user");
+    let url = "submissions/analysis/" + props.analysis_id + "/user_submission";
+    const [isLoading, error, rows] = DashboardService.useGetSubmissions(url, user.token);
+
+    console.log("isLoading before appTable: ", isLoading);
+    console.log("rows before appTable: ", rows);
+    console.log("error: ", error);
+
     return (
         isLoading ? <CircularProgress /> :
-            <AppTable
-                columns={columns}
-                rows={rows}
-            />
+        <AppTable
+            cols={columns}
+            rows={rows}
+        />
     )
 }
 

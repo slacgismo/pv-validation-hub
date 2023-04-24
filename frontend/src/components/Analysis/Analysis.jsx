@@ -18,9 +18,7 @@ import { AnalysisService } from "../../services/analysis_service";
 import { faker } from "@faker-js/faker";
 
 export default function Analysis() {
-
     const cookies = new Cookies();
-
     let user = cookies.get("user");
 
     const [value, setValue] = useState(0);
@@ -46,8 +44,7 @@ export default function Analysis() {
     };
 
     const handleUpload = () => {
-        let response = AnalysisService.uploadAlgorithm(analysis_id, user.user_id, file);
-        console.log("response: ", response);
+        let response = AnalysisService.uploadAlgorithm(analysis_id, user.token, file);
         closeModal();
     }
 

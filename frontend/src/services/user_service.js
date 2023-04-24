@@ -14,13 +14,10 @@ export const UserService = {
         useEffect(() => {
             client.get(url)
                 .then(response => {
-                    console.log('send url: ', url, ", get response: ", response);
                     setUserDetails(response.data);
-                    console.log(response.data);
                     setIsLoading(false);
                 })
                 .catch(error => {
-                    console.log('send url: ', url, ", get error: ", error);
                     setError(error);
                     setUserDetails({});
                     setIsLoading(false);

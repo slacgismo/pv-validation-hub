@@ -8,9 +8,7 @@ import { useEffect, useState } from 'react';
 import { faker } from '@faker-js/faker';
 
 
-
 export const DashboardService = {
-
     formatResponse(response) {
         let finalResponse = []
         let id = 0;
@@ -96,25 +94,27 @@ export const DashboardService = {
         }, [leaderBoardUrl]);
         return [isLeaderboardLoading, leaderboardError, leaderboardDetails];
     },
-    useGetSubmissions(submissionUrl) {
-        const [submissionDetails, setSubmissionDetails] = useState();
-        const [isSubmissionLoading, setSubmissionIsLoading] = useState(true);
+    useGetSubmissions(submissionUrl, token) {
+        const [isSubmissionLoading, setSubmissionLoading] = useState(true);
         const [submissionError, setSubmissionError] = useState(null);
+        const [submissionData, setSubmissionData] = useState(null);
+
+        // set authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
 
         useEffect(() => {
             client.get(submissionUrl)
                 .then(submissionResponse => {
-                    setSubmissionIsLoading(false);
-                    console.log(submissionResponse.data);
-                    setSubmissionDetails(submissionResponse.data);
+                    setSubmissionLoading(false);
+                    const response = JSON.parse(JSON.stringify(submissionResponse.data));
+                    setSubmissionData(response);
                 })
                 .catch(error => {
+                    setSubmissionLoading(true);
                     setSubmissionError(error);
-                    setSubmissionDetails([]);
-                    setSubmissionIsLoading(false);
                 })
         }, [submissionUrl]);
-        return [isSubmissionLoading, submissionError, submissionDetails];
+        return [isSubmissionLoading, submissionError, submissionData];
     },
     getImageObjects(analysis_id) {
         return create_fake_image_array_list(4);

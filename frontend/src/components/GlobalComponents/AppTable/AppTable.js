@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
 import {
   Box,
   Paper,
@@ -14,8 +13,7 @@ import {
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
 
-export default function AppTable(props) {
-
+export default function AppTable({rows, cols}) {
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('');
   const [page, setPage] = useState(0);
@@ -49,7 +47,6 @@ export default function AppTable(props) {
   function stableSort(array, comparator) {
     const stabilizedThis = array.map((el, index) => [el, index]);
     stabilizedThis.sort((a, b) => {
-      console.log(a,b);
       const order = comparator(a[0], b[0]);
       if (order !== 0) {
         return order;
@@ -68,78 +65,70 @@ export default function AppTable(props) {
     handleRequestSort(event, property);
   };
 
-
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden' }}>
       <TableContainer sx={{ maxHeight: 440 }}>
         <Table aria-label="sticky table">
           <TableHead>
             <TableRow>
-              {props.columns.map((column) => (
-                <TableCell
-                  key={column.id}
-                  align={column.align}
-                  style={{ minWidth: column.minWidth }}
-                  sortDirection={orderBy === column.id ? order : false}
-                >
-                  <TableSortLabel
-                    active={orderBy === column.id}
-                    direction={orderBy === column.id ? order : 'asc'}
-                    onClick={createSortHandler(column.id)}
+              {
+                cols.map((column) => (
+                  <TableCell
+                    key={column.id}
+                    align={column.align}
+                    style={{ minWidth: column.minWidth }}
+                    sortDirection={orderBy === column.id ? order : false}
                   >
-                    <b>{column.label}</b>
-                    {orderBy === column.id ? (
-                      <Box component="span" sx={visuallyHidden}>
-                        {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
-                      </Box>
-                    ) : null}
-                  </TableSortLabel>
-                </TableCell>
-              ))}
+                    <TableSortLabel
+                      active={orderBy === column.id}
+                      direction={orderBy === column.id ? order : 'asc'}
+                      onClick={createSortHandler(column.id)}
+                    >
+                      <b>{column.label}</b>
+                      {orderBy === column.id ? (
+                        <Box component="span" sx={visuallyHidden}>
+                          {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                        </Box>
+                      ) : null}
+                    </TableSortLabel>
+                  </TableCell>
+                ))
+              }
             </TableRow>
           </TableHead>
           <TableBody>
-            {stableSort(props.rows, getComparator(order, orderBy))
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((row, index) => {
-                return (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={index}>
-                    {props.columns.map((column) => {
-                      const value = column.key ? (column.key == "index" ? index + 1 : row[column.key]) : row[column.id];
-                      return (
-                        <TableCell key={column.id} align={column.align}>
-                          {column.format && (value != null || value != undefined)
-                            ? column.format(value)
-                            : value}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
+            {
+              stableSort(rows, getComparator(order, orderBy))
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row, index) => {
+                  return (
+                    <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                      {
+                        cols.map((column) => {
+                          const value = row[column.id];
+                          return (
+                            <TableCell key={column.id} align={column.align}>
+                              {column.format && (value != null || value != undefined) ? column.format(value) : "-"}
+                            </TableCell>
+                          );
+                        })
+                      }
+                    </TableRow>
+                  );
+                })
+            }
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
+      {/* <TablePagination
         rowsPerPageOptions={[10, 25, 100]}
         component="div"
-        count={props.rows.length}
+        count={rows.length}
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-      />
+      /> */}
     </Paper>
   );
-}
-AppTable.propTypes = {
-
-  columns: PropTypes.arrayOf(PropTypes.shape({
-    key: PropTypes.string,
-    align: PropTypes.string,
-    label: PropTypes.string,
-    minWidth: PropTypes.number,
-    format: PropTypes.func
-  })),
-  rows: PropTypes.array
 }
