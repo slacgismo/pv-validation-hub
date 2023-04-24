@@ -16,8 +16,10 @@ import { FileUploader } from "react-drag-drop-files";
 import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { AnalysisService } from "../../services/analysis_service";
 import { faker } from "@faker-js/faker";
+import { useNavigate } from "react-router-dom";
 
 export default function Analysis() {
+    const navigate = useNavigate();
     const cookies = new Cookies();
     let user = cookies.get("user");
 
@@ -89,21 +91,22 @@ export default function Analysis() {
 
                             <Grid item xs={6} md={2}>
                                 {
-                                    (user !== undefined || user != null) &&
                                     <Button
                                         align="right"
                                         variant="contained"
                                         onClick={() => {
+                                            if (user === undefined || user === null) {
+                                                navigate("/login");
+                                            }
                                             openModal();
                                         }}
                                         sx={{
                                             backgroundColor: "black",
                                             width: "100%",
                                             height: "70%",
-                                            fontSize: "small",
                                             marginTop: 1
                                         }}>
-                                        <Typography>
+                                        <Typography textTransform="none">
                                             Upload Algorithm
                                         </Typography>
                                     </Button>
@@ -172,42 +175,44 @@ export default function Analysis() {
                     isOpen={isOpen}
                     contentLabel="Upload Algorithm"
                     ariaHideApp={false}
-                    sx={{ height: 400 }}
                     parentSelector={() => document.querySelector('#root')}
                 >
-                    <Box>
-                        <Box sx={{ marginLeft: 40 }}>
-                            <Grid container spacing={2}>
-                                <Grid item xs={11}>
-                                    <Typography sx={{ marginLeft: 10 }} variant="h5">
-                                        PV Validation Hub Algorithm Upload
-                                    </Typography>
-                                </Grid>
-                                <Grid item xs={1}>
-                                    <CancelIcon
-                                        sx={{
-                                            "&:hover": {
-                                                color: "#ADD8E6",
-                                                cursor: "pointer"
-                                            },
-                                            color: "#18A0FB"
-                                        }}
-                                        onClick={() => closeModal()} />
-                                </Grid>
+                    <Box sx={{
+                        top: '50%',
+                        position: 'absolute',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                    }}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={11}>
+                                <Typography sx={{ marginLeft: 10 }} variant="h5">
+                                    PVHub Algorithm Upload
+                                </Typography>
                             </Grid>
-                            <Box sx={{ marginTop: 2, marginBottom: 2 }}>
-                                <FileUploader
-                                    multiple={false}
-                                    handleChange={uploadFile}
-                                    name="file"
-                                    types={fileTypes}
-                                />
-                            </Box>
-                            <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
-                                {file ? `File name: ${file.name}` : "No files uploaded yet."}
-                            </Typography>
-                            <Button variant="contained" onClick={handleUpload}>Upload</Button>
+                            <Grid item xs={1}>
+                                <CancelIcon
+                                    sx={{
+                                        "&:hover": {
+                                            color: "#ADD8E6",
+                                            cursor: "pointer"
+                                        },
+                                        color: "#18A0FB"
+                                    }}
+                                    onClick={() => closeModal()} />
+                            </Grid>
+                        </Grid>
+                        <Box sx={{ marginTop: 2, marginBottom: 2 }}>
+                            <FileUploader
+                                multiple={false}
+                                handleChange={uploadFile}
+                                name="file"
+                                types={fileTypes}
+                            />
                         </Box>
+                        <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
+                            {file ? `File name: ${file.name}` : "No files uploaded yet."}
+                        </Typography>
+                        <Button variant="contained" onClick={handleUpload}>Upload</Button>
                     </Box>
                 </ReactModal>
             </Container>
