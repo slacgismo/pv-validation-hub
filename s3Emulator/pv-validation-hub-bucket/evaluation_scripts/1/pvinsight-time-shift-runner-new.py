@@ -32,6 +32,7 @@ import tarfile
 import shutil
 import sys
 import zipfile
+import subprocess
 
 is_s3_emulation = True
 
@@ -122,8 +123,16 @@ def run(module_to_import_s3_path):
     file_name = get_module_file_name(target_module_path)
     module_name = get_module_name(target_module_path)
 
-    shutil.move(os.path.join(target_module_path, file_name), os.path.join(new_dir, file_name))
-    module = import_module(module_name)
+    # install submission dependency
+    # try:
+    #     subprocess.check_call(["python", "-m", "pip", "install", "-r", os.path.join(target_module_path, 'requirements.txt')])
+    #     print("submission dependencies installed successfully.")
+    # except subprocess.CalledProcessError as e:
+    #     print("error installing submission dependencies:", e)
+    # shutil.move(os.path.join(target_module_path, file_name), os.path.join(new_dir, file_name))
+    # module = import_module(module_name)
+
+    return "hello world"
 
 
     # # Generate list for us to store all of our results for the module

@@ -152,6 +152,24 @@ def change_submission_status(request, analysis_id, submission_id):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+@api_view(["PUT"])
+@csrf_exempt
+def update_submission_result(request, analysis_id, submission_id):
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
+        response_data = {"error": "submission does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+    submission.result = json.dumps(request.data)
+    try:
+        submission.save()
+    except ValidationError as e:
+        response_data = {"error": "invalid submission result"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+    response_data = {"success": f"submission {submission_id} result changed to {request.data}"}
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
