@@ -1,5 +1,6 @@
 import client from "./api_service";
 import { useEffect, useState } from "react";
+import Cookies from 'universal-cookie';
 
 export const UserService = {
     useGetUserDetails(url, token) {
@@ -48,5 +49,21 @@ export const UserService = {
         }).catch(error => {
             return null;
         })
+    },
+    getUserId(token) {
+        // Set the authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
+
+        // Send a GET request to the '/user_id' endpoint
+        return client.get('/user_id')
+            .then(response => {
+                return response.data.user_id;
+            });
+    },
+    getUserCookie() {
+            // todo(jrl): abstract user cookie information to a service
+    const cookies = new Cookies();
+    const user = cookies.get("user");
+    return user;
     }
 } 

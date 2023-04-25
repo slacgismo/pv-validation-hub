@@ -80,7 +80,6 @@ export const DashboardService = {
         const [leaderboardError, setLeaderboardError] = useState(null);
 
         useEffect(() => {
-            /*
             client.get(leaderBoardUrl)
                 .then(leaderboardResponse => {
                     setLeaderboardIsLoading(false);
@@ -90,9 +89,7 @@ export const DashboardService = {
                     setLeaderboardError(error);
                     setLeaderboardDetails([]);
                     setLeaderboardIsLoading(false);
-                })*/
-                setLeaderboardIsLoading(false);
-                setLeaderboardDetails(this.formatResponse(create_fake_leaderboard_array(5)));
+                })
         }, [leaderBoardUrl]);
         return [isLeaderboardLoading, leaderboardError, leaderboardDetails];
     },

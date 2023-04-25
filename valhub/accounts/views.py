@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import django.contrib.auth as auth
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
@@ -89,3 +89,10 @@ class AccountDetail(APIView):
         account = request.user
         account.delete()
         return HttpResponse(status=204)
+
+@api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def get_user_id(request):
+    user = request.user
+    return JsonResponse({"user_id": user.uuid})

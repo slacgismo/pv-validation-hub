@@ -19,7 +19,9 @@ import SubmissionReport from '../Report/report';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
 import DoneIcon from '@mui/icons-material/Done';
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { SubmissionService } from '../../../services/submission_service';
+import { UserService } from '../../../services/user_service';
 
 export default function DeveloperHome() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -111,26 +113,41 @@ export default function DeveloperHome() {
 }
 
 function Home({ onClick }) {
+  const [submissions, setSubmissions] = useState([]);
+
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      const user = UserService.getUserCookie();
+      const user_id = await UserService.getUserId(user.token);
+      SubmissionService.getAllSubmissionsForUser(user_id)
+        .then(fetchedSubmissions => {
+          setSubmissions(fetchedSubmissions);
+        });
+    };
+  
+    fetchSubmissions();
+  }, []);
+  
+
   return (
     <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-      {[1, 2, 3, 4].map((value, index) => {
-        const labelId = `checkbox-list-label-${value}`;
+      {submissions.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map((submission, index) => {
+        const labelId = `checkbox-list-label-${submission.submission_id}`;
         return (
-          <ListItem key={value} disablePadding>
+          <ListItem key={submission.submission_id} disablePadding>
             <ListItemButton dense>
               <ListItemIcon>
                 <Checkbox
                   edge="start"
-                  // checked={checked.indexOf(value) !== -1}
                   tabIndex={-1}
                   disableRipple
                   inputProps={{ 'aria-labelledby': labelId }}
                 />
               </ListItemIcon>
               <ListItemIcon>
-                { index % 2 === 0? <DoneIcon /> : <QueryBuilderIcon/>}
+                {submission.status === 'finished' ? <DoneIcon /> : <QueryBuilderIcon />}
               </ListItemIcon>
-              <ListItemText id={labelId} primary={`Submission ${value}`} />
+              <ListItemText id={labelId} primary={`Submission ${submission.submission_id}`} />
               <ListItemIcon onClick={onClick}>
                 <SummarizeIcon />
               </ListItemIcon>
@@ -139,5 +156,6 @@ function Home({ onClick }) {
         );
       })}
     </List>
-  )
+  );
 }
+
