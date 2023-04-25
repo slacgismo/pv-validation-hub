@@ -33,4 +33,4 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Submission
-        fields = ("submission_id", "algorithm", "analysis_id", "user_id", "result")     
+        fields = ("submission_id", "algorithm", "analysis_id", "user_id", "result", "mae", "mrt", "data_requirements")     
