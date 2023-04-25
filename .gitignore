@@ -139,3 +139,5 @@ frotend/.DS_Store
 *.secret.tfvars
 
 *.DS_Store
+
+node-docker-ecs

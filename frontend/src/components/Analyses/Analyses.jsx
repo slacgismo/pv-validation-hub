@@ -28,8 +28,6 @@ export default function Dashboard() {
 
     const [isLoading, isError, cardDetails] = DashboardService.useGetAnalysisSet("/analysis/home");
 
-    console.log("cardDetails: ", cardDetails);
-
     return (
         <Container>
             <Box sx={{ flexGrow: 1, marginTop: 3 }}>

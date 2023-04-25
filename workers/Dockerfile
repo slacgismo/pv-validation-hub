@@ -10,7 +10,7 @@ ENV PORT 8500
 EXPOSE 8500
 
 RUN apt-get update -qq
-RUN apt-get install -y libpq-dev python3-psycopg2 curl
+RUN apt-get install -y libpq-dev python3-psycopg2 curl nano
 # RUN apt-get --assume-yes install python3-pip
 RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client
 RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake

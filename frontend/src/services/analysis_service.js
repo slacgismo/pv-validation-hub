@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import client from "./api_service";
 
 export const AnalysisService = {
-
     useGetCardDetails() {
         const { analysis_id } = useParams();
         const [analysisDetails, setAnalysisDetails] = useState();
@@ -23,18 +22,17 @@ export const AnalysisService = {
         }, [analysis_id]);
         return [isAnalysisLoading, analysiserror, analysisDetails, analysis_id];
     },
-    async uploadAlgorithm(analysis_id, user_id, file) {
+    uploadAlgorithm(analysis_id, token, file) {
         if (analysis_id != null && analysis_id != undefined && 
-            user_id != null && user_id != undefined &&
-            file != null && file != undefined
-            ) {
+            file != null && file != undefined) {
             let url = "/submissions/analysis/" + analysis_id + "/submission";
             let form_data = new FormData();
-            form_data.append("algorithm", file);
-            form_data.append("user_id", user_id);
-            form_data.append("analysis_id", analysis_id);
 
-            console.log("form: ", form_data);
+            // set authorization token
+            client.defaults.headers.common['Authorization'] = "Token " + token;
+
+            form_data.append("algorithm", file);
+            form_data.append("analysis_id", analysis_id);
 
             client.post(url, form_data, {
                 Accept: '*/*',

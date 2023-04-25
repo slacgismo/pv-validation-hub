@@ -15,8 +15,6 @@ const defaultValues = {
 }
 
 export function UploadAnalysis(props) {
-    console.log("props: ", props)
-
     const [analysisFormValues, setAnalysisFormValues] = useState(defaultValues);
     const [errored, setErrored] = useState("none");
     const [success, setSuccess] = useState("none");

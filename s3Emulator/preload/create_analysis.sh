@@ -22,7 +22,7 @@ DATASET_DESCRIPTION="A description of the dataset. Lorem ipsum dolor sit amet,
     consectetur adipiscing elit. Fusce euismod felis a mi aliquam, sit amet consequat mi aliquet. 
     Vestibulum consectetur, purus vel ullamcorper ullamcorper, 
     libero sapien pharetra sapien, eget varius lorem dui auctor magna."
-EVALUATION_SCRIPT_PATH="/pv-validation-hub-bucket/evaluation_scripts/time-shift/pvinsight-time-shift-runner.py"
+EVALUATION_SCRIPT_PATH="/pv-validation-hub-bucket/evaluation_scripts/1/pvinsight-time-shift-runner.py"
 MAX_CONCURRENT_SUBMISSION_EVALUATION="100"
 
 curl -X POST -H "Content-Type: multipart/form-data" \

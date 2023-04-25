@@ -60,9 +60,11 @@ services:
     ports:
       - "9324:9324"
     environment:
-      - "ELASTICMQ_OPTS=-Dconfig.file=/opt/docker/custom.conf"
+      - "ELASTICMQ_OPTS=-Dconfig.file=/opt/elasticmq.conf"
     volumes:
-      - ./custom.conf:/opt/docker/custom.conf
+      - ./custom.conf:/opt/elasticmq.conf
+      - ./application.ini:/opt/docker/conf/application.ini
+
       
   worker:
     build:

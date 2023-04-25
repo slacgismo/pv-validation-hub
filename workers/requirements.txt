@@ -5,3 +5,4 @@ seaborn
 boto3
 
 ########## add analytical task/evaluation script dependcies here to be pre-installed on the runner.
+Requests==2.28.2
