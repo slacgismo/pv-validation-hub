@@ -7,7 +7,9 @@ query_api() {
 }
 
 # Query API every 5 seconds
-while true; do
-    query_api
-    sleep 5
-done
+# while true; do
+#     query_api
+#     sleep 5
+# done
+
+python submission_worker_local.py

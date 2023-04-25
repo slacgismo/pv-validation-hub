@@ -435,23 +435,31 @@ def load_analysis(analysis_id):
     # create_dir_as_python_package(ANALYSIS_DATA_BASE_DIR)
     # phases = challenge.challengephase_set.all()
 
-    current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "current_evaluation")
+    local_dir = 'current_evaluation'
+    logger.info(f'create local folder {local_dir}')
+    current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_dir)
     if not os.path.exists(current_evaluation_dir):
         os.makedirs(current_evaluation_dir)
 
+    logger.info("pull and extract analysis")
     extract_analysis_data(analysis_id, current_evaluation_dir)
-    # install analysis dependency
+    logger.info("install analysis dependency")
     try:
         subprocess.check_call(["python", "-m", "pip", "install", "-r", os.path.join(current_evaluation_dir, 'requirements.txt')])
-        print("analysis dependencies installed successfully.")
+        logger.info("analysis dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
-        print("error installing analysis dependencies:", e)
+        logger.error("error installing analysis dependencies:", e)
     # import analysis runner as a module
+
     sys.path.insert(0, current_evaluation_dir)
-    analysis_module = import_module('pvinsight-time-shift-runner-new')
+    runner_module_name = 'pvinsight-time-shift-runner-new'
+    logger.info(f'import runner module {runner_module_name}')
+    analysis_module = import_module(runner_module_name)
     sys.path.pop(0)
+
     analysis_function = getattr(analysis_module, 'run')
     function_parameters = list(inspect.signature(analysis_function).parameters)
+    logger.info(f'analysis function parameters: {function_parameters}')
     return analysis_function, function_parameters
     
 
@@ -589,12 +597,14 @@ def process_submission_message(message):
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
-    ret = analysis_function('pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz')
-    print(ret)
-    # update submission status
+    argument = 'pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz'
+    logger.info(f'execute runner module function with argument {argument}')
+    ret = analysis_function(argument)
+    logger.info(f'runner module function returns {ret}')
+    logger.info(f'update submission status to {FINISHED}')
     update_submission_status(analysis_id, submission_id, FINISHED)
-    # update submission result
     res_json = {"module": "pvanalytics-cpd-module", "mean_mean_absolute_error": 2.9835552075176195, "mean_run_time": 51.68567451834679, "data_requirements": ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
+    logger.info(f'update submission result to {res_json}')
     update_submission_result(analysis_id, submission_id, res_json)
 
 
