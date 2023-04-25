@@ -84,7 +84,6 @@ export default function Analysis() {
                                     <Tab label="Data" />
                                     <Tab label="Leaderboard" />
                                     <Tab label="Rules" />
-                                    <Tab label="Submission" />
                                     <Tab label="Discussion" />
                                 </Tabs>
                             </Grid>

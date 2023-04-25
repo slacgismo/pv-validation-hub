@@ -23,10 +23,10 @@ export const DashboardService = {
                         id: id,
                         algorithm: resp["algorithm"],
                         created_by: resp["created_by"]["username"],
-                        execution_time: details[key]["execution_time"],
+                        execution_time: resp["mrt"],
                         status: resp["status"],
-                        metrics: details[key]["outputs"],
-                        error: result["error"],
+                        metrics: resp["data_requirements"],
+                        error: resp["mae"],
                         data_requirement: null
                     }
                     id += 1;
