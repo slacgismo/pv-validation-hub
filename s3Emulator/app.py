@@ -51,7 +51,6 @@ def get_object(bucket_name, object_name):
     return object_content, 200
 
 
-<<<<<<< HEAD
 @app.route("/<bucket_name>/<path:directory_path>/list", methods=["GET"])
 def list_directory(bucket_name, directory_path):
     logger.info(f"GET request received for directory: {bucket_name}/{directory_path}")
@@ -63,7 +62,7 @@ def list_directory(bucket_name, directory_path):
         return "Directory not found", 404
 
     return jsonify(directory_content)
-=======
+
 @app.route("/list_bucket/<bucket_name>/<path:prefix>", methods=["GET"])
 def get_bucket(bucket_name, prefix):
     # Retrieve the object from the local file system
@@ -85,7 +84,6 @@ def get_bucket(bucket_name, prefix):
     print(f"ret: {ret}", file=sys.stderr)
     return ret, 200
 
->>>>>>> 8b98f6160568108635a6d106a57b06a79b234976
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
