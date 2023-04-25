@@ -19,7 +19,7 @@ import botocore
 import logging
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket, get_environment, download_from_s3_bucket
+from base.utils import upload_to_s3_bucket, get_environment
 from accounts.models import Account
 from .models import Submission
 from urllib.parse import urljoin
@@ -292,7 +292,7 @@ def get_submission_results(request, submission_id):
     user_id = submission.created_by.uuid
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
-
+    ## Update for actual s3 usage as well
     environment = get_environment()
     if environment == "LOCAL":
         storage_endpoint_url = "http://s3:5000/"
@@ -315,10 +315,7 @@ def get_submission_results(request, submission_id):
     for png_file in png_files:
         png_file_path = os.path.join(results_directory, png_file)
         
-        if environment == "LOCAL":
-            file_url = urljoin(storage_endpoint_url, f"{bucket_name}/{png_file_path}")
-        else:
-            file_url = download_from_s3_bucket(bucket_name, png_file_path, download_file=False)
+        file_url = urljoin(storage_endpoint_url, f"{bucket_name}/{png_file_path}")
         
         if file_url:
             file_urls.append(file_url)
