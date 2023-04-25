@@ -20,17 +20,17 @@ export default function Submission(props) {
         "finished": <Tooltip title="Finished"><CloudDoneIcon /></Tooltip>
     }
 
-    const get_score_from_result = (result) => {
-        if (result == null && result == undefined) return null;
-        let final_score = 0;
-        let count = 1;
-        for (var split of result) {
-            final_score += split["split" + count]["score"]
-            console.log(final_score);
-            count += 1;
-        }
-        return final_score;
-    }
+    // const get_score_from_result = (result) => {
+    //     if (result == null && result == undefined) return null;
+    //     let final_score = 0;
+    //     let count = 1;
+    //     for (var split of result) {
+    //         final_score += split["split" + count]["score"]
+    //         console.log(final_score);
+    //         count += 1;
+    //     }
+    //     return final_score;
+    // }
 
     const get_evaluation_time = (time) => {
         if (time == null && time == undefined) return null;
@@ -47,15 +47,15 @@ export default function Submission(props) {
                 return value != null ? value.analysis_id : null
             }
         },
-        {
-            id: 'result',
-            label: 'Score',
-            minWidth: 50,
-            align: 'left',
-            format: (value) => {
-                return get_score_from_result(value)
-            },
-        },
+        // {
+        //     id: 'result',
+        //     label: 'Score',
+        //     minWidth: 50,
+        //     align: 'left',
+        //     format: (value) => {
+        //         return get_score_from_result(value)
+        //     },
+        // },
         {
             id: 'submitted_at',
             label: 'Submitted Date',
