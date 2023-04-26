@@ -148,7 +148,7 @@ function Home({ onClick }) {
                 {submission.status === 'finished' ? <DoneIcon /> : <QueryBuilderIcon />}
               </ListItemIcon>
               <ListItemText id={labelId} primary={`Submission ${submission.submission_id}`} />
-              <ListItemIcon onClick={() => onClick(submission.submission_id)}>
+              <ListItemIcon onClick={() => onClick('report', submission.submission_id)}> {/* Pass the submission id as an argument */}
                 <SummarizeIcon />
               </ListItemIcon>
             </ListItemButton>
