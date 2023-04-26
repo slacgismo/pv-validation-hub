@@ -96,12 +96,15 @@ def analysis_submission(request, analysis_id):
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         Submission.objects.filter(submission_id=submission_id).update(
-            algorithm=object_url, status=Submission.SUBMITTED)
+            algorithm_s3_path=object_url, status=Submission.SUBMITTED)
         # serializer.save(algorithm=object_url)
 
         # send a message to SQS queue
         message = json.dumps(
-            {"analysis_pk": int(analysis_id), "submission_pk": int(submission_id), "user_pk": int(user.uuid)})
+            {"analysis_pk": int(analysis_id), 
+             "submission_pk": int(submission_id), 
+             "user_pk": int(user.uuid),
+             "submission_filename": object_url.split('/')[-1]})
 
         response = queue.send_message(
             MessageBody=message, MessageGroupId="1", MessageDeduplicationId=str(submission_id))
@@ -165,7 +168,9 @@ def update_submission_result(request, analysis_id, submission_id):
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    submission.result = json.dumps(request.data)
+    submission.mae = float(request.data.get('mean_mean_absolute_error'))
+    submission.mrt = float(request.data.get('mean_run_time'))
+    submission.data_requirements = request.data.get('data_requirements')
     try:
         submission.save()
     except ValidationError as e:

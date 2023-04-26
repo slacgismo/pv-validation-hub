@@ -419,7 +419,16 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
 #     extract_analysis_data(analysis)
 
 
-def load_analysis(analysis_id):
+def create_current_evaluation_dir(dir_name='current_evaluation'):
+    local_dir = dir_name
+    logger.info(f'create local folder {local_dir}')
+    current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_dir)
+    if not os.path.exists(current_evaluation_dir):
+        os.makedirs(current_evaluation_dir)
+    return current_evaluation_dir
+
+
+def load_analysis(analysis_id, current_evaluation_dir):
     # try:
     #     analysis = Analysis.objects.get(**q_params)
     #     # analysis = Analysis()
@@ -434,12 +443,6 @@ def load_analysis(analysis_id):
     # data, eval_script
     # create_dir_as_python_package(ANALYSIS_DATA_BASE_DIR)
     # phases = challenge.challengephase_set.all()
-
-    local_dir = 'current_evaluation'
-    logger.info(f'create local folder {local_dir}')
-    current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_dir)
-    if not os.path.exists(current_evaluation_dir):
-        os.makedirs(current_evaluation_dir)
 
     logger.info("pull and extract analysis")
     extract_analysis_data(analysis_id, current_evaluation_dir)
@@ -592,20 +595,42 @@ def process_submission_message(message):
     analysis_id = int(message.get("analysis_pk"))
     submission_id = int(message.get("submission_pk"))
     user_id = int(message.get("user_pk"))
+    submission_filename = message.get("submission_filename")
 
-    analysis_function, function_parameters = load_analysis(analysis_id)
+    current_evaluation_dir = create_current_evaluation_dir()
+
+    analysis_function, function_parameters = load_analysis(analysis_id, current_evaluation_dir)
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
-    argument = 'pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz'
+    argument = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}'
     logger.info(f'execute runner module function with argument {argument}')
+
     ret = analysis_function(argument)
     logger.info(f'runner module function returns {ret}')
+
     logger.info(f'update submission status to {FINISHED}')
     update_submission_status(analysis_id, submission_id, FINISHED)
+
     res_json = {"module": "pvanalytics-cpd-module", "mean_mean_absolute_error": 2.9835552075176195, "mean_run_time": 51.68567451834679, "data_requirements": ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
     logger.info(f'update submission result to {res_json}')
     update_submission_result(analysis_id, submission_id, res_json)
+
+    logger.info(f'upload result files to s3')
+    # for debug purpose, upload sample result files
+    res_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample_results')
+    for dir_path, dir_names, file_names in os.walk(res_files_path):
+        for file_name in file_names:
+            full_file_name = os.path.join(dir_path, file_name)
+            relative_file_name = full_file_name[len(f'{res_files_path}/'):]
+            s3_full_path = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}'
+            logger.info(f'upload result file "{full_file_name}" to s3 path "{s3_full_path}"')
+            push_to_s3(full_file_name, s3_full_path)
+
+    # remove the current evaluation dir
+    logger.info(f'remove directory {current_evaluation_dir}')
+    shutil.rmtree(current_evaluation_dir)
+
 
 
     # submission_instance = extract_submission_data(submission_id)

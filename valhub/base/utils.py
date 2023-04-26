@@ -43,7 +43,7 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
                 print(f"error put file {upload_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
                 return None
             else:
-                return s3_file_full_path
+                return s3_file_full_path.replace('http://s3:5000/put_object/', 'http://s3:5000/get_object/')
     else:
         """Upload file to S3 bucket and return object URL"""
         s3 = boto3.client(

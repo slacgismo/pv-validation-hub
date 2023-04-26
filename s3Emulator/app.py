@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import logging
@@ -41,14 +41,15 @@ def get_object(bucket_name, object_name):
         return "Requested path is a directory, not a file", 400
 
     # Retrieve the object from the local file system
+    file_path = os.path.join('/', bucket_name, object_name)
     try:
         print(f"file path to get: {os.path.join('/', bucket_name, object_name)}", file=sys.stderr)
-        with open(os.path.join('/', bucket_name, object_name), "rb") as f:
+        with open(file_path, "rb") as f:
             object_content = f.read()
     except FileNotFoundError:
         return "Object not found", 404
 
-    return object_content, 200
+    return send_file(file_path, as_attachment=True, mimetype='application/octet-stream')
 
 
 @app.route("/<bucket_name>/<path:directory_path>/list", methods=["GET"])
@@ -75,12 +76,11 @@ def get_bucket(bucket_name, prefix):
     }
 
     for dir_path, dir_names, file_names in os.walk(os.path.join('/', bucket_name, prefix)):
-        if dir_path == os.path.join('/', bucket_name, prefix):
-            print(f"dir_path: {dir_path}\nfile_names: {file_names}", file=sys.stderr)
-            for file_name in file_names:
-                full_file_name = os.path.join(dir_path, file_name)
-                key = '/'.join(full_file_name.split('/')[2:])
-                ret['Contents'].append({'Key' : key})
+        print(f"dir_path: {dir_path}\nfile_names: {file_names}", file=sys.stderr)
+        for file_name in file_names:
+            full_file_name = os.path.join(dir_path, file_name)
+            key = '/'.join(full_file_name.split('/')[2:])
+            ret['Contents'].append({'Key' : key})
     print(f"ret: {ret}", file=sys.stderr)
     return ret, 200
 
