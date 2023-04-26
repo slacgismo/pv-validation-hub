@@ -19,7 +19,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["submission_id"] = instance.submission_id
         data["analysis"] = {"analysis_id": instance.analysis.analysis_id,
                             "analysis_name": instance.analysis.analysis_name}
-        data["created_by"] = {"uuid": instance.created_by.uuid,  # Changed from 'id' to 'uuid'
+        data["created_by"] = {"uuid": instance.created_by.uuid,
                             "username": instance.created_by.username}
         data["submitted_at"] = instance.submitted_at
         data["result"] = instance.result
@@ -33,4 +33,4 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Submission
-        fields = ("submission_id", "algorithm", "analysis_id", "username", "result", "mae", "mrt", "data_requirements")     
+        fields = ("submission_id", "algorithm", "analysis_id", "created_by", "result", "mae", "mrt", "data_requirements")     
