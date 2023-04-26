@@ -21,8 +21,13 @@ export default function SubmissionReport(props) {
 
   useEffect(() => {
     const fetchSubmissionResults = async () => {
-      const result = await SubmissionService.getSubmissionResults(props.submissionId);
-      setImageUrls(result.file_urls);
+      try {
+        console.log(props.submissionId)
+        const result = await SubmissionService.getSubmissionResults(props.submissionId);
+        setImageUrls(result.file_urls);
+      } catch (error) {
+        console.error('Error fetching submission results:', error);
+      }
     };
 
     fetchSubmissionResults();
