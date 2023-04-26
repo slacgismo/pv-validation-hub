@@ -14,15 +14,14 @@ export const DashboardService = {
         let id = 0;
         response.forEach(resp => {
             console.log("Printing response");
-            console.log(response, response["result"]);
-            if (response["result"] !== null && response["result"] !== undefined) {
-                let result = JSON.parse(response["result"]);
-                let details = result["details"];
-                for (const [key, value] of Object.entries(details)) {
+            console.log(response);
+            if (response[0].data_requirements !== null && response[0].data_requirements !== undefined) {
+
+                for (let i=0; i < response.length; i++) {
                     let element = {
                         id: id,
                         algorithm: resp["algorithm"],
-                        created_by: resp["created_by"]["username"],
+                        created_by: resp["username"],
                         execution_time: resp["mrt"],
                         status: resp["status"],
                         metrics: resp["data_requirements"],
