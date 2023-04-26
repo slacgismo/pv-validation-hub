@@ -21,4 +21,10 @@ export const SubmissionService = {
             return response.data;
           });
       },
+    getSubmissionResults(submission_id) {
+    return client.get(`/submissions/submission_results/${submission_id}`)
+        .then(response => {
+        return response.data;
+        });
+    },
 }

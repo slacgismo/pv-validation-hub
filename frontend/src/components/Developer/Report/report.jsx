@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { useEffect, useState } from 'react';
+import { SubmissionService } from '../../../services/submission_service';
 import ImageList from '@mui/material/ImageList';
 import ImageListItem from '@mui/material/ImageListItem';
 import List from '@mui/material/List';
@@ -14,62 +16,33 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 
-export default function SubmissionReport() {
+export default function SubmissionReport(props) {
+  const [imageUrls, setImageUrls] = useState([]);
 
-  const rows = [
-    {
-      name: 'Full DST',
-      value: '13.77',
-    },
-    {
-      name: 'Partial DST',
-      value: '12.76',
-    },
-    {
-      name: 'Wrong time zone',
-      value: '17.84',
-    },
-    {
-      name: 'Baseline (no issues)',
-      value: '0.39',
-    },
-    {
-      name: 'Random time shifts',
-      value: '5.8'
-    }
-  ];
+  useEffect(() => {
+    const fetchSubmissionResults = async () => {
+      const result = await SubmissionService.getSubmissionResults(props.submissionId);
+      setImageUrls(result.file_urls);
+    };
+
+    fetchSubmissionResults();
+  }, [props.submissionId]);
 
   return (
     <List>
-      <ListItem disablePadding>
-        <TableContainer component={Paper}>
-          <Table aria-label="simple table">
-            <TableHead>
-              <TableRow>
-                <TableCell colSpan={3} align="center">
-                  <Typography variant="h6" style={{ fontWeight: 'bold' }}>Table: average error by data issue</Typography>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Data set label</TableCell>
-                <TableCell align="right">Average MAE</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow
-                  key={row.name}
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                >
-                  <TableCell component="th" scope="row">
-                    {row.name}
-                  </TableCell>
-                  <TableCell align="right">{row.value}</TableCell> 
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      <ListItem disablePadding sx={{margin: '3%'}}>
+        <ImageList sx={{ width: '100%', bgcolor: 'background.paper' }}>
+          {imageUrls.map((url, index) => (
+            <ImageListItem key={`img${index}`}>
+              <img
+                src={url}
+                alt={`img${index}`}
+                loading="lazy"
+              />
+              <Typography variant="subtitle1">Plot {index + 1}</Typography>
+            </ImageListItem>
+          ))}
+        </ImageList>
       </ListItem>
 
       <Divider sx={{margin: '5%'}}/>

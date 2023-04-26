@@ -34,17 +34,17 @@ export default function DeveloperHome() {
 
   // const container = window !== undefined ? () => window().document.body : undefined;
 
-  const handleNavClick = (component) => {
-    setShowComponent(component);
-  }
+  const handleNavClick = (component, submissionId) => {
+    setShowComponent({ name: component, submissionId });
+  };
 
   const renderComponent = () => {
-    if (showComponent === 'home') {
-      return <Home onClick={() => handleNavClick('report')}/>;
-    } else if (showComponent === 'report') {
-      return <SubmissionReport />;
+    if (showComponent.name === 'home') {
+      return <Home onClick={() => handleNavClick('report')} />;
+    } else if (showComponent.name === 'report') {
+      return <SubmissionReport submissionId={showComponent.submissionId} />;
     }
-  }
+  };
 
   const navs = [
     {
@@ -148,7 +148,7 @@ function Home({ onClick }) {
                 {submission.status === 'finished' ? <DoneIcon /> : <QueryBuilderIcon />}
               </ListItemIcon>
               <ListItemText id={labelId} primary={`Submission ${submission.submission_id}`} />
-              <ListItemIcon onClick={onClick}>
+              <ListItemIcon onClick={() => onClick(submission.submission_id)}>
                 <SummarizeIcon />
               </ListItemIcon>
             </ListItemButton>
