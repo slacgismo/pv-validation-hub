@@ -13,7 +13,10 @@ RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2 curl nano
 # RUN apt-get --assume-yes install python3-pip
 RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client
-RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake
+RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake git
+WORKDIR /root
+RUN git clone https://github.com/kperrynrel/time-shift-validation-hub.git
+WORKDIR /root/worker
 RUN python3 -m pip install --upgrade pip
 WORKDIR /root/worker
 RUN python3 -m pip install -r requirements.txt
