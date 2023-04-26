@@ -10,44 +10,40 @@ import { faker } from '@faker-js/faker';
 
 export const DashboardService = {
     formatResponse(response) {
-        let finalResponse = []
+        let finalResponse = [];
         let id = 0;
-        response.forEach(resp => {
-            console.log("Printing response");
-            console.log(response);
-            if (response[0].data_requirements !== null && response[0].data_requirements !== undefined) {
-
-                for (let i=0; i < response.length; i++) {
-                    let element = {
-                        id: id,
-                        algorithm: resp["algorithm"],
-                        created_by: resp["created_by"].username,
-                        execution_time: resp["mrt"],
-                        status: resp["status"],
-                        metrics: resp["data_requirements"],
-                        error: resp["mae"],
-                        data_requirement: null
-                    }
-                    id += 1;
-                    finalResponse.push(element);
-                }
-            }
-            else{
+        console.log("Printing response");
+        console.log(response);
+        if (response.length > 0) {
+            for (let i=0; i < response.length; i++) {
                 let element = {
                     id: id,
-                    developer_group: resp["developer_group"],
-                    algorithm: resp["algorithm"],
-                    created_by: resp["created_by"],
-                    execution_time: faker.helpers.arrayElement([66.19317770004272,100.97519278526306]),
-                    status: null,
-                    metrics: null,
-                    error: faker.helpers.arrayElement([23.137764944250826,4.846236274675835]),
-                    data_requirement: "MAE"
+                    algorithm: response[i]["algorithm_s3_path"],
+                    created_by: response[i]["created_by"].username,
+                    execution_time: response[i]["mrt"],
+                    status: response[i]["status"],
+                    metrics: response[i]["data_requirements"],
+                    error: response[i]["mae"]
                 }
                 id += 1;
                 finalResponse.push(element);
             }
-        });
+        }
+        // else{
+        //     let element = {
+        //         id: id,
+        //         developer_group: resp["developer_group"],
+        //         algorithm: resp["algorithm"],
+        //         created_by: resp["created_by"],
+        //         execution_time: faker.helpers.arrayElement([66.19317770004272,100.97519278526306]),
+        //         status: null,
+        //         metrics: null,
+        //         error: faker.helpers.arrayElement([23.137764944250826,4.846236274675835]),
+        //         data_requirement: "MAE"
+        //     }
+        //     id += 1;
+        //     finalResponse.push(element);
+        // }
         console.log(finalResponse);
         return finalResponse;
     },

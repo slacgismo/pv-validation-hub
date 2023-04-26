@@ -22,14 +22,17 @@ export default function Leaderboard(props) {
         },
         {
             field: 'algorithm',
-            headerName: 'Submission Name',
+            headerName: 'Submission File',
             filterable: false,
             sortable: false,
             groupable: false,
             width: 100,
             renderCell: (params) => {
                 let value = params.row.algorithm;
-                // value = value.replace("/media/", "//");
+                if (value != undefined && value != null) {
+                    // for demo purpose
+                    value = value.replace('http://s3', 'http://localhost')
+                }
                 return (<a href={value} download>{value}<DownloadIcon /></a>);
             }
         },
