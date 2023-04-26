@@ -5,6 +5,9 @@ import os
 import uuid
 import boto3
 import requests
+import sys
+
+is_s3_emulation = True
 
 @deconstructible
 class RandomFileName(object):
@@ -12,11 +15,10 @@ class RandomFileName(object):
         self.path = path
 
     def __call__(self, instance, filename):
-        extension = os.path.splitext(filename)[1]
         path = self.path
         if "id" in self.path and instance.pk:
             path = self.path.format(id=instance.pk)
-        filename = "{}{}".format(uuid.uuid4(), extension)
+        filename = "{}_{}".format(uuid.uuid4(), filename)
         filename = os.path.join(path, filename)
         return filename
 
@@ -31,22 +33,19 @@ def get_environment():
 
 # Modify the upload_to_s3_bucket function
 def upload_to_s3_bucket(bucket_name, local_path, upload_path):
-    """Upload file to S3 bucket and return object URL"""
-    
-    environment = get_environment()
-    
-    if environment == "LOCAL":
-        s3_url = "http://s3:5000/"
-        with open(local_path, 'rb') as f:
-            content = f.read()
-        response = requests.put(urljoin(s3_url, f"{bucket_name}/{upload_path}"), data=content)
-        
-        if response.status_code != 204:
-            return None
-        
-        object_url = urljoin(s3_url, f"{bucket_name}/{upload_path}")
-    
+    if is_s3_emulation:
+        upload_path = os.path.join(bucket_name, upload_path)
+        s3_file_full_path = 'http://s3:5000/put_object/' + upload_path
+        with open(local_path, "rb") as f:
+            file_content = f.read()
+            r = requests.put(s3_file_full_path, data=file_content)
+            if r.status_code != 204:
+                print(f"error put file {upload_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
+                return None
+            else:
+                return s3_file_full_path.replace('http://s3:5000/put_object/', 'http://s3:5000/get_object/')
     else:
+        """Upload file to S3 bucket and return object URL"""
         s3 = boto3.client(
             's3',
             aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
@@ -63,5 +62,4 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
         object_url = "https://{}.s3.{}.amazonaws.com/{}".format(bucket_name,
                                                                 bucket_location['LocationConstraint'],
                                                                 upload_path)
-    
-    return object_url
+        return object_url

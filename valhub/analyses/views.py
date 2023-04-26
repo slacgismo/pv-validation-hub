@@ -128,9 +128,10 @@ def leaderboard(request, analysis_id):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     submission_list = Submission.objects.filter(analysis=_analysis)
-    response_data = SubmissionDetailSerializer(submission_list, many=True)
+    serializer = SubmissionDetailSerializer(submission_list, many=True)
 
-    return Response(response_data, status=status.HTTP_200_OK)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # Update this later to only accept route calls from within localhost or own container 
 @api_view(["POST"])

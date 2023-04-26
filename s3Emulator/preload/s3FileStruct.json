@@ -14,12 +14,24 @@
         },
         "submission_files": {
             "submission_user_1": {
-                "submission_1": "/",
-                "submission_2": "/"
+                "submission_1": {
+                    "results": "/",
+                    "*.*": "[*.tar.gz, *.zip]"
+                },
+                "submission_2": {
+                    "results": "/",
+                    "*.*": "[*.tar.gz, *.zip]"
+                }
             },
             "submission_user_2": {
-                "submission_1": "/",
-                "submission_2": "/"
+                "submission_1": {
+                    "results": "/",
+                    "*.*": "[*.tar.gz, *.zip]"
+                },
+                "submission_2": {
+                    "results": "/",
+                    "*.*": "[*.tar.gz, *.zip]"
+                }
             }
         }
     }
