@@ -22,7 +22,7 @@ export default function Leaderboard(props) {
         },
         {
             field: 'algorithm',
-            headerName: 'Submission',
+            headerName: 'Submission Name',
             filterable: false,
             sortable: false,
             groupable: false,
@@ -30,7 +30,7 @@ export default function Leaderboard(props) {
             renderCell: (params) => {
                 let value = params.row.algorithm;
                 // value = value.replace("/media/", "//");
-                return (<a href={value} download><DownloadIcon /></a>);
+                return (<a href={value} download>{value}<DownloadIcon /></a>);
             }
         },
         {
@@ -58,20 +58,12 @@ export default function Leaderboard(props) {
             }
         },
         {
-            field: 'data_requirement',
-            headerName: 'Data Requirement',
-            filterable: false,
-            sortable: false,
-            groupable: false,
-            width: 190,
-        },
-        {
             field: 'metrics',
             headerName: 'Metrics',
             filterable: false,
             sortable: false,
             groupable: false,
-            width: 180,
+            width: 360,
         }
     ]
     let url = "/analysis/" + props.analysis_id + "/leaderboard";
