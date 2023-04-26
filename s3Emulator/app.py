@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
+
 from flask_cors import CORS
 import os
 import logging
@@ -6,7 +7,7 @@ import sys
 
 app = Flask(__name__)
 
-CORS(app) 
+CORS(app, resources={r"*": {"origins": "http://react-client:3000"}})
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -87,3 +88,8 @@ def get_bucket(bucket_name, prefix):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+@app.route("/static/pv-validation-hub-bucket/<path:file_path>")
+def serve_static_files(file_path):
+    return send_from_directory('/pv-validation-hub-bucket', file_path)
+

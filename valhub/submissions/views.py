@@ -301,6 +301,7 @@ def get_submission_results(request, submission_id):
     environment = get_environment()
     if environment == "LOCAL":
         storage_endpoint_url = "http://s3:5000/"
+        static_endpoint_url = "http://localhost:5000/"
         directory_url = urljoin(storage_endpoint_url, f"{bucket_name}/{results_directory}/list")
         response = requests.get(directory_url)
         if response.status_code != 200:
@@ -320,7 +321,7 @@ def get_submission_results(request, submission_id):
     for png_file in png_files:
         png_file_path = os.path.join(results_directory, png_file)
         
-        file_url = urljoin(storage_endpoint_url, f"{bucket_name}/{png_file_path}")
+        file_url = urljoin(static_endpoint_url, f"static/{bucket_name}/{png_file_path}")
         
         if file_url:
             file_urls.append(file_url)
