@@ -21,7 +21,7 @@ export const DashboardService = {
                     let element = {
                         id: id,
                         algorithm: resp["algorithm"],
-                        created_by: resp["username"],
+                        created_by: resp["created_by"].username,
                         execution_time: resp["mrt"],
                         status: resp["status"],
                         metrics: resp["data_requirements"],
