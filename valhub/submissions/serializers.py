@@ -36,7 +36,7 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
         fields = ("submission_id", "algorithm", "analysis_id", "result", "mae", "mrt", "data_requirements")
 
     def to_representation(self, instance):
-        data = super(SubmissionSerializer, self).to_representation(instance)
+        data = super(SubmissionDetailSerializer, self).to_representation(instance)
         data["created_by"] = {"uuid": instance.created_by.uuid,
                             "username": instance.created_by.username}
         return data
