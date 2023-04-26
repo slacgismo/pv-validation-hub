@@ -30,7 +30,7 @@ export default function DeveloperHome() {
     setMobileOpen(!mobileOpen);
   };
 
-  const [showComponent, setShowComponent] = useState('home');
+  const [showComponent, setShowComponent] = useState({ name: 'home' });
 
   // const container = window !== undefined ? () => window().document.body : undefined;
 
