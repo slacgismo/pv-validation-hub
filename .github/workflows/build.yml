@@ -24,12 +24,13 @@ jobs:
       - name: install
         run: |
           cd frontend
-          npm install
+          export DOCKER_BUILDKIT=1
+          docker build -t pv/val:tag -f Dockerfile .
 
-      - name: build
-        run: |
-          cd frontend
-          npm run build
+#      - name: build
+#        run: |
+#          cd frontend
+#          npm run build
 
   build-api:
     name: Build and Test
