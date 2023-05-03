@@ -1,0 +1,56 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+env:
+  applicationfolder: valhub
+  AWS_REGION: us-east-2
+  S3BUCKET: pv-validation-hub-bucket
+  DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+
+
+jobs:
+  build-fe:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Repository
+
+      - name: install
+        run: |
+          cd frontend
+          npm install
+
+      - name: build
+        run: npm run build
+
+  build-api:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Repository
+
+      - name: build
+        run: |
+          cd valhub
+          export DOCKER_BUILDKIT=1
+          docker build --build-arg admin_username="placeholder" --build-arg admin_password="replaceme" --build-arg djangosk="placeholder" -t pv/val:tag -f Dockerfile .
+
+  build-worker:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Repository
+
+      - name: build
+        run: |
+          cd workers
+          export DOCKER_BUILDKIT=1
+          docker build -t pv/val:tag -f Dockerfile .
