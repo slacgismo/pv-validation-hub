@@ -106,9 +106,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'analyses.apps.AnalysesConfig',
-    'jobs.apps.JobsConfig',
+    'submissions.apps.SubmissionsConfig',
+    'system_metadata.apps.SystemmetadataConfig',
+    'file_metadata.apps.FilemetadataConfig',
+    'validation_tests.apps.ValidationTestsConfig',
     'backend.apps.BackendConfig',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -136,6 +140,10 @@ CORS_ORIGIN_ALLOW_ALL = True
 # ]
 
 ROOT_URLCONF = 'valhub.urls'
+
+AUTH_USER_MODEL = 'accounts.Account'
+
+LOGIN_URL = '/login'
 
 TEMPLATES = [
     {
@@ -173,8 +181,8 @@ else:
 if hostname is not None:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'test',  # db_name,
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': db_name,  # db_name,
             'USER': username,
             'PASSWORD': password,
             'HOST': hostname,
@@ -227,8 +235,11 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
+if hostname is not None:
+    STATIC_URL = 's3://pv-validation-hub-bucket/static/'
+else:
+    STATIC_URL = 's3:5000/pv-validation-hub-bucket/static/'
 
-STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

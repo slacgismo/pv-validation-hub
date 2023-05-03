@@ -2,8 +2,8 @@ import { faker } from "@faker-js/faker";
 import { Alert, Box, Button, TextField, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { useState } from "react";
-import { DashboardService } from "../../../services/dashboard_service";
 import { FileUploader } from "react-drag-drop-files";
+import { AnalysisService } from "../../../services/analysis_service";
 
 const defaultValues = {
     name: "Analysis " + faker.word.noun(),
@@ -15,7 +15,6 @@ const defaultValues = {
 }
 
 export function UploadAnalysis(props) {
-
     const [analysisFormValues, setAnalysisFormValues] = useState(defaultValues);
     const [errored, setErrored] = useState("none");
     const [success, setSuccess] = useState("none");
@@ -35,7 +34,7 @@ export function UploadAnalysis(props) {
     };
 
     const handleSubmit = () => {
-        let response = DashboardService.uploadAnalysis(
+        let response = AnalysisService.uploadAnalysis(
             props.user_id,
             analysisFormValues.name,
             analysisFormValues.long_description,
@@ -44,6 +43,7 @@ export function UploadAnalysis(props) {
             analysisFormValues.rules,
             analysisFormValues.dataset_description
         );
+
         if (response == null) {
             setErrored("block");
             setTimeout(() => { setErrored("none") }, 10)

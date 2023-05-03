@@ -53,6 +53,8 @@ export function create_fake_submission_array(number) {
 
 export function create_fake_leaderboard_row(ranking_number) {
     let developer_group = faker.name.fullName();
+    let created_by = developer_group;
+    let algorithm = "time shift algorithm";
     let score = faker.datatype.number();
     let submission = <a href={faker.internet.url()}><LaunchIcon /></a>;
     let last_updated = faker.helpers.arrayElement([
@@ -64,7 +66,9 @@ export function create_fake_leaderboard_row(ranking_number) {
         developer_group,
         score,
         submission,
-        last_updated
+        last_updated,
+        created_by,
+        algorithm
     }
 }
 
@@ -237,7 +241,7 @@ export function fake_number_of_submission(number) {
     return submission_array;
 }
 
-export function fake_submissio_details(){
+export function fake_submission_details(){
     return {
         user_id: faker.datatype.uuid,
         user_name: faker.datatype.username,

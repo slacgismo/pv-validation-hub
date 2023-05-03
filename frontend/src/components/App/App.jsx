@@ -7,26 +7,29 @@ import {
   Route
 } from "react-router-dom";
 import Homepage from '../Homepage/homepage';
-import Dashboard from '../Dashboard/Dashboard';
+import Analyses from '../Analyses/Analyses';
 import Analysis from '../Analysis/Analysis';
 import Submission from '../Submission/Submission';
 import Profile from '../Profile/profile';
+import DeveloperHome from '../Developer/Mainpage/mainpage';
+
 function App() {
   return (
     <BrowserRouter>
       <div className="App">
-        <Header/>
-        <div className="container d-flex align-items-center flex-column">
-          <Routes>
-            <Route path="/register" element={<Register/>}/>
-            <Route path="/login" element={<Login/>}/>
-            <Route path='/dashboard' element={<Dashboard/>}/>
-            <Route path='/analysis/:analysis_id' element={<Analysis/>}/>
-            <Route path='/submission/:submission_id' element={<Submission/>}/>
-            <Route path="/profile/:user_id" element={<Profile/>}/>
-            <Route path="/" element={<Homepage/>}/>
-          </Routes>
-        </div>
+          <Header />
+          <div className="container d-flex align-items-center" style={{ position: 'absolute', top: '8%', width: '100%' }}>
+            <Routes>
+              <Route path="/register" element={<Register/>}/>
+              <Route path="/login" element={<Login/>}/>
+              <Route path='/analyses' element={<Analyses/>}/>
+              <Route path='/analysis/:analysis_id' element={<Analysis/>}/>
+              <Route path='/submission/:submission_id' element={<Submission/>}/>
+              <Route path="/profile" element={<Profile/>}/>
+              <Route path="/developer" element={<DeveloperHome/>}/>
+              <Route path="/" element={<Homepage/>}/>
+            </Routes>
+          </div>
       </div>
     </BrowserRouter>
   );

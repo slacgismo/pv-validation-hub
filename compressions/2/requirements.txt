@@ -1,0 +1,4 @@
+pvanalytics
+pvlib
+ruptures
+numpy

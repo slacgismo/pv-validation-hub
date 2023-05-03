@@ -29,6 +29,18 @@ services:
       - "8005:8005"
     depends_on:
       - db
+      - sqs
+
+  s3:
+    build: ./s3Emulator
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "5000:5000"
+    depends_on:
+      - api
 
   react-client:
     stdin_open: true
@@ -41,6 +53,30 @@ services:
       - "3000:3000"
     depends_on:
       - api
+      - s3
+      
+  sqs:
+    image: softwaremill/elasticmq:latest
+    ports:
+      - "9324:9324"
+    environment:
+      - "ELASTICMQ_OPTS=-Dconfig.file=/opt/elasticmq.conf"
+    volumes:
+      - ./custom.conf:/opt/elasticmq.conf
+      - ./application.ini:/opt/docker/conf/application.ini
+
+      
+  worker:
+    build:
+      context: ./workers
+    env_file:
+      - .env
+    ports:
+      - "8500:8500"
+    depends_on:
+      - api
+      - s3
+      - sqs
 
 volumes:
  valhub:

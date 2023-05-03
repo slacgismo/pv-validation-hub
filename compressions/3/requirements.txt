@@ -1,0 +1,4 @@
+pandas
+pvanalytics
+pvlib
+sig-decomp

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Alert, Box, Button, TextField } from '@mui/material';
-import { Container } from "@mui/system";
+import { Grid, Alert, Box, Button, TextField } from '@mui/material';
 import Validation from '../../services/validation_service';
 import { useNavigate } from "react-router-dom";
 import Cookies from 'universal-cookie';
@@ -12,7 +11,7 @@ export default function Login() {
 
     const cookies = new Cookies();
 
-    const [showAlert, setShowAlert] = useState("none");
+    const [showAlert, setShowAlert] = useState(false);
 
     const navigate = useNavigate();
     const [loginStates, setLoginStates] = useState({
@@ -70,17 +69,20 @@ export default function Login() {
         let username = loginStates.username;
         let password = loginStates.password;
         let usernameError = validateUsername(username);
+
         if (usernameError === "" && password !== "") {
             client.post("/login", {
                 username: username,
                 password: password
             }).then(response => {
-                console.log(response);
-                cookies.set("user", response.data, { path: '/', sameSite: "strict" });
-                navigate("/dashboard");
+                cookies.set("user", {
+                    token : response.data.token,
+                },
+                { path: '/', sameSite: "strict" });
+                navigate("/");
             }).catch(error => {
-                setShowAlert("block");
-                setTimeout(() => { setShowAlert("none") }, 10);
+                setShowAlert(true);
+                setTimeout(() => { setShowAlert(false) }, 3000);
             })
         }
         else {
@@ -93,14 +95,11 @@ export default function Login() {
     }
 
     return (
-        <Container
-            sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                p: 1,
-                m: 1,
-            }}>
-            <Alert sx={{ display: showAlert }} severity="error">Login Failed</Alert>
+        <Grid container justifyContent="center" alignItems="center" sx={{ mt: '10px' }}>
+            {
+                showAlert &&
+                <Alert severity="error">Login Failed</Alert>
+            }
             <Box
                 component="form"
                 sx={{
@@ -111,13 +110,12 @@ export default function Login() {
                 }}
                 noValidate
                 autoComplete="off"
-
             >
-                <div>
+                <Box>
                     <Typography variant="h4" gutterBottom>Sign In</Typography>
                     <Typography variant="body1"><Link href="/register">New to PV Validation Hub</Link></Typography>
-                </div>
-                <div>
+                </Box>
+                <Box>
                     <TextField
                         required
                         id="username"
@@ -127,8 +125,8 @@ export default function Login() {
                         error={loginErrors.username !== ""}
                         helperText={loginErrors.username}
                     />
-                </div>
-                <div>
+                </Box>
+                <Box>
                     <TextField
                         required
                         type="password"
@@ -139,15 +137,11 @@ export default function Login() {
                         error={loginErrors.password !== ""}
                         helperText={loginErrors.password}
                     />
-                </div>
-                <div>
+                </Box>
+                <Box>
                     <Button variant="contained" onClick={submitHandler}>Login</Button>
-                </div>
+                </Box>
             </Box>
-        </Container>
+        </Grid>
     )
 }
-
-// Login.propTypes = {
-//     setToken: PropTypes.func.isRequired
-// }

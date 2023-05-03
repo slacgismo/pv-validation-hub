@@ -1,5 +1,4 @@
 import { DashboardService } from "../../../services/dashboard_service";
-import AppTable from "../../GlobalComponents/AppTable/AppTable";
 import PropTypes from 'prop-types';
 import { Box, CircularProgress, Link } from "@mui/material";
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
@@ -16,22 +15,25 @@ export default function Leaderboard(props) {
             groupable: false,
             renderCell: (params) => {
                 let value = params.value;
-                return value != null || value != undefined ?
+                return params.row.developer_group /* value != null || value != undefined ?
                     <Link href={`/profile/${value.id}`} underline="hover" > {value.username}</Link>
-                    : null
+                    : null */
             }
         },
         {
             field: 'algorithm',
-            headerName: 'Submission',
+            headerName: 'Submission File',
             filterable: false,
             sortable: false,
             groupable: false,
             width: 100,
             renderCell: (params) => {
                 let value = params.row.algorithm;
-                value = value.replace("/media/", "//");
-                return (<a href={value} download><DownloadIcon /></a>);
+                if (value != undefined && value != null) {
+                    // for demo purpose
+                    value = value.replace('http://s3', 'http://localhost')
+                }
+                return (<a href={value} download>{value}<DownloadIcon /></a>);
             }
         },
         {
@@ -59,20 +61,12 @@ export default function Leaderboard(props) {
             }
         },
         {
-            field: 'data_requirement',
-            headerName: 'Data Requirement',
-            filterable: false,
-            sortable: false,
-            groupable: false,
-            width: 190,
-        },
-        {
             field: 'metrics',
             headerName: 'Metrics',
             filterable: false,
             sortable: false,
             groupable: false,
-            width: 180,
+            width: 360,
         }
     ]
     let url = "/analysis/" + props.analysis_id + "/leaderboard";
@@ -94,4 +88,3 @@ export default function Leaderboard(props) {
 Leaderboard.props = {
     analysis_id: PropTypes.string
 }
-

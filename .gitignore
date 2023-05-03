@@ -137,3 +137,7 @@ frotend/.DS_Store
 
 # terraform sensitive variables
 *.secret.tfvars
+
+*.DS_Store
+
+node-docker-ecs

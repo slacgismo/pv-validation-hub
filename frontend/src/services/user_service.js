@@ -1,19 +1,21 @@
 import client from "./api_service";
 import { useEffect, useState } from "react";
-import { faker } from "@faker-js/faker";
+import Cookies from 'universal-cookie';
 
 export const UserService = {
-
-    useGetUserDetails(url) {
+    useGetUserDetails(url, token) {
         const [userDetails, setUserDetails] = useState();
         const [isLoading, setIsLoading] = useState(true);
         const [error, setError] = useState(null);
 
+        // set authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
+
+        // set request
         useEffect(() => {
             client.get(url)
                 .then(response => {
                     setUserDetails(response.data);
-                    console.log(response.data);
                     setIsLoading(false);
                 })
                 .catch(error => {
@@ -23,7 +25,13 @@ export const UserService = {
                 })
         }, [url]);
         return [isLoading, error, userDetails];
+    },
+    updateUserProfile(token, updatedProfile) {
+        const url = "/account";
+        // set authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
 
+        return client.put(url, updatedProfile).data;
     },
     register(username, email, password, first_name, last_name) {
         let url = "/register";
@@ -38,5 +46,21 @@ export const UserService = {
         }).catch(error => {
             return null;
         })
+    },
+    getUserId(token) {
+        // Set the authorization token
+        client.defaults.headers.common['Authorization'] = "Token " + token;
+
+        // Send a GET request to the '/user_id' endpoint
+        return client.get('/user_id')
+            .then(response => {
+                return response.data.user_id;
+            });
+    },
+    getUserCookie() {
+            // todo(jrl): abstract user cookie information to a service
+    const cookies = new Cookies();
+    const user = cookies.get("user");
+    return user;
     }
 } 
