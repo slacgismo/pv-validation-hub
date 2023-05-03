@@ -27,7 +27,9 @@ jobs:
           npm install
 
       - name: build
-        run: npm run build
+        run: |
+        cd frontend
+        npm run build
 
   build-api:
     name: Build and Test
