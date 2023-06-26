@@ -299,7 +299,7 @@ def run(module_to_import_s3_path, optional_result_data_dir=None):
     # First get mean value for all the performance metrics and save (this will
     # be saved to a public metrics dictionary)
     public_metrics_dict = dict()
-    public_metrics_dict['module'] = module_to_import
+    public_metrics_dict['module'] = module_name
     for metric in performance_metrics:
         if metric != 'data_requirements':
             mean_value = results_df[metric].mean()
