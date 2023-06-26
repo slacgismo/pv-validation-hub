@@ -10,16 +10,6 @@ from django.core.exceptions import ValidationError
 import csv
 import io
 
-class ValidationTestsListView(ListView):
-    model = ValidationTests
-    template_name = 'validation_tests_list.html'
-
-
-class ValidationTestsDetailView(DetailView):
-    model = ValidationTests
-    template_name = 'validation_tests_detail.html'
-
-
 class ValidationTestsListAPIView(ListAPIView):
     queryset = ValidationTests.objects.all()
     serializer_class = ValidationTestsSerializer
@@ -43,7 +33,7 @@ class ValidationTestsUploadCSV(APIView):
         for row in reader:
             try:
                 validation_test = ValidationTests(
-                    category=row['category_name'],
+                    category_name=row['category_name'],
                     performance_metrics=row['performance_metrics'],
                     function_name=row['function_name']
                 )

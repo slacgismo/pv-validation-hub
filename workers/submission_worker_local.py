@@ -600,18 +600,20 @@ def process_submission_message(message):
     current_evaluation_dir = create_current_evaluation_dir()
 
     analysis_function, function_parameters = load_analysis(analysis_id, current_evaluation_dir)
+    logger.info(f'function parameters returns {function_parameters}')
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
     argument = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}'
     logger.info(f'execute runner module function with argument {argument}')
 
-    ret = analysis_function(argument)
+    ret = analysis_function(argument, current_evaluation_dir)
     logger.info(f'runner module function returns {ret}')
 
     logger.info(f'update submission status to {FINISHED}')
     update_submission_status(analysis_id, submission_id, FINISHED)
 
+    # TODO This here needs to be fixed to pass real results and real data
     res_json = {"module": "pvanalytics-cpd-module", "mean_mean_absolute_error": 2.9835552075176195, "mean_run_time": 51.68567451834679, "data_requirements": ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
     logger.info(f'update submission result to {res_json}')
     update_submission_result(analysis_id, submission_id, res_json)
