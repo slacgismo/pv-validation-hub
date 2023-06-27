@@ -130,6 +130,11 @@ def run(module_to_import_s3_path, optional_result_data_dir=None):
     if optional_result_data_dir is not None:
         sys.path.append(optional_result_data_dir)  # append optional_result_data_dir to sys.path
 
+    # Ensure results directory exists
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Ensure results directory exists
+    os.makedirs(data_dir, exist_ok=True)
         
     # Load in the module that we're going to test on.
 

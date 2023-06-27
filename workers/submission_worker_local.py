@@ -613,14 +613,14 @@ def process_submission_message(message):
     logger.info(f'update submission status to {FINISHED}')
     update_submission_status(analysis_id, submission_id, FINISHED)
 
-    # TODO This here needs to be fixed to pass real results and real data
-    res_json = {"module": "pvanalytics-cpd-module", "mean_mean_absolute_error": 2.9835552075176195, "mean_run_time": 51.68567451834679, "data_requirements": ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
+    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ['time_series', 'latitude', 'longitude', 'data_sampling_frequency']}
+    res_json = ret
     logger.info(f'update submission result to {res_json}')
     update_submission_result(analysis_id, submission_id, res_json)
 
     logger.info(f'upload result files to s3')
     # for debug purpose, upload sample result files
-    res_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample_results')
+    res_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'current_evaluation/results')
     for dir_path, dir_names, file_names in os.walk(res_files_path):
         for file_name in file_names:
             full_file_name = os.path.join(dir_path, file_name)
