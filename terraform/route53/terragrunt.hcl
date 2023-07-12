@@ -1,4 +1,4 @@
-# subdirectory/terragrunt.hcl
+# route53
 
 include "root" {
   path = find_in_parent_folders()
