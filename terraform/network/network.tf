@@ -1,4 +1,7 @@
-
+# Configure provider
+provider "aws" {
+  region = var.aws_region
+}
 
 resource "aws_security_group" "load_balancer_security_group" {
   name_prefix = var.sg_name_prefix

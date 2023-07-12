@@ -1,43 +1,8 @@
 # Configure provider
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
-# Define the S3 bucket
-resource "aws_s3_bucket" "my_bucket" {
-  bucket = "pv-validation-hub-bucket"
-  acl = "public-read"
-}
-
-# Define the S3 bucket object
-resource "aws_s3_bucket_object" "build" {
-  bucket = aws_s3_bucket.my_bucket.bucket
-  key = "build/"
-  source = "../../frontend/build"
-  content_type = "text/html"
-  etag = filemd5("../../frontend/build")
-}
-
-# Configure the S3 bucket as a static website
-resource "aws_s3_bucket_website" "my_bucket_website" {
-  bucket = aws_s3_bucket.my_bucket.bucket
-  index_document = "index.html"
-  error_document = "index.html"
-
-  routing_rules = <<EOF
-[
-  {
-    "Condition": {
-      "HttpErrorCodeReturnedEquals": "404"
-    },
-    "Redirect": {
-      "HostName": "${aws_s3_bucket.my_bucket.website_domain}",
-      "ReplaceKeyPrefixWith": "404.html"
-    }
-  }
-]
-EOF
-}
 
 # Define the CloudFront distribution
 resource "aws_cloudfront_distribution" "my_distribution" {

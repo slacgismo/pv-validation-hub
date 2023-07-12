@@ -1,6 +1,6 @@
 provider "aws" {
   version = "~> 2.0"
-  region  = "us-west-2"
+  region  = var.aws_region
 }
 
 resource "aws_security_group" "rds_security_group" {
@@ -22,8 +22,8 @@ resource "aws_security_group" "rds_security_group" {
   }
 }
 
-resource "aws_db_instance" "pv-validation-hub-rds-test" {
-  identifier             = "pv-validation-hub-rds-test"
+resource "aws_db_instance" "pv-validation-hub-rds" {
+  identifier             = "pv-validation-hub-rds"
   instance_class         = "db.t3.micro"
   allocated_storage      = 20
   engine                 = "postgres"
@@ -41,11 +41,11 @@ resource "aws_secretsmanager_secret" "pv-valhub-dbsecret" {
 resource "aws_secretsmanager_secret_version" "pvinsight-db" {
   secret_id = aws_secretsmanager_secret.pv-valhub-dbsecret.id
   secret_string = jsonencode({
-    "username": aws_db_instance.pv-validation-hub-rds-test.username
+    "username": aws_db_instance.pv-validation-hub-rds.username
     "password": var.db_password
-    "engine": aws_db_instance.pv-validation-hub-rds-test.engine
-    "host": aws_db_instance.pv-validation-hub-rds-test.address
+    "engine": aws_db_instance.pv-validation-hub-rds.engine
+    "host": aws_db_instance.pv-validation-hub-rds.address
     "port": 5432
-    "dbInstanceIdentifier": aws_db_instance.pv-validation-hub-rds-test.identifier
+    "dbInstanceIdentifier": aws_db_instance.pv-validation-hub-rds.identifier
   })
 }

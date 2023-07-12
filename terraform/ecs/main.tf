@@ -1,6 +1,6 @@
 provider "aws" {
   version = "~> 2.0"
-  region  = "us-west-2"
+  region  = var.aws_region
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
