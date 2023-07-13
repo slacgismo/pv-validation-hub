@@ -20,6 +20,11 @@ variable "acm_certificate_arn" {
   type        = string
 }
 
+variable "alt_domain_name" {
+  description = "Needed to allow cf use in route53"
+  type        = string 
+}
+
 variable "project_tags" {
   type    = object({
     Project = string,

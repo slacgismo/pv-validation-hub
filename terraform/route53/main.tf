@@ -28,18 +28,14 @@ resource "aws_route53_record" "db" {
 }
 
 
-#resource "aws_route53_record" "cf" {
-#  zone_id = aws_route53_zone.main.zone_id
-#  name    = "pv-validation-hub.org"
-#  type    = "A"
+resource "aws_route53_record" "cf" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "pv-validation-hub.org"
+  type    = "A"
 
-#  alias {
-#    name                   = var.cf_endpoint
-#    zone_id                = var.cf_zone_id
-#    evaluate_target_health = true
-#  }
-
-#  tags = merge(
-#    var.project_tags
-#  )
-#}
+  alias {
+    name                   = var.cf_endpoint
+    zone_id                = var.cf_zone_id
+    evaluate_target_health = false
+  }
+}

@@ -3,18 +3,22 @@ provider "aws" {
   region  = var.aws_region
 }
 
-resource "aws_cloudfront_origin_access_identity" "valhub" {
-  comment = "Identity for CloudFront to access S3 bucket"
+data "aws_s3_bucket" "pv-validation-hub-website" {
+  bucket = var.bucket_name
 }
 
-resource "aws_cloudfront_distribution" "my_distribution" {
+resource "aws_cloudfront_distribution" "pv-validation-hub-website" {
   origin {
-    domain_name = var.bucket_name
-    origin_id   = "S3-${var.bucket_name}"
-    s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.valhub.cloudfront_access_identity_path
+    domain_name = data.aws_s3_bucket.pv-validation-hub-website.website_endpoint
+    origin_id   = "S3-WEBSITE-${data.aws_s3_bucket.pv-validation-hub-website.id}"
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1", "TLSv1.1", "TLSv1.2"]
     }
   }
+
 
   enabled             = true
   is_ipv6_enabled     = true
@@ -23,7 +27,7 @@ resource "aws_cloudfront_distribution" "my_distribution" {
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id = "S3-${var.bucket_name}"
+    target_origin_id = "S3-WEBSITE-${data.aws_s3_bucket.pv-validation-hub-website.id}"
 
     forwarded_values {
       query_string = false
@@ -50,6 +54,8 @@ resource "aws_cloudfront_distribution" "my_distribution" {
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2019"
   }
+
+  aliases = [var.alt_domain_name] 
   
   tags = merge(var.project_tags)
 }
@@ -58,10 +64,10 @@ resource "aws_cloudfront_distribution" "my_distribution" {
 
 output "cloudfront_distribution_domain_name" {
   description = "The domain name of the CloudFront distribution"
-  value       = aws_cloudfront_distribution.my_distribution.domain_name
+  value       = aws_cloudfront_distribution.pv-validation-hub-website.domain_name
 }
 
 output "cloudfront_distribution_hosted_zone_id" {
   description = "The hosted zone ID of the CloudFront distribution"
-  value       = aws_cloudfront_distribution.my_distribution.hosted_zone_id
+  value       = aws_cloudfront_distribution.pv-validation-hub-website.hosted_zone_id
 }

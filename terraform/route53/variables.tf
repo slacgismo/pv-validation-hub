@@ -29,15 +29,15 @@ variable "elb_hosted_zone_id" {
   type        = string
 }
 
-#variable "cf_endpoint" {
-#  description = "API endpoint"
-#  type        = string
-#}
+variable "cf_endpoint" {
+  description = "API endpoint"
+  type        = string
+}
 
-#variable "cf_arn_id" {
-#  description = "API Route53 zone ID"
-#  type        = string
-#}
+variable "cf_zone_id" {
+  description = "API Route53 zone ID"
+  type        = string
+}
 
 variable "project_tags" {
   description = "Tags to be added to the resources"
