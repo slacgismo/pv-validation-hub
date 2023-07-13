@@ -1,3 +1,8 @@
+provider "aws" {
+  version = "~> 2.0"
+  region  = var.aws_region
+}
+
 resource "aws_cloudfront_distribution" "my_distribution" {
   origin {
     domain_name = var.bucket_name

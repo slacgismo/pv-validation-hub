@@ -29,8 +29,7 @@ terraform {
     commands = ["plan", "apply"]
 
     arguments = [
-      "-var-file=../terraform.tfvars",
-      "-var-file=../variables.tfvars"
+      "-var-file=../terraform.tfvars"
     ]
   }
 }

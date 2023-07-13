@@ -1,4 +1,5 @@
 # terragrunt.hcl
+
 inputs = {
   project_tags = {
     Project = "pv-insight2",
