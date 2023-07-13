@@ -1,14 +1,7 @@
-# Configure provider
-provider "aws" {
-  region = var.aws_region
-}
-
-
-# Define the CloudFront distribution
 resource "aws_cloudfront_distribution" "my_distribution" {
   origin {
-    domain_name = aws_s3_bucket.my_bucket.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.my_bucket.id}"
+    domain_name = var.bucket_name
+    origin_id   = "S3-${var.bucket_name}"
     s3_origin_config {
       origin_access_identity = aws_cloudfront_origin_access_identity.my_identity.cloudfront_access_identity_path
     }
@@ -16,13 +9,12 @@ resource "aws_cloudfront_distribution" "my_distribution" {
 
   enabled             = true
   is_ipv6_enabled     = true
-  default_root_object = "index.html"
+  default_root_object = var.default_root_object
 
-  # Set up caching behavior
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id = "S3-${aws_s3_bucket.my_bucket.id}/build"
+    target_origin_id = "S3-${var.bucket_name}"
 
     forwarded_values {
       query_string = false
@@ -45,36 +37,22 @@ resource "aws_cloudfront_distribution" "my_distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = var.acm_certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2019"
   }
+  
+  tags = merge(var.project_tags)
 }
 
-# Define the DNS record in Route53
-resource "aws_route53_record" "my_dns_record" {
-  zone_id = data.aws_route53_zone.my_zone.id
-  name    = "pv-validation-hub.org"
-  type    = "A"
+########## OUTPUTS #############
 
-  alias {
-    name                   = aws_cloudfront_distribution.my_distribution.domain_name
-    zone_id                = aws_cloudfront_distribution.my_distribution.hosted_zone_id
-    evaluate_target_health = false
-  }
+output "cloudfront_distribution_domain_name" {
+  description = "The domain name of the CloudFront distribution"
+  value       = aws_cloudfront_distribution.my_distribution.domain_name
 }
 
-######### OUTPUTS ############
-
-
-output "s3_bucket_name" {
-  value = aws_s3_bucket.my_bucket.id
+output "cloudfront_distribution_hosted_zone_id" {
+  description = "The hosted zone ID of the CloudFront distribution"
+  value       = aws_cloudfront_distribution.my_distribution.hosted_zone_id
 }
-
-output "cloudfront_distribution_id" {
-  value = aws_cloudfront_distribution.my_distribution.id
-}
-
-output "dns_record_name" {
-  value = aws_route53_record.my_dns_record.fqdn
-}
-
-
