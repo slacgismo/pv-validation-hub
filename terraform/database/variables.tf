@@ -9,14 +9,6 @@ variable "sg_name_prefix" {
   default = "pv-validation-hub-sg-"
 }
 
-variable "rds_password" {
-  description = "RDS root user password"
-  type        = string
-  sensitive   = true
-}
-
-# subdirectory/variables.tf
-
 variable "project_tags" {
   type    = object({
     Project = string,
@@ -26,6 +18,16 @@ variable "project_tags" {
 
 variable "vpc_id" {
   description = "The VPC ID to create the security group in"
+  type        = string
+}
+
+variable "rds_security_group_id" {
+  description = "The identifier for the RDS instance"
+  type        = string
+}
+
+variable "rds_subnet_group_id" {
+  description = "The identifier for the RDS instance"
   type        = string
 }
 
@@ -62,6 +64,12 @@ variable "db_username" {
 variable "db_password" {
   description = "The password for the database"
   type        = string
+  sensitive   = true
+}
+
+variable "db_subnet_group_name" {
+  description = "Database subnet group name"
+  type        = string  
 }
 
 variable "secretsmanager_secret_name" {

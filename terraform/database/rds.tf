@@ -37,19 +37,17 @@ resource "aws_db_instance" "pv-validation-hub-rds" {
   vpc_security_group_ids = [ 
     var.rds_security_group_id
   ]
-
-    db_subnet_group_id = var.rds_subnet_group_id
+  db_subnet_group_name   = var.db_subnet_group_name
 }
 
-resource "aws_secretsmanager_secret" "pv-valhub-dbsecret" {
+data "aws_secretsmanager_secret" "pv-valhub-dbsecret" {
   name                = var.secretsmanager_secret_name
-  tags = merge(var.project_tags)
 }
 
 resource "aws_secretsmanager_secret_version" "pvinsight-db" {
-  secret_id = aws_secretsmanager_secret.pv-valhub-dbsecret.id
+  secret_id = data.aws_secretsmanager_secret.pv-valhub-dbsecret.id
   secret_string = jsonencode({
-    "username": aws_db_instance.pv-validation-hub-rds.username
+    "username": var.db_username
     "password": var.db_password
     "engine": aws_db_instance.pv-validation-hub-rds.engine
     "host": aws_db_instance.pv-validation-hub-rds.address

@@ -86,11 +86,8 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
 resource "aws_alb" "application_load_balancer" {
   name               = var.alb_name
   load_balancer_type = "application"
-  subnets = [ 
-    aws_subnet.pv-validation-hub_a.id,
-    aws_subnet.pv-validation-hub_b.id
-  ]
-  security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
+  subnets = var.subnet_ids
+  security_groups = ["${var.load_balancer_security_group_id}"]
   tags = merge(var.project_tags)
 }
 
@@ -99,7 +96,7 @@ resource "aws_lb_target_group" "target_group" {
   port             = 80
   protocol         = "HTTP"
   target_type      = "ip"
-  vpc_id           = aws_vpc.pv-validation-hub.id
+  vpc_id           = var.vpc_id
   depends_on = [
     aws_alb.application_load_balancer
   ]
@@ -114,7 +111,6 @@ resource "aws_lb_listener" "listener" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.target_group.arn
   }
-  tags = merge(var.project_tags)
 }
 
 resource "aws_ecs_service" "valhub_my_first_service" {
@@ -131,9 +127,9 @@ resource "aws_ecs_service" "valhub_my_first_service" {
   }
 
   network_configuration {
-    subnets          = [aws_subnet.pv-validation-hub_a.id, aws_subnet.pv-validation-hub_b.id]
+    subnets          = var.subnet_ids
     assign_public_ip = true
-    security_groups  = [aws_security_group.valhub_ecs_service_security_group.id]
+    security_groups  = [ var.valhub_ecs_service_security_group_id ]
   }
   tags = merge(var.project_tags)
 }
@@ -148,4 +144,9 @@ output "alb_arn" {
 output "alb_dns_name" {
   description = "The DNS name of the Application Load Balancer"
   value       = aws_alb.application_load_balancer.dns_name
+}
+
+output "alb_hosted_zone_id" {
+  description = "The canonical hosted zone ID of the Application Load Balancer (to be used in Route 53 Record Sets)"
+  value       = aws_alb.application_load_balancer.zone_id
 }

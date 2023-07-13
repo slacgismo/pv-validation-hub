@@ -8,7 +8,7 @@ on:
 
 env:
   applicationfolder: valhub
-  AWS_REGION: us-east-2
+  AWS_REGION: us-west-2
   S3BUCKET: pv-validation-hub-bucket
   DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 

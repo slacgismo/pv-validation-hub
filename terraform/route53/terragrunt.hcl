@@ -9,19 +9,20 @@ dependency "ecs" {
 }
 
 dependency "rds" {
-    config_path = "../rds"
+    config_path = "../database"
 }
 
-dependency "frontend" {
-  config_path = "../frontend"
-}
+#dependency "cloudfront" {
+#  config_path = "../cloudfront"
+#}
 
 inputs = {
   api_endpoint = dependency.ecs.outputs.alb_dns_name
-  api_zone_id  = dependency.ecs.outputs.alb_arn
+  api_arn_id  = dependency.ecs.outputs.alb_arn
+  elb_hosted_zone_id = dependency.ecs.outputs.alb_hosted_zone_id
   db_endpoint  = dependency.rds.outputs.db_endpoint
-  cf_endpoint    = dependency.frontend.outputs.cloudfront_distribution_domain_name
-  cf_zone_id     = dependency.frontend.outputs.cloudfront_distribution_hosted_zone_id
+#  cf_endpoint    = dependency.cloudfront.outputs.cloudfront_distribution_domain_name
+#  cf_arn_id     = dependency.cloudfront.outputs.cloudfront_distribution_hosted_zone_id
 }
 
 terraform {

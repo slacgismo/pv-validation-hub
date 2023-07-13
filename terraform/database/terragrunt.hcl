@@ -13,6 +13,7 @@ inputs = {
   subnet_ids                              = dependency.network.outputs.subnet_ids
   rds_subnet_group_id                     = dependency.network.outputs.rds_subnet_group_id
   rds_security_group_id                   = dependency.network.outputs.rds_security_group_id
+  db_subnet_group_name                    = dependency.network.outputs.rds_subnet_group_name
 }
 
 terraform {

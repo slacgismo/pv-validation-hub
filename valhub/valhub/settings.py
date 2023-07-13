@@ -19,7 +19,7 @@ import json
 
 
 def get_secret(secret_name):
-    region_name = "us-east-2"
+    region_name = "us-west-2"
 
     # Create a Secrets Manager client
     session = boto3.session.Session()

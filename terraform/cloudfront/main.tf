@@ -3,12 +3,16 @@ provider "aws" {
   region  = var.aws_region
 }
 
+resource "aws_cloudfront_origin_access_identity" "valhub" {
+  comment = "Identity for CloudFront to access S3 bucket"
+}
+
 resource "aws_cloudfront_distribution" "my_distribution" {
   origin {
     domain_name = var.bucket_name
     origin_id   = "S3-${var.bucket_name}"
     s3_origin_config {
-      origin_access_identity = aws_cloudfront_origin_access_identity.my_identity.cloudfront_access_identity_path
+      origin_access_identity = aws_cloudfront_origin_access_identity.valhub.cloudfront_access_identity_path
     }
   }
 

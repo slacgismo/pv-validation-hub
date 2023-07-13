@@ -5,11 +5,6 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "aws_region" {
-  description = "The region where AWS operations will take place"
-  type        = string
-}
-
 variable "ecs_task_execution_role_name" {
   description = "The name of the ECS task execution role"
   type        = string
@@ -68,6 +63,26 @@ variable "ecs_service_name" {
 variable "ecs_service_desired_count" {
   description = "The desired count of the ECS service"
   type        = number
+}
+
+variable "subnet_ids" {
+  description = "The list of IDs for the subnets to be used"
+  type        = list(string)
+}
+
+variable "load_balancer_security_group_id" {
+  description = "The security group ID for the load balancer"
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "The VPC ID"
+  type        = string
+}
+
+variable "valhub_ecs_service_security_group_id" {
+  description = "The security group ID for the ecs service"
+  type        = string  
 }
 
 variable "project_tags" {

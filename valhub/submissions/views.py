@@ -62,7 +62,7 @@ def analysis_submission(request, analysis_id):
         else:
             sqs = boto3.resource(
                 "sqs",
-                region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+                region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
                 aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
                 aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
             )
