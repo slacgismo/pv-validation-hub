@@ -23,6 +23,9 @@ Following those steps, you should now be able to access your local development v
 
 You can also manually install all the services locally for faster developmental iterations at your own discretion.
 
+**TODO**
+Add steps for running preloaders, and for adding django admin.
+
 ## Jira link:
 
 [Sprint Board](https://pv-validation-hub.atlassian.net/jira/software/projects/PVH/boards/1/)

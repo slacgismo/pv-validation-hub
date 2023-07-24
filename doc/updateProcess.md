@@ -51,12 +51,6 @@ Adding a new analysis is a multi-step process. Analyses have a number of depende
 
 When a user accesses a page on an s3 bucket-hosted website, the browser downloads the static files from the S3 bucket and executes the JavaScript code to build and display the content on the client-side(user's system). This leaves us a few options. 
 
-DISCUSSION POINTS
-
-(Preferred) This method requires more administrative overhead, but is programmatically easier to implement. In the ```frontend/public/assets/``` directory, create a new directory for your md documents. The directory name should match the directory name for the same analysis(e.g. an analysis in folder "1" should have website md docs in folder "1"). This would be very beneficial for clearly defined organization, while also guaranteeing quick and stable access to the files. This would allow very easy sync updates for the frontend portion of the application and updating just descriptors without any extensive work.
-
-Optionally, storing all the md files in the private s3 bucket with their respective analytical task runners can be done. This would require some additional developmental steps to pull that data from the API and would increase server-load, as the front-end would need to make additional queries to pull the md files for each task instead of including them by default. This makes organization and administration much simpler in exchange for additional programmatic overhead and refactoring.
-
 The md files must follow a standardized naming scheme with the containing folder ID being the only variable, for modular access and ease of programming. This is consistent across both approaches.
 
 ~~~
@@ -73,43 +67,61 @@ The md files must follow a standardized naming scheme with the containing folder
 }
 ~~~
 
+> **DISCUSSION POINTS**
+>
+> - (Preferred) This method requires more administrative overhead, but is programmatically easier to implement. In the ```frontend/public/assets/``` directory, create a new directory for your md documents. The directory name should match the directory name for the same analysis(e.g. an analysis in folder "1" should have website md docs in folder "1"). This would be very beneficial for clearly defined organization, while also guaranteeing quick and stable access to the files. This would allow very easy sync updates for the frontend portion of the application and updating just descriptors without any extensive work.
+>
+> - Optionally, storing all the md files in the private s3 bucket with their respective analytical task runners can be done. This would require some additional developmental steps to pull that data from the API and would increase server-load, as the front-end would need to make additional queries to pull the md files for each task instead of including them by default. This makes organization and administration much simpler in exchange for additional programmatic overhead and refactoring.
+
+
+
+
 ### Adding Analysis scripts and config
 
 This portion is necessary for any analysis to show up on the validation hub.
 
 The current process is to add all the analysis files into our pvhb s3 bucket and to send a post request to the ```/analysis/create/``` route. The current implementation stores all analysis descriptors in the database. 
 
-DISCUSSION POINTS
-
-The discussed plan for removing the descriptions trivializes much of the administrator overhead in adding an analysis. Simply create the new analysis (iterating the folder ID by one, example below with folder 2 being added after 1), and then call the analysis create route with a post request to include the analysis name to add the new analysis. (I am also looking into setting a bucket event or alternative method to call this route. Currently it can only be called within the VPC network.)
-
-~~~
-pvhb {
-    eval {
-        1 {
-            config,
-            eval.py,
-            etc...
+> **DISCUSSION POINTS**
+>
+> - Utilizing standardized MD files simplifies some of the of the process to create a new analysis, as we can reduce the number of variables that we need to define when calling the analysis create route. (I am also looking into setting a *bucket event* or alternative method, such as an admin authenticated *lambda* function, to call this route. Currently it can only be called within the VPC network.)
+>
+> - The example below demonstrates adding the new analysis folder. This is done by adding one to the latest folder ID, and then running the analysis creation script.
+    ~~~
+    pvhb {
+        eval {
+            1 {
+                config,
+                eval.py,
+                etc...
+            },
+            2 {
+                ...
+            }
         },
-        2 {
-            ...
-        }
-    },
-    ...
-}
-~~~
+        ...
+    }
+    ~~~
+>
+> - Script with description definitions removed
+    ~~~
+    #!/bin/bash
 
-~~~
-curl -X POST -H "Content-Type: multipart/form-data" \
-  -F "analysis_name=$ANALYSIS_NAME" \
-  -F "evaluation_script=@$EVALUATION_SCRIPT_PATH" \
-  -F "max_concurrent_submission_evaluation=$MAX_CONCURRENT_SUBMISSION_EVALUATION" \
-  $API_URL
-~~~
+    API_URL="http://api:8005/analysis/create/"
+    ANALYSIS_NAME="Time Shift Analysis"
+    EVALUATION_SCRIPT_PATH="/pv-validation-hub-bucket/evaluation_scripts/3/pvinsight-time-shift-runner.py"
+    MAX_CONCURRENT_SUBMISSION_EVALUATION="100"
 
-Potential improvement:
+    curl -X POST -H "Content-Type: multipart/form-data" \
+    -F "analysis_name=$ANALYSIS_NAME" \
+    -F "evaluation_script=@$EVALUATION_SCRIPT_PATH" \
+    -F "max_concurrent_submission_evaluation=$MAX_CONCURRENT_SUBMISSION_EVALUATION" \
+    $API_URL
+    ~~~
 
-Update the analysis creation route to accept verified IAM user requests or another form of authentication, and have the route automatically create the id-based directory to store the analysis and associated config and file-test linker. Will require more programming overhead but can incredibly simplify and standardize the admin process. Adding a simple UI hosted within an authorized EC2 and granting direct access only to admins is another method.
+> Potential improvement:
+> 
+> Update the analysis creation route to accept verified IAM user requests or another form of authentication, and have the route automatically create the id-based directory to store the analysis and associated config and file-test linker. Will require more programming overhead but can incredibly simplify and standardize the admin process. Adding a simple UI hosted within an authorized EC2 and granting direct access only to admins is another method.
 
 ## Adding new files
 
