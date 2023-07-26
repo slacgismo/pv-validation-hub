@@ -67,7 +67,7 @@ def create_analysis(request):
             evaluation_script=object_url)
 
         # spin up a worker instance which would create SQS queue
-        # ec2 = boto3.resource('ec2', region_name='us-east-2')
+        # ec2 = boto3.resource('ec2', region_name='us-west-2')
         # worker = ec2.create_instances(
         #     MinCount=1,
         #     MaxCount=1,

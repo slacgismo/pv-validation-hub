@@ -3,7 +3,7 @@ const ENVIRONMENT_STAGING = 'STAGING';
 const ENVIRONMENT_PRODUCTION = 'PRODUCTION';
 
 const BASE_API_URL_APP_DEVELOPMENT = 'http://localhost:8005';
-const BASE_API_URL_APP_STAGING = 'https://TODO.org';
+const BASE_API_URL_APP_STAGING = 'https://api-staging.pv-validation-hub.org';
 const BASE_API_URL_APP_PRODUCTION = 'https://api.pv-validation-hub.org';
 
 const parseEnvironment = () => {

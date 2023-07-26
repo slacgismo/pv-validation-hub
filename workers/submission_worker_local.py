@@ -309,7 +309,7 @@ def download_and_extract_zip_file(file_name, download_location, extract_location
     try:
         s3 = boto3.client(
             's3',
-            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
             aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
             aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
         )
@@ -600,25 +600,27 @@ def process_submission_message(message):
     current_evaluation_dir = create_current_evaluation_dir()
 
     analysis_function, function_parameters = load_analysis(analysis_id, current_evaluation_dir)
+    logger.info(f'function parameters returns {function_parameters}')
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
     argument = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}'
     logger.info(f'execute runner module function with argument {argument}')
 
-    ret = analysis_function(argument)
+    ret = analysis_function(argument, current_evaluation_dir)
     logger.info(f'runner module function returns {ret}')
 
     logger.info(f'update submission status to {FINISHED}')
     update_submission_status(analysis_id, submission_id, FINISHED)
 
-    res_json = {"module": "pvanalytics-cpd-module", "mean_mean_absolute_error": 2.9835552075176195, "mean_run_time": 51.68567451834679, "data_requirements": ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
+    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ['time_series', 'latitude', 'longitude', 'data_sampling_frequency']}
+    res_json = ret
     logger.info(f'update submission result to {res_json}')
     update_submission_result(analysis_id, submission_id, res_json)
 
     logger.info(f'upload result files to s3')
     # for debug purpose, upload sample result files
-    res_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sample_results')
+    res_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'current_evaluation/results')
     for dir_path, dir_names, file_names in os.walk(res_files_path):
         for file_name in file_names:
             full_file_name = os.path.join(dir_path, file_name)
@@ -689,7 +691,7 @@ def get_or_create_sqs_queue(queue_name):
     else:
         sqs = boto3.resource(
             "sqs",
-            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
             aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
             aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
         )
@@ -717,7 +719,7 @@ def get_analysis_pk():
 
     ec2_resource = boto3.resource(
         'ec2',
-        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-2"),
+        region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
         aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
     )

@@ -19,7 +19,7 @@ do
                 --arg data_sampling_frequency "$data_sampling_frequency" \
                 --arg issue "$issue" \
                 --arg subissue "$subissue" \
-                '{file_id: $file_id | tonumber, system_id: $system_id | tonumber, file_name: $file_name, time_zone: $timezone, sampling_freq_minute: $data_sampling_frequency | tonumber, issue: $issue, subissue: $subissue}')
+                '{file_id: $file_id | tonumber, system_id: $system_id | tonumber, file_name: $file_name, timezone: $timezone, data_sampling_frequency: $data_sampling_frequency | tonumber, issue: $issue, subissue: $subissue}')
 
   # Upload the JSON data to the API
   curl -X POST -H "Content-Type: application/json" -d "$json_data" "$API_BASE_URL"

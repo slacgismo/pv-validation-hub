@@ -1,4 +1,7 @@
-
+# Configure provider
+provider "aws" {
+  region = var.aws_region
+}
 
 resource "aws_security_group" "load_balancer_security_group" {
   name_prefix = var.sg_name_prefix
@@ -155,6 +158,10 @@ resource "aws_route_table_association" "public_e" {
 
 output "rds_subnet_group_id" {
   value = aws_db_subnet_group.rds_subnet_group.id
+}
+
+output "rds_subnet_group_name" {
+  value = aws_db_subnet_group.rds_subnet_group.name
 }
 
 output "vpc_id" {

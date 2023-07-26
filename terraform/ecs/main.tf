@@ -1,6 +1,6 @@
 provider "aws" {
   version = "~> 2.0"
-  region  = "us-west-2"
+  region  = var.aws_region
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
@@ -17,23 +17,26 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       }
     ]
   })
+  tags = merge(var.project_tags)
 }
 
 resource "aws_ecs_cluster" "pv-validation-hub-test-cluster" {
-  name = "pv-validation-hub-test-cluster" # Naming the cluster
+  name = var.ecs_cluster_name 
+  tags = merge(var.project_tags)
 }
 
 resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
-  name = "/ecs/pv-validation-hub-test-task1" # Naming the log group
+  name = var.cloudwatch_log_group_name
+  tags = merge(var.project_tags)
 }
 
 resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
-  family                   = "pv-validation-hub-test-task" # Naming our first task
+  family                   = var.ecs_task_definition_family
   container_definitions    = <<DEFINITION
   [
     {
-      "name": "pv-validation-hub-test-task",
-      "image": "041414866712.dkr.ecr.us-east-2.amazonaws.com/pv-validation-hub:latest",
+      "name": "${var.ecs_task_definition_container_name}",
+      "image": "${var.ecs_task_definition_container_image}",
       "essential": true,
       "portMappings": [
         {
@@ -41,26 +44,27 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
           "hostPort": 3000
         }
       ],
-      "memory": 512,
-      "cpu": 256,
+      "memory": ${var.ecs_task_definition_memory},
+      "cpu": ${var.ecs_task_definition_cpu},
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "${aws_cloudwatch_log_group.ecs_task_log_group.name}",
-          "awslogs-stream-prefix": "pv-validation-hub-test-task",
+          "awslogs-stream-prefix": "${var.ecs_task_definition_container_name}",
           "awslogs-create-group": "true",
-          "awslogs-region": "us-west-2"
+          "awslogs-region": "${var.aws_region}"
         },
       "command": ["/bin/sh", "/app/docker-entrypoint.sh"]
       }
     }
   ]
   DEFINITION
-  requires_compatibilities = ["FARGATE"] # Stating that we are using ECS Fargate
-  network_mode             = "awsvpc"    # Using awsvpc as our network mode as this is required for Fargate
-  memory                   = 512         # Specifying the memory our container requires
-  cpu                      = 256         # Specifying the CPU our container requires
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  memory                   = var.ecs_task_definition_memory
+  cpu                      = var.ecs_task_definition_cpu
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  tags = merge(var.project_tags)
 }
 
 data "aws_iam_policy_document" "assume_role_policy" {
@@ -80,67 +84,69 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_policy" {
 }
 
 resource "aws_alb" "application_load_balancer" {
-  name               = "pv-validation-hub-test-lb-tf" # Naming our load balancer
+  name               = var.alb_name
   load_balancer_type = "application"
-  subnets = [ # Referencing the default subnets
-    aws_subnet.pv-validation-hub_a.id,
-    aws_subnet.pv-validation-hub_b.id
-  ]
-  # Referencing the security group
-  security_groups = ["${aws_security_group.load_balancer_security_group.id}"]
+  subnets = var.subnet_ids
+  security_groups = ["${var.load_balancer_security_group_id}"]
+  tags = merge(var.project_tags)
 }
 
 resource "aws_lb_target_group" "target_group" {
-  name             = "valhub-target-group"
+  name             = var.lb_target_group_name
   port             = 80
   protocol         = "HTTP"
   target_type      = "ip"
-  vpc_id           = aws_vpc.pv-validation-hub.id
+  vpc_id           = var.vpc_id
   depends_on = [
     aws_alb.application_load_balancer
   ]
+  tags = merge(var.project_tags)
 }
 
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn = aws_alb.application_load_balancer.arn # Referencing our load balancer
+  load_balancer_arn = aws_alb.application_load_balancer.arn
   port              = "80"
   protocol          = "HTTP"
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.target_group.arn # Updating the target group ARN
+    target_group_arn = aws_lb_target_group.target_group.arn
   }
 }
 
 resource "aws_ecs_service" "valhub_my_first_service" {
-  name            = "valhub-my-first-service"
+  name            = var.ecs_service_name
   cluster         = aws_ecs_cluster.pv-validation-hub-test-cluster.id
   task_definition = aws_ecs_task_definition.pv-validation-hub-test-task.arn
   launch_type     = "FARGATE"
-  desired_count   = 3
+  desired_count   = var.ecs_service_desired_count
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.target_group.arn # Updated the target group ARN
+    target_group_arn = aws_lb_target_group.target_group.arn
     container_name   = aws_ecs_task_definition.pv-validation-hub-test-task.family
     container_port   = 3000
   }
 
   network_configuration {
-    subnets          = [aws_subnet.pv-validation-hub_a.id, aws_subnet.pv-validation-hub_b.id]
+    subnets          = var.subnet_ids
     assign_public_ip = true
-    security_groups  = [aws_security_group.valhub_ecs_service_security_group.id]
+    security_groups  = [ var.valhub_ecs_service_security_group_id ]
   }
+  tags = merge(var.project_tags)
 }
 
-resource "aws_db_instance" "pv-validation-hub-rds-test" {
-  identifier             = "pv-validation-hub-rds-test"
-  instance_class         = "db.t3.micro"
-  allocated_storage      = 20
-  engine                 = "postgres"
-  engine_version         = "14.5"
-  username               = "postgres"
-  password               = var.db_password
-  db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
-  publicly_accessible    = true
-  skip_final_snapshot    = true
+########### OUTPUTS #############
+
+output "alb_arn" {
+  description = "The ARN of the Application Load Balancer"
+  value       = aws_alb.application_load_balancer.arn
 }
 
+output "alb_dns_name" {
+  description = "The DNS name of the Application Load Balancer"
+  value       = aws_alb.application_load_balancer.dns_name
+}
+
+output "alb_hosted_zone_id" {
+  description = "The canonical hosted zone ID of the Application Load Balancer (to be used in Route 53 Record Sets)"
+  value       = aws_alb.application_load_balancer.zone_id
+}
