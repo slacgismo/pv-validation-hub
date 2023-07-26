@@ -23,8 +23,18 @@ Following those steps, you should now be able to access your local development v
 
 You can also manually install all the services locally for faster developmental iterations at your own discretion.
 
-**TODO**
-Add steps for running preloaders, and for adding django admin.
+### Additional Prep
+
+There are some additional steps to complete now that you have the validation hub up and running on your system. In the ```s3Emulator/preload``` directory, you will find several script files that will preload the database with all the basic elements needs to use an analysis as well as to create a test user and an example submission. If you set up a local build instead of the docker network, you will have to modify the scripts and configurations on your own.
+
+- First, you will need to create a super-user. Open a shell in the api using either ```docker exec <container-id> bash``` or by using the terminal button next to the api container in docker desktop. Then run ```python3 manage.py createsuperuser``` and follow each of the steps. Since this is for local use, choose very simple and easy values to remember.
+- Next, open ```localhost:8005/admin``` on your browser. You can sign in with the credentials you just created. This will let you see everything you will do next to populate the database.
+- Now, you will need to open a shell in the s3 emulator container, and run the following commands.
+~~~
+cd preload
+./loaddb.sh
+~~~
+- After the entire script has finished running, you will see "preload complete" print onto the terminal. This will now have the entire validation hub prepped for local development and use. 
 
 ## Jira link:
 

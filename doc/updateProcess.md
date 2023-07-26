@@ -57,7 +57,7 @@ The md files must follow a standardized naming scheme with the containing folder
 {
     ... {
         1 {
-            datasetmd,
+            dataset.md,
             rules.md,
             overview.md,
             summary.md
