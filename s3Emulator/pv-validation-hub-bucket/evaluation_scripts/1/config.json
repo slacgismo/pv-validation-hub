@@ -1,5 +1,6 @@
 {
 	"category_name": "time_shifts",
+	"function_name": "detect_time_shifts",
 	"comparison_type": "time_series",
 	"performance_metrics": [ "runtime", "mean_absolute_error" ],
 	"allowable_kwargs": [ "latitude", "longitude", "data_sampling_frequency" ],
