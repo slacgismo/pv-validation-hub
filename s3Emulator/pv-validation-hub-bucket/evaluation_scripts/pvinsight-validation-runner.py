@@ -193,7 +193,6 @@ def run(module_to_import_s3_path,
 
     # Make GET requests to the Django API to get the system metadata and validation tests
     system_metadata_response = requests.get('http://api:8005/system_metadata/systemmetadata/')
-    validation_tests_response = requests.get('http://api:8005/validation_tests/')
 
     # Convert the responses to DataFrames
 
@@ -202,32 +201,12 @@ def run(module_to_import_s3_path,
     # tilt, etc.)
     system_metadata = pd.DataFrame(system_metadata_response.json())
 
-    # Validation tests: This file represents the validation_tests table,
-    # which is the master table associated with each of the tests run on the
-    # PVInsight Validation Hub. This table contains information on test type
-    # (example: time_shifts, az_tilt_detection, etc), as well as function name
-    # for each test type, performance metrics outputs (how to assess
-    # test performance), as well as expected function outputs and function
-    # output types (in order). This provides a standardized template of
-    # what to expect (input, output, naming conventions) for each test
-    validation_tests = pd.DataFrame(validation_tests_response.json())
-
-    # Log the head of the validation_tests DataFrame
-    logger.info("\nvalidation_tests head: \n%s", validation_tests.head())
-
-    # Log all column names of the validation_tests DataFrame
-    logger.info("\nvalidation_tests columns: \n%s", validation_tests.columns)
-
-    # Log the validation_tests DataFrame
-    logger.info("\nvalidation_tests: \n%s", validation_tests)
-
     # File category link: This file represents the file_category_link table,
-    # which links specific files in the file_metadata table to categories in
-    # the validation_tests table. This table exists specifically to allow for
+    # which links specific files in the file_metadata table.
+    # This table exists specifically to allow for
     # many-to-many relationships, where one file can link to multiple
     # categories/tests, and multiple categories/tests can link to multiple
-    # files. This table exists solely to link these two tables together
-    # when performing testing.
+    # files.
     file_test_link = pd.read_csv(file_test_link_path)
 
     # Get the unique file ids
