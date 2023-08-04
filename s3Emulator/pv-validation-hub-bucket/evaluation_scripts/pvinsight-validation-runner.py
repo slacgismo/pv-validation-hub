@@ -1,12 +1,12 @@
 """
-Runner script for assessing the time shift validation algorithm. In this
+Runner script for assessing validation algorithms. In this
 script, the following occurs:
     1. Pull down all of the metadata associated with the data sets
     2. Loop through all metadata cases, pull down the associated data, and
     run the associated submission on it
     3. Aggregate the results for the entire data set and generate assessment 
     metrics. Assessment metrics will vary based on the type of analysis being
-    run. For this analysis, the following is calculated:
+    run. Some examples include:
         1. Mean Absolute Error between predicted time shift series and ground
         truth time series (in minutes)
         2. Average run time for each data set (in seconds)
@@ -146,7 +146,9 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
-def run(module_to_import_s3_path, config_file_path,
+def run(module_to_import_s3_path,
+        config_file_path,
+        file_test_link_path,
         optional_result_data_dir=None):
     # If a path is provided, set the directories to that path, otherwise use default
     if optional_result_data_dir is not None:
@@ -226,10 +228,10 @@ def run(module_to_import_s3_path, config_file_path,
     # categories/tests, and multiple categories/tests can link to multiple
     # files. This table exists solely to link these two tables together
     # when performing testing.
-    file_category_link = pd.read_csv(data_dir + "/file_test_link.csv")
+    file_test_link = pd.read_csv(file_test_link_path)
 
     # Get the unique file ids
-    unique_file_ids = file_category_link['file_id'].unique()
+    unique_file_ids = file_test_link['file_id'].unique()
 
     # File metadata: This file represents the file_metadata table, which is
     # the master table for files associated with different tests (az-tilt,
@@ -250,31 +252,18 @@ def run(module_to_import_s3_path, config_file_path,
     with open(config_file_path) as f:
         config_data = json.load(f)
 
-    # Link the above tables together to get all of the files associated
-    # with the time_shift category in the validation_tests table.
-    time_shift_test_information = dict(validation_tests[
-        validation_tests['category_name'] == 
-        config_data['category_name']].iloc[0])
     # Get the associated metrics we're supposed to calculate
-    performance_metrics = ast.literal_eval(time_shift_test_information[
-        'performance_metrics'])
-    # Get all of the linked files for time shift analysis via a series
-    # of dataframe joins
-    associated_file_ids = list(file_category_link[
-        file_category_link['category_id'] ==
-        time_shift_test_information['category_id']]['file_id'])
-    associated_files = file_metadata[file_metadata['file_id'].isin(
-        associated_file_ids)]
-    # Get the information associated with the module to run the tests
+    performance_metrics = config_data['performance_metrics']
+
     # Get the name of the function we want to import associated with this
     # test
-    function_name = time_shift_test_information['function_name']
+    function_name = config_data['function_name']
     # Import designated module via importlib
     module = import_module(module_name)
     function = getattr(module, function_name)
     function_parameters = list(inspect.signature(function).parameters)
     # Loop through each file and generate predictions
-    for index, row in associated_files.iterrows():
+    for index, row in file_metadata.iterrows():
         # Get file_name, which will be pulled from database or S3 for
         # each analysis
         file_name = row['file_name']
@@ -312,8 +301,6 @@ def run(module_to_import_s3_path, config_file_path,
         # Filter the kwargs dictionary based on required function params
         kwargs = dict((k, kwargs_dict[k]) for k in function_parameters
                       if k in kwargs_dict)
-        # Get the performance metrics that we want to quantify
-        performance_metrics = config_data['performance_metrics']
         # Run the routine (timed)
         start_time = time.time()
         data_outputs = function(time_series, **kwargs)
