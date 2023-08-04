@@ -56,6 +56,17 @@ class InsertAnalysis:
                                          'azimuth', 'tilt', 'elevation',
                                          'latitude', 'longitude',
                                          'tracking']]
+    
+    def getOverlappingFiles(self):
+        """
+        Return a dataframe files that are in both the new load and previously
+        entered into the database.
+        """
+        overlapping_files = pd.merge(self.new_file_metadata_df[['file_name']],
+                                     self.db_file_metadata_df[['file_name', 'file_id']],
+                                     on=['file_name'])
+        return overlapping_files
+        
 
     def buildFileMetadata(self, s3_path):
         """
@@ -71,9 +82,7 @@ class InsertAnalysis:
         Pandas dataframe: Pandas df ready for insert into the file_metadata
             table.
         """
-        overlapping_files = pd.merge(self.new_file_metadata_df[['file_name']],
-                                     self.db_file_metadata_df[['file_name']],
-                                     on=['file_name'])
+        overlapping_files = self.getOverlappingFiles()
         # Remove the repeat systems from the metadata we want to insert
         self.new_file_metadata_df = self.new_file_metadata_df[
             ~self.new_file_metadata_df[
@@ -145,6 +154,11 @@ class InsertAnalysis:
         """
         file_test_link = pd.Series(self.new_file_metadata_df['file_id'],
                                    name='file_id')
+        # Add back any files that were previously entered into the DB and
+        # have existing file ID's
+        overlapping_files = self.getOverlappingFiles()
+        if len(overlapping_files) > 0:
+            file_test_link = file_test_link.append(overlapping_files['file_id'])
         # Write to the folder
         file_test_link.to_csv(os.path.join(new_evaluation_folder,
                                            "file_test_link.csv"))
