@@ -7,7 +7,19 @@ import boto3
 import requests
 import sys
 
-is_s3_emulation = True
+import os
+
+def is_local():
+    """
+    Checks if the application is running locally or in an Amazon ECS environment.
+
+    Returns:
+        bool: True if the application is running locally, False otherwise.
+    """
+    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ
+
+is_emulation = is_local()
+
 
 @deconstructible
 class RandomFileName(object):
@@ -22,18 +34,10 @@ class RandomFileName(object):
         filename = os.path.join(path, filename)
         return filename
 
-# Add this function to utils.py
-def get_environment():
-    try:
-        environment = os.environ["ENVIRONMENT"]
-    except KeyError:
-        environment = "LOCAL"
-    return environment
-
 
 # Modify the upload_to_s3_bucket function
 def upload_to_s3_bucket(bucket_name, local_path, upload_path):
-    if is_s3_emulation:
+    if is_emulation:
         upload_path = os.path.join(bucket_name, upload_path)
         s3_file_full_path = 'http://s3:5000/put_object/' + upload_path
         with open(local_path, "rb") as f:

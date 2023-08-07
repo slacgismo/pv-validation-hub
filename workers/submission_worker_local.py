@@ -16,7 +16,17 @@ import time
 import urllib.request
 import inspect
 
-is_s3_emulation = True
+def is_local():
+    """
+    Checks if the application is running locally or in an Amazon ECS environment.
+
+    Returns:
+        bool: True if the application is running locally, False otherwise.
+    """
+    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ
+
+is_s3_emulation = is_local()
+
 
 
 SUBMITTING = "submitting"

@@ -5,6 +5,7 @@ on:
     branches: [ develop ]
   pull_request:
     branches: [ develop ]
+  workflow_dispatch:
 
 env:
   applicationfolder: valhub
@@ -14,18 +15,18 @@ env:
 
 
 jobs:
-  build-fe:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout Repository
+#  build-fe:
+#    name: Build and Test
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#        name: Checkout Repository
 
-      - name: install
-        run: |
-          cd frontend
-          export DOCKER_BUILDKIT=1
-          docker build -t pv/val:tag -f Dockerfile .
+#      - name: install
+#        run: |
+#          cd frontend
+#          export DOCKER_BUILDKIT=1
+#          docker build -t pv/val:tag -f Dockerfile .
 
 # Needs to include aws login step as well
 #      - name: build
@@ -48,15 +49,15 @@ jobs:
           export DOCKER_BUILDKIT=1
           docker build --build-arg admin_username="placeholder" --build-arg admin_password="replaceme" --build-arg djangosk="placeholder" -t pv/val:tag -f Dockerfile .
 
-  build-worker:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout Repository
+#  build-worker:
+#    name: Build and Test
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#        name: Checkout Repository
 
-      - name: build
-        run: |
-          cd workers
-          export DOCKER_BUILDKIT=1
-          docker build -t pv/val:tag -f Dockerfile .
+#      - name: build
+#        run: |
+#          cd workers
+#          export DOCKER_BUILDKIT=1
+#          docker build -t pv/val:tag -f Dockerfile .

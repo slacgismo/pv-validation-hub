@@ -19,7 +19,7 @@ import botocore
 import logging
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket, get_environment
+from base.utils import upload_to_s3_bucket, is_emulation
 from accounts.models import Account
 from .models import Submission
 from urllib.parse import urljoin
@@ -298,8 +298,7 @@ def get_submission_results(request, submission_id):
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
     ## Update for actual s3 usage as well
-    environment = get_environment()
-    if environment == "LOCAL":
+    if is_emulation:
         storage_endpoint_url = "http://s3:5000/"
         static_endpoint_url = "http://localhost:5000/"
         directory_url = urljoin(storage_endpoint_url, f"{bucket_name}/{results_directory}/list")
