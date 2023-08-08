@@ -1,6 +1,7 @@
 import { Typography } from '@mui/material';
 import { Box, Container } from '@mui/system';
 import PropTypes from 'prop-types';
+import ReactMarkdown from 'react-markdown';
 
 export default function Rules(props) {
 
@@ -11,7 +12,7 @@ export default function Rules(props) {
                     {"Rules for " + props.title}
                 </Typography>
                 <Typography variant='body2' sx={{marginTop: 2}}>
-                    {props.description}
+                    <ReactMarkdown source={props.description} />
                 </Typography>
             </Box>
         </Container >

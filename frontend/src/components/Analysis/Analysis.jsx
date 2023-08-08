@@ -1,6 +1,6 @@
 import { Box, Grid, Button, Tab, Tabs, Typography, CircularProgress } from "@mui/material";
 import { Container } from "@mui/system";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TabPanel from "../GlobalComponents/TabPanel/TabPanel";
 import Data from "./Data/Data";
 import { CommentProvider } from "./Discussion/CommentContext";
@@ -17,6 +17,7 @@ import BlurryPage from "../GlobalComponents/BlurryPage/blurryPage";
 import { AnalysisService } from "../../services/analysis_service";
 import { faker } from "@faker-js/faker";
 import { useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 
 export default function Analysis() {
     const navigate = useNavigate();
@@ -28,6 +29,48 @@ export default function Analysis() {
     const [isOpen, setIsOpen] = useState(false);
 
     const [isLoading, error, card, analysis_id] = AnalysisService.useGetCardDetails();
+
+    // Set the md descriptions
+
+    const [datasetDescription, setDatasetDescription] = useState("");
+    const [longDescription, setLongDescription] = useState("");
+    const [shortDescription, setShortDescription] = useState("");
+    const [rulesetDescription, setRulesetDescription] = useState("");
+
+    useEffect(() => {
+        import(`../../public/assets/${analysis_id}/dataset.md`)
+            .then(res => {
+                fetch(res.default)
+                    .then(res => res.text())
+                    .then(res => setDatasetDescription(res))
+                    .catch(err => console.log(err));
+            })
+            .catch(err => console.log(err));
+        import(`../../public/assets/${analysis_id}/longdesc.md`)
+            .then(res => {
+                fetch(res.default)
+                    .then(res => res.text())
+                    .then(res => setLongDescription(res))
+                    .catch(err => console.log(err));
+            })
+            .catch(err => console.log(err));
+        import(`../../public/assets/${analysis_id}/shortdesc.md`)
+            .then(res => {
+                fetch(res.default)
+                    .then(res => res.text())
+                    .then(res => setShortDescription(res))
+                    .catch(err => console.log(err));
+            })
+            .catch(err => console.log(err));
+        import(`../../public/assets/${analysis_id}/ruleset.md`)
+            .then(res => {
+                fetch(res.default)
+                    .then(res => res.text())
+                    .then(res => setRulesetDescription(res))
+                    .catch(err => console.log(err));
+            })
+            .catch(err => console.log(err));
+    });
 
     const closeModal = () => {
         setIsOpen(false);
@@ -70,7 +113,7 @@ export default function Analysis() {
                     </Box>
                     <Box sx={{ flexGrow: 1, marginTop: 2, marginLeft: 2 }}>
                         <Typography color={"white"} variant="body2" gutterBottom>
-                            {card.short_description}
+                            <ReactMarkdown source={shortDescription} />
                         </Typography>
                     </Box>
                 </Box>
@@ -117,7 +160,7 @@ export default function Analysis() {
                     <TabPanel value={value} index={0}>
                         <Overview
                             title={"Overview of " + card.analysis_name}
-                            description={card.description}
+                            description={longDescription}
                         />
                     </TabPanel>
 
@@ -127,8 +170,7 @@ export default function Analysis() {
                                 <BlurryPage />
                                 :
                                 <Data
-                                    data_description={card.dataset_description}
-                                    downloadable_link={card.evaluation_script}
+                                    data_description={datasetDescription}
                                 />
                         }
                     </TabPanel>
@@ -142,7 +184,7 @@ export default function Analysis() {
                     <TabPanel value={value} index={3}>
                         <Rules
                             title={card.analysis_name}
-                            description={card.ruleset}
+                            description={rulesetDescription}
                         />
                     </TabPanel>
 

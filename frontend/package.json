@@ -19,6 +19,7 @@
     "react-dom": "^18.2.0",
     "react-drag-drop-files": "^2.3.8",
     "react-frame-component": "^5.2.3",
+    "react-markdown": "^8.0.7",
     "react-modal": "^3.16.1",
     "react-router-dom": "^6.4.2",
     "react-scripts": "^5.0.1",

@@ -1,6 +1,7 @@
 import { Box, Button, Grid, Typography } from "@mui/material";
 import { DashboardService } from "../../../services/dashboard_service";
 import PropTypes from 'prop-types';
+import ReactMarkdown from "react-markdown";
 
 export default function Data(props) {
 
@@ -21,7 +22,7 @@ export default function Data(props) {
                         Dataset Description
                     </Typography>
                     <Typography variant="body2">
-                        {props.data_description}
+                        <ReactMarkdown source={props.data_description} />
                     </Typography>
                 </Box>
             </Grid>

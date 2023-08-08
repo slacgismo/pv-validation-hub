@@ -2,6 +2,7 @@ import { Grid, Typography } from '@mui/material';
 import { Box, Container } from '@mui/system';
 import PropTypes from 'prop-types';
 import { DashboardService } from '../../../services/dashboard_service';
+import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 
 export default function Overview(props) {
 
@@ -12,7 +13,7 @@ export default function Overview(props) {
                     {props.title}
                 </Typography>
                 <Typography variant='body2'>
-                    {props.description}
+                    <ReactMarkdown source={props.description} />
                 </Typography>
             </Box>
             <Grid container spacing={2} sx={{marginTop: 6}}>

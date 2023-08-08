@@ -1,4 +1,4 @@
-import importlib
+from importlib import import_module
 import subprocess
 import traceback
 import zipfile
@@ -14,16 +14,146 @@ import signal
 import json
 import time
 import urllib.request
-import django
-from django.utils import timezone
+import inspect
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'valhub.settings'
+def is_local():
+    """
+    Checks if the application is running locally or in an Amazon ECS environment.
 
-django.setup()
+    Returns:
+        bool: True if the application is running locally, False otherwise.
+    """
+    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ
 
-from analyses.models import Analysis
-from submissions.models import Submission
+is_s3_emulation = is_local()
 
+
+
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
+
+
+def pull_from_s3(s3_file_path):
+    if s3_file_path.startswith('/'):
+        s3_file_path = s3_file_path[1:]
+
+    if is_s3_emulation:
+        s3_file_full_path = 'http://s3:5000/get_object/' + s3_file_path
+        # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
+    else:
+        s3_file_full_path = 's3://' + s3_file_path
+    
+    target_file_path = os.path.join('/tmp/', s3_file_full_path.split('/')[-1])
+
+    if is_s3_emulation:
+        r = requests.get(s3_file_full_path, stream=True)
+        if r.status_code != 200:
+            print(f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}", file=sys.stderr)
+        with open(target_file_path, "wb") as f:
+            f.write(r.content)
+    else:
+        raise NotImplementedError("real s3 mode not implemented")
+
+    return target_file_path
+
+
+def push_to_s3(local_file_path, s3_file_path):
+    if s3_file_path.startswith('/'):
+        s3_file_path = s3_file_path[1:]
+
+    if is_s3_emulation:
+        s3_file_full_path = 'http://s3:5000/put_object/' + s3_file_path
+    else:
+        s3_file_full_path = 's3://' + s3_file_path
+    
+    if is_s3_emulation:
+        with open(local_file_path, "rb") as f:
+            file_content = f.read()
+            r = requests.put(s3_file_full_path, data=file_content)
+            if r.status_code != 204:
+                print(f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
+    else:
+        raise NotImplementedError("real s3 mode not implemented")
+    
+
+def list_s3_bucket(s3_dir):
+    if s3_dir.startswith('/'):
+        s3_dir = s3_dir[1:]
+
+    if is_s3_emulation:
+        s3_dir_full_path = 'http://s3:5000/list_bucket/' + s3_dir
+        # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
+    else:
+        s3_dir_full_path = 's3://' + s3_dir
+
+    all_files = []
+    if is_s3_emulation:
+        r = requests.get(s3_dir_full_path)
+        ret = r.json()
+        for entry in ret['Contents']:
+            all_files.append(os.path.join(s3_dir.split('/')[0], entry['Key']))
+    
+    return all_files
+
+
+def update_submission_status(analysis_id, submission_id, new_status):
+    r = requests.put(f'http://api:8005/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}',
+                     data={'status': new_status})
+    if r.status_code != 200:
+        print(f"error update submission status to {new_status}, status code {r.status_code} {r.content}", file=sys.stderr)
+
+
+def update_submission_result(analysis_id, submission_id, result_json):
+    headers = {"Content-Type": "application/json"}
+    r = requests.put(f'http://api:8005/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}',
+                     json=result_json, headers=headers)
+    if r.status_code != 200:
+        print(f"error update submission result to {result_json}, status code {r.status_code} {r.content}", file=sys.stderr)
+
+
+def convert_compressed_file_path_to_directory(compressed_file_path):
+    path_components = compressed_file_path.split('/')
+    path_components[-1] = path_components[-1].split('.')[0]
+    path_components = '/'.join(path_components)
+    return path_components
+
+
+def get_file_extension(path):
+    return path.split('/')[-1].split('.')[-1]
+
+
+def decompress_file(path):
+    if (get_file_extension(path) == 'gz'):
+        with tarfile.open(path, "r:gz") as tar:
+            tar.extractall(convert_compressed_file_path_to_directory(path))
+    else:
+        with zipfile.ZipFile(path, 'r') as zip_ref:
+            zip_ref.extractall(convert_compressed_file_path_to_directory(path))
+    return convert_compressed_file_path_to_directory(path)
+
+
+def get_module_file_name(module_dir):
+    for root, _, files in os.walk(module_dir, topdown=True):
+        for name in files:
+            if name.endswith('.py'):
+                return name.split('/')[-1]
+
+
+def get_module_name(module_dir):
+    return get_module_file_name(module_dir)[:-3]
+
+
+
+
+
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
 
 # base
 BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
@@ -69,7 +199,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-django.db.close_old_connections()
+# django.db.close_old_connections()
 
 
 class GracefulKiller:
@@ -141,17 +271,6 @@ def delete_zip_file(download_location):
         )
         traceback.print_exc()
 
-# def return_file_url_per_environment(url):
-#     if (
-#         DJANGO_SETTINGS_MODULE == "settings.dev"
-#         or DJANGO_SETTINGS_MODULE == "settings.test"
-#     ):
-#         base_url = (
-#             f"http://{settings.DJANGO_SERVER}:{settings.DJANGO_SERVER_PORT}"
-#         )
-#         url = "{0}{1}".format(base_url, url)
-#     return url
-
 
 def delete_submission_data_directory(location):
     """
@@ -199,83 +318,68 @@ def download_and_extract_zip_file(file_name, download_location, extract_location
 ############ analysis functions #############
 
 
-def extract_analysis_data(analysis):
-    analysis_data_directory = ANALYSIS_DATA_DIR.format(
-        analysis_id=analysis.analysis_id
-    )
-    # create analysis directory as package
-    create_dir_as_python_package(analysis_data_directory)
+def extract_analysis_data(analysis_id, current_evaluation_dir):
 
-    # "https://github.com/slacgismo/pv-validation-hub/raw/mengdiz/examples/analysis_1.zip"
-    # print(analysis.evaluation_script)
-    # print(analysis.evaluation_script.url)
-    evaluation_script_url = analysis.evaluation_script  # .url
-    # evaluation_script_url = return_file_url_per_environment(
-    #     evaluation_script_url
-    # )
+    # download evaluation scripts and requirements.txt etc.
+    files = list_s3_bucket(f'pv-validation-hub-bucket/evaluation_scripts/{analysis_id}/')
+    for file in files:
+        tmp_path = pull_from_s3(file)
+        shutil.move(tmp_path, os.path.join(current_evaluation_dir, tmp_path.split('/')[-1]))
+    # create data directory and sub directories
+    data_dir = os.path.join(current_evaluation_dir, 'data')
+    file_data_dir = os.path.join(data_dir, 'file_data')
+    validation_data_dir = os.path.join(data_dir, 'validation_data')
+    os.makedirs(data_dir, exist_ok=True)
+    os.makedirs(file_data_dir, exist_ok=True)
+    os.makedirs(validation_data_dir, exist_ok=True)
+    # move file_test_link
+    shutil.move(os.path.join(current_evaluation_dir, 'file_test_link.csv'), os.path.join(data_dir, 'file_test_link.csv'))
+    # download data files
+    analyticals = list_s3_bucket(f'pv-validation-hub-bucket/data_files/analytical/')
+    for analytical in analyticals:
+        tmp_path = pull_from_s3(analytical)
+        shutil.move(tmp_path, os.path.join(file_data_dir, tmp_path.split('/')[-1]))
+    ground_truths = list_s3_bucket(f'pv-validation-hub-bucket/data_files/ground_truth/')
+    for ground_truth in ground_truths:
+        tmp_path = pull_from_s3(ground_truth)
+        shutil.move(tmp_path, os.path.join(validation_data_dir, tmp_path.split('/')[-1]))
 
-    # download and extract analysis with requirements.txt, evaluation_script, annotation_file, test_data
-    analysis_zip_file = os.path.join(
-        analysis_data_directory, "analysis_{}.zip".format(analysis.analysis_id)
-    )
-    # print("analysis_zip_file: {}".format(analysis_zip_file))
-    download_and_extract_zip_file("evaluation_scripts/analysis_{}.zip".format(analysis.analysis_id), analysis_zip_file,
-                                  analysis_data_directory, "")
 
-    annotation_file_name = analysis.annotation_file_name
-    ANNOTATION_FILE_NAME_MAP[analysis.analysis_id] = annotation_file_name
+def create_current_evaluation_dir(dir_name='current_evaluation'):
+    local_dir = dir_name
+    logger.info(f'create local folder {local_dir}')
+    current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_dir)
+    if not os.path.exists(current_evaluation_dir):
+        os.makedirs(current_evaluation_dir)
+    return current_evaluation_dir
 
-    # install requirements
+
+def load_analysis(analysis_id, current_evaluation_dir):
+
+    logger.info("pull and extract analysis")
+    extract_analysis_data(analysis_id, current_evaluation_dir)
+    logger.info("install analysis dependency")
     try:
-        requirements_location = os.path.join(
-            analysis_data_directory, "requirements.txt")
-        if os.path.isfile(requirements_location):
-            subprocess.check_output(
-                [sys.executable, "-m", "pip", "install", "-r", requirements_location])
-        else:
-            logger.info(
-                "No custom requirements for analysis {}".format(analysis.analysis_id))
-    except Exception as e:
-        logger.error(e)
+        subprocess.check_call(["python", "-m", "pip", "install", "-r", os.path.join(current_evaluation_dir, 'requirements.txt')])
+        logger.info("analysis dependencies installed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error("error installing analysis dependencies:", e)
+    # import analysis runner as a module
 
-    # import analysis as a module
-    try:
-        importlib.invalidate_caches()
-        analysis_module = importlib.import_module(
-            ANALYSIS_IMPORT_STRING.format(analysis_id=analysis.analysis_id)
-        )
-        EVALUATION_SCRIPTS[analysis.analysis_id] = analysis_module
-    except Exception:
-        logger.exception(
-            "{} Exception raised while creating Python module for analysis_id: {}".format(
-                WORKER_LOGS_PREFIX, analysis.analysis_id
-            )
-        )
-        raise
+    sys.path.insert(0, current_evaluation_dir)
+    runner_module_name = 'pvinsight-time-shift-runner'
+    logger.info(f'import runner module {runner_module_name}')
+    analysis_module = import_module(runner_module_name)
+    sys.path.pop(0)
+
+    analysis_function = getattr(analysis_module, 'run')
+    function_parameters = list(inspect.signature(analysis_function).parameters)
+    logger.info(f'analysis function parameters: {function_parameters}')
+    return analysis_function, function_parameters
+    
 
 
-def load_analysis(analysis):
-    # data, eval_script
-    create_dir_as_python_package(ANALYSIS_DATA_BASE_DIR)
-    # phases = challenge.challengephase_set.all()
-    extract_analysis_data(analysis)
-
-
-def load_analysis_and_return_max_submissions(q_params):
-    try:
-        analysis = Analysis.objects.get(**q_params)
-        # analysis = Analysis()
-        # analysis.analysis_id = 1
-    except Analysis.DoesNotExist:
-        logger.exception(
-            "{} Analysis with pk {} doesn't exist".format(
-                WORKER_LOGS_PREFIX, q_params["pk"]
-            )
-        )
-        raise
-    load_analysis(analysis)
-    maximum_concurrent_submissions = analysis.max_concurrent_submission_evaluation
-    return maximum_concurrent_submissions, analysis
+    
 
 
 ############ submission functions #############
@@ -400,23 +504,46 @@ def process_submission_message(message):
     Extracts the submission related metadata from the message
     and send the submission object for evaluation
     """
-    analysis_id = message.get("analysis_pk")
-    # phase_id = message.get("phase_pk")
-    submission_id = message.get("submission_pk")
-    submission_instance = extract_submission_data(submission_id)
+    analysis_id = int(message.get("analysis_pk"))
+    submission_id = int(message.get("submission_pk"))
+    user_id = int(message.get("user_pk"))
+    submission_filename = message.get("submission_filename")
 
-    # so that the further execution does not happen
-    if not submission_instance:
-        return
+    current_evaluation_dir = create_current_evaluation_dir()
 
-    run_submission(
-        analysis_id,
-        submission_instance
-    )
-    # Delete submission data after processing submission
-    delete_submission_data_directory(
-        SUBMISSION_DATA_DIR.format(submission_id=submission_id)
-    )
+    analysis_function, function_parameters = load_analysis(analysis_id, current_evaluation_dir)
+    logger.info(f'function parameters returns {function_parameters}')
+
+    # execute the runner script
+    # assume ret indicates the directory of result of the runner script
+    argument = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}'
+    logger.info(f'execute runner module function with argument {argument}')
+
+    ret = analysis_function(argument, current_evaluation_dir)
+    logger.info(f'runner module function returns {ret}')
+
+    logger.info(f'update submission status to {FINISHED}')
+    update_submission_status(analysis_id, submission_id, FINISHED)
+
+    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ['time_series', 'latitude', 'longitude', 'data_sampling_frequency']}
+    res_json = ret
+    logger.info(f'update submission result to {res_json}')
+    update_submission_result(analysis_id, submission_id, res_json)
+
+    logger.info(f'upload result files to s3')
+   
+    res_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'current_evaluation/results')
+    for dir_path, dir_names, file_names in os.walk(res_files_path):
+        for file_name in file_names:
+            full_file_name = os.path.join(dir_path, file_name)
+            relative_file_name = full_file_name[len(f'{res_files_path}/'):]
+            s3_full_path = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}'
+            logger.info(f'upload result file "{full_file_name}" to s3 path "{s3_full_path}"')
+            push_to_s3(full_file_name, s3_full_path)
+
+    # remove the current evaluation dir
+    logger.info(f'remove directory {current_evaluation_dir}')
+    shutil.rmtree(current_evaluation_dir)
 
 
 def process_submission_callback(body):
@@ -446,10 +573,14 @@ def get_or_create_sqs_queue(queue_name):
         Returns the SQS Queue object
     """
     # Use the Docker endpoint URL for local development
-    if os.environ.get("DEPLOYMENT_ENVIRONMENT") == "local":
+    if is_s3_emulation:
         sqs = boto3.resource(
             "sqs",
-            endpoint_url='http://localhost:9324'
+            endpoint_url='http://sqs:9324',
+            region_name='elasticmq',
+            aws_secret_access_key='x',
+            aws_access_key_id='x',
+            use_ssl=False
         )
     # Use the production AWS environment for other environments
     else:
@@ -461,7 +592,7 @@ def get_or_create_sqs_queue(queue_name):
         )
 
     if queue_name == "":
-        queue_name = "valhub_submission_queue"
+        queue_name = "valhub_submission_queue.fifo"
     # Check if the queue exists. If no, then create one
     try:
         queue = sqs.get_queue_by_name(QueueName=queue_name)
@@ -502,35 +633,16 @@ def main():
             WORKER_LOGS_PREFIX, BASE_TEMP_DIR
         )
     )
-    create_dir_as_python_package(COMPUTE_DIRECTORY_PATH)
-    sys.path.append(COMPUTE_DIRECTORY_PATH)
-
-    q_params = {}
-    # q_params["end_date__gt"] = timezone.now()
-
-    # primary key
-    analysis_pk = get_analysis_pk()  # os.environ.get("ANALYSIS_PK")
-    if analysis_pk:
-        q_params["pk"] = analysis_pk
-
-    # load analysis
-    maximum_concurrent_submissions, analysis = load_analysis_and_return_max_submissions(
-        q_params)
-    # print(maximum_concurrent_submissions)
-
-    # create submission directory
-    create_dir_as_python_package(SUBMISSION_DATA_BASE_DIR)
-
-    # create message queue
-    queue_name = os.environ.get(
-        "CHALLENGE_QUEUE", "valhub_submission_queue_{}.fifo".format(analysis_pk))
-    print("queue_name: {}".format(queue_name))
-    queue = get_or_create_sqs_queue(queue_name)
+    queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
     # print(queue)
 
     # infinite loop to listen and process messages
     while True:
-        for message in queue.receive_messages():
+        messages = queue.receive_messages(
+            MaxNumberOfMessages=1,
+            VisibilityTimeout=7200
+        )
+        for message in messages:
             logger.info(
                 "{} Processing message body: {}".format(
                     WORKER_LOGS_PREFIX, message.body
@@ -547,28 +659,7 @@ def main():
 
 
 if __name__ == "__main__":
+
+
     main()
     logger.info("{} Quitting Submission Worker.".format(WORKER_LOGS_PREFIX))
-
-################
-# Check if the environment.env file exists
-if not os.path.exists('environment.env'):
-    print('environment.env file not found')
-    sys.exit(1)
-
-# Read the environment.env file and extract the value of the env variable
-with open('environment.env', 'r') as f:
-    env_var = None
-    for line in f:
-        if line.startswith('env='):
-            env_var = line.strip()[4:]
-            break
-
-# Check if the env variable is set to "local"
-if env_var != 'local':
-    print('env is not set to "local"')
-    sys.exit(1)
-
-# Rerun the script if env is set to "local"
-print('env is set to "local", rerunning the script...')
-os.execv(sys.executable, ['python'] + sys.argv)
