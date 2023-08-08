@@ -13,7 +13,7 @@ export default function Overview(props) {
                     {props.title}
                 </Typography>
                 <Typography variant='body2'>
-                    <ReactMarkdown source={props.description} />
+                    <ReactMarkdown children={props.description} />
                 </Typography>
             </Box>
             <Grid container spacing={2} sx={{marginTop: 6}}>

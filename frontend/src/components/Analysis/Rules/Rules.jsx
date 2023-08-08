@@ -12,7 +12,7 @@ export default function Rules(props) {
                     {"Rules for " + props.title}
                 </Typography>
                 <Typography variant='body2' sx={{marginTop: 2}}>
-                    <ReactMarkdown source={props.description} />
+                    <ReactMarkdown children={props.description} />
                 </Typography>
             </Box>
         </Container >

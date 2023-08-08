@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
 import { faker } from "@faker-js/faker";
+import ReactMarkdown from "react-markdown";
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -67,6 +68,15 @@ export default function Dashboard() {
 }
 
 function CustomizedCard({ index, card, onClick }) {
+    const [shortDescription, setShortDescription] = useState("");
+
+    if (card.analysis_id !== undefined && card.analysis_id !== null && card.analysis_id > 0) {
+        fetch(process.env.PUBLIC_URL + `/assets/${card.analysis_id}/shortdesc.md`)
+        .then(res => res.text())
+        .then(text => setShortDescription(text))
+        .catch(err => console.log(err));
+    }
+
     return (
         <Grid item xs={2} sm={4} md={4} key={index}>
             <Card sx={{ maxWidth: 345, height: 380 }} key={card.analysis_id} onClick={() => onClick(card.analysis_id, card.analysis_name)}>
@@ -88,7 +98,7 @@ function CustomizedCard({ index, card, onClick }) {
                 />
                 <CardContent>
                     <Typography variant="body2" color="text.secondary">
-                        {card.short_description != undefined && card.short_description.length > 100 ? card.short_description.slice(0, 100) + "....." : card.short_description}
+                        <ReactMarkdown children={shortDescription != undefined && shortDescription.length > 100 ? shortDescription.slice(0, 100) + "....." : shortDescription} />
                     </Typography>
                 </CardContent>
             </Card>

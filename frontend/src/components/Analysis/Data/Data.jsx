@@ -22,7 +22,7 @@ export default function Data(props) {
                         Dataset Description
                     </Typography>
                     <Typography variant="body2">
-                        <ReactMarkdown source={props.data_description} />
+                        <ReactMarkdown children={props.data_description} />
                     </Typography>
                 </Box>
             </Grid>

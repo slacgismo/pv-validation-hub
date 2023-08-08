@@ -38,39 +38,30 @@ export default function Analysis() {
     const [rulesetDescription, setRulesetDescription] = useState("");
 
     useEffect(() => {
-        import(`../../public/assets/${analysis_id}/dataset.md`)
-            .then(res => {
-                fetch(res.default)
-                    .then(res => res.text())
-                    .then(res => setDatasetDescription(res))
-                    .catch(err => console.log(err));
-            })
+        console.log("analysis", analysis_id, typeof analysis_id)
+        if (analysis_id !== undefined && analysis_id !== null && analysis_id > 0) {
+            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/dataset.md`)
+            .then(res => res.text())
+            .then(text => setDatasetDescription(text))
             .catch(err => console.log(err));
-        import(`../../public/assets/${analysis_id}/longdesc.md`)
-            .then(res => {
-                fetch(res.default)
-                    .then(res => res.text())
-                    .then(res => setLongDescription(res))
-                    .catch(err => console.log(err));
-            })
+         
+            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/longdesc.md`)
+            .then(res => res.text())
+            .then(text => setLongDescription(text))
             .catch(err => console.log(err));
-        import(`../../public/assets/${analysis_id}/shortdesc.md`)
-            .then(res => {
-                fetch(res.default)
-                    .then(res => res.text())
-                    .then(res => setShortDescription(res))
-                    .catch(err => console.log(err));
-            })
+         
+            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/shortdesc.md`)
+            .then(res => res.text())
+            .then(text => setShortDescription(text))
             .catch(err => console.log(err));
-        import(`../../public/assets/${analysis_id}/ruleset.md`)
-            .then(res => {
-                fetch(res.default)
-                    .then(res => res.text())
-                    .then(res => setRulesetDescription(res))
-                    .catch(err => console.log(err));
-            })
+         
+            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/ruleset.md`)
+            .then(res => res.text())
+            .then(text => setRulesetDescription(text))
             .catch(err => console.log(err));
-    });
+         
+        }
+    }, [analysis_id]);
 
     const closeModal = () => {
         setIsOpen(false);
@@ -113,7 +104,7 @@ export default function Analysis() {
                     </Box>
                     <Box sx={{ flexGrow: 1, marginTop: 2, marginLeft: 2 }}>
                         <Typography color={"white"} variant="body2" gutterBottom>
-                            <ReactMarkdown source={shortDescription} />
+                            <ReactMarkdown children={shortDescription} />
                         </Typography>
                     </Box>
                 </Box>
