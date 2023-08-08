@@ -156,18 +156,17 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
 
 
 def run(module_to_import_s3_path,
-        current_evaluation_dir,
-        optional_result_data_dir=None):
+        current_evaluation_dir=None):
     # If a path is provided, set the directories to that path, otherwise use default
-    if optional_result_data_dir is not None:
-        results_dir = optional_result_data_dir + "/results" if not optional_result_data_dir.endswith('/') else optional_result_data_dir + "results"
-        data_dir = optional_result_data_dir + "/data" if not optional_result_data_dir.endswith('/') else optional_result_data_dir + "data"
+    if current_evaluation_dir is not None:
+        results_dir = current_evaluation_dir + "/results" if not current_evaluation_dir.endswith('/') else current_evaluation_dir + "results"
+        data_dir = current_evaluation_dir + "/data" if not current_evaluation_dir.endswith('/') else current_evaluation_dir + "data"
     else:
         results_dir = "./results"
         data_dir = "./data"
 
-    if optional_result_data_dir is not None:
-        sys.path.append(optional_result_data_dir)  # append optional_result_data_dir to sys.path
+    if current_evaluation_dir is not None:
+        sys.path.append(current_evaluation_dir)  # append current_evaluation_dir to sys.path
 
     # Ensure results directory exists
     os.makedirs(results_dir, exist_ok=True)
