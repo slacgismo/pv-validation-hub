@@ -332,8 +332,11 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(file_data_dir, exist_ok=True)
     os.makedirs(validation_data_dir, exist_ok=True)
-    # move file_test_link
-    shutil.move(os.path.join(current_evaluation_dir, 'file_test_link.csv'), os.path.join(data_dir, 'file_test_link.csv'))
+    # # move file_test_link
+    # shutil.move(os.path.join(current_evaluation_dir, 'file_test_link.csv'),
+    #             os.path.join(data_dir, 'file_test_link.csv'))
+    # shutil.move(os.path.join(current_evaluation_dir, 'config.json'),
+    #             os.path.join(data_dir, 'config.json')) 
     # download data files
     analyticals = list_s3_bucket(f'pv-validation-hub-bucket/data_files/analytical/')
     for analytical in analyticals:
@@ -364,10 +367,15 @@ def load_analysis(analysis_id, current_evaluation_dir):
         logger.info("analysis dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
         logger.error("error installing analysis dependencies:", e)
+    # Copy the validation runner and insert-analysis class into the current
+    # evaluation directory
+    shutil.copy(os.path.join('/root/worker', 'pvinsight-validation-runner.py'),
+                os.path.join(current_evaluation_dir, 'pvinsight-validation-runner.py'))
+    shutil.copy(os.path.join('/root/worker', 'insert-analysis.py'),
+                os.path.join(current_evaluation_dir, 'insert-analysis.py'))
     # import analysis runner as a module
-
     sys.path.insert(0, current_evaluation_dir)
-    runner_module_name = 'pvinsight-time-shift-runner'
+    runner_module_name = 'pvinsight-validation-runner'
     logger.info(f'import runner module {runner_module_name}')
     analysis_module = import_module(runner_module_name)
     sys.path.pop(0)
