@@ -356,7 +356,7 @@ def run(module_to_import_s3_path,
     # parameters. These params will be available as columns in the
     # 'associated_files' dataframe
     results_df_private = pd.merge(results_df,
-                                  associated_files,
+                                  file_metadata,
                                   on='file_name')
     # Filter to only the necessary columns (available via the config)
     results_df_private = results_df_private[config_data
