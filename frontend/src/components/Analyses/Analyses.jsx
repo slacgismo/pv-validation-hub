@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
 import { faker } from "@faker-js/faker";
 import ReactMarkdown from "react-markdown";
+import { isDevelopment } from "../../config/environment";
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -69,36 +70,37 @@ export default function Dashboard() {
 
 function CustomizedCard({ index, card, onClick }) {
     const [shortDescription, setShortDescription] = useState("");
+    const [cardDir, setCardDir] = useState("")
 
-    if (card.analysis_id !== undefined && card.analysis_id !== null && card.analysis_id > 0) {
-        fetch(process.env.PUBLIC_URL + `/assets/${card.analysis_id}/shortdesc.md`)
-        .then(res => res.text())
-        .then(text => setShortDescription(text))
-        .catch(err => console.log(err));
-    }
+    useEffect(() => {
+        if (card.analysis_id !== undefined && card.analysis_id !== null && 
+            (card.analysis_id > 0 || card.analysis_id === "development")) {
+                setCardDir(process.env.PUBLIC_URL + `/assets/${card.analysis_id}/cardCover.png`)
+                fetch(process.env.PUBLIC_URL + `/assets/${card.analysis_id}/shortdesc.md`)
+                .then(res => res.text())
+                .then(text => setShortDescription(text))
+                .catch(err => console.log(err))
+            } 
+    }, [card.analysis_id])
 
     return (
         <Grid item xs={2} sm={4} md={4} key={index}>
             <Card sx={{ maxWidth: 345, height: 380 }} key={card.analysis_id} onClick={() => onClick(card.analysis_id, card.analysis_name)}>
                 <CardHeader
-                    avatar={
-                        <Avatar
-                            src={faker.image.avatar()}
-                            aria-label="Analysis"
-                        />
-                    }
                     sx={{ height: 61 }}
                     title={card.analysis_name}
                 />
                 <CardMedia
                     component="img"
                     height="194"
-                    src={faker.image.abstract(640,480,true)}
+                    src={cardDir}
                     alt={card.analysis_name}
                 />
                 <CardContent>
                     <Typography variant="body2" color="text.secondary">
-                        <ReactMarkdown children={shortDescription != undefined && shortDescription.length > 100 ? shortDescription.slice(0, 100) + "....." : shortDescription} />
+                        <ReactMarkdown children={shortDescription !== undefined 
+                            && shortDescription.length > 100 
+                            ? shortDescription.slice(0, 100) + "....." : shortDescription} />
                     </Typography>
                 </CardContent>
             </Card>

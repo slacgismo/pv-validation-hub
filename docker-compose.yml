@@ -53,18 +53,18 @@ services:
     depends_on:
       - api
 
-  react-client:
-    stdin_open: true
-    build: ./frontend
-    environment:
-      HOST: 0.0.0.0
-    volumes:
-      - ./frontend:/opt/app:delegated
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
-      - s3
+#  react-client:
+#    stdin_open: true
+#    build: ./frontend
+#    environment:
+#      HOST: 0.0.0.0
+#    volumes:
+#      - ./frontend:/opt/app:delegated
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - api
+#      - s3
       
   sqs:
     image: softwaremill/elasticmq:latest

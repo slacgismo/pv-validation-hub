@@ -5,7 +5,7 @@ import client from "./api_service";
 export const AnalysisService = {
     useGetCardDetails() {
         const { analysis_id } = useParams();
-        const [analysisDetails, setAnalysisDetails] = useState();
+        const [analysisDetails, setAnalysisDetails] = useState({});
         const [isAnalysisLoading, setAnalysisIsLoading] = useState(true);
         const [analysiserror, setAnalysisError] = useState(null);
         useEffect(() => {
@@ -16,8 +16,17 @@ export const AnalysisService = {
                     setAnalysisDetails(response.data);
                 })
                 .catch(error => {
+                    if (window.location.hostname.includes('localhost') && (analysis_id === "development")) {
+                            setAnalysisDetails({
+                            "analysis_id": "development",
+                            "analysis_name": "Dev Analysis"
+                        })
+                        setAnalysisIsLoading(false);
+                        console.log("Loading development analysis")
+                    } else {
                     setAnalysisError(error);
                     setAnalysisIsLoading(false);
+                    }
                 })
         }, [analysis_id]);
         return [isAnalysisLoading, analysiserror, analysisDetails, analysis_id];

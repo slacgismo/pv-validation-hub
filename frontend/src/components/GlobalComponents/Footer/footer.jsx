@@ -43,7 +43,7 @@ const Footer = () => {
                                         align="center"
                                         variant="h6"
                                         noWrap
-                                        Href="/"
+                                        href="/"
                                         sx={{
                                             mr: 2,
                                             fontFamily: 'sans-serif',
