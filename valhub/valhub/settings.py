@@ -169,7 +169,9 @@ WSGI_APPLICATION = 'valhub.wsgi.application'
 
 try:
     db_secrets = get_secret("pvinsight-db")
-except:
+    print("Retrieved secrets:", db_secrets)
+except Exception as e:
+    print("Error retrieving secrets:", e)
     hostname = None
 else:
     db_name = db_secrets['dbInstanceIdentifier']
