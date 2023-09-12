@@ -3,7 +3,7 @@ FROM python:3.10-slim as base
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
 RUN mkdir -p .aws
-COPY $HOME/.aws /root/.aws
+COPY .aws /root/.aws
 RUN mkdir valhub
 WORKDIR /root/valhub
 COPY . .
