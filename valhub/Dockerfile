@@ -5,6 +5,8 @@ WORKDIR /root
 RUN mkdir valhub
 WORKDIR /root/valhub
 COPY . .
+RUN mkdir ~/.aws
+COPY ~/.aws ~/.aws
 
 # Set Django admin username and password
 ARG admin_username

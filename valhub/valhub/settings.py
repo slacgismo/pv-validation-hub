@@ -85,15 +85,6 @@ def get_secret(secret_name):
             print("Decode:", decoded_binary_secret)
             return decoded_binary_secret
 
-
-# build env variables
-try:
-    aws_account_credentials = get_secret("AwsAccountCredentials")
-    os.environ["AWS_SECRET_ACCESS_KEY"] = aws_account_credentials["AWS_SECRET_ACCESS_KEY"]
-    os.environ["AWS_ACCESS_KEY_ID"] = aws_account_credentials["AWS_ACCESS_KEY_ID"]
-except:
-    pass
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
