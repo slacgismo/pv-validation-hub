@@ -21,6 +21,7 @@ import json
 def get_secret(secret_name):
     region_name = "us-west-2"
     print("Start of get secret:", region_name)
+    print("Oh, and this:", secret_name)
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
