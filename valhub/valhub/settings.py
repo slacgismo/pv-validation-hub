@@ -20,6 +20,7 @@ import json
 
 def get_secret(secret_name):
     region_name = "us-west-2"
+    print("Start of get secret:", region_name)
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -68,13 +69,16 @@ def get_secret(secret_name):
     else:
         # Decrypts secret using the associated KMS key.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
+        print("Else block")
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
             secret = json.loads(secret)
+            print("secret:",secret)
             return secret
         else:
             decoded_binary_secret = base64.b64decode(
                 get_secret_value_response['SecretBinary'])
+            print("Decode:", decoded_binary_secret)
             return decoded_binary_secret
 
 
