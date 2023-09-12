@@ -39,6 +39,7 @@ def get_secret(secret_name):
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
+        print("Wow, really? Narrowed down a lot.", get_secret_value_response)
     except ClientError as e:
         if e.response['Error']['Code'] == 'DecryptionFailureException':
             # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
