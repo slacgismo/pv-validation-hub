@@ -28,12 +28,14 @@ def get_secret(secret_name):
         service_name='secretsmanager',
         region_name=region_name
     )
+    print("Session started")
 
     # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
     # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
     # We rethrow the exception by default.
 
     try:
+        print("Pre get value")
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
