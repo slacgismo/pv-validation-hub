@@ -1,12 +1,14 @@
 FROM python:3.10-slim as base
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
+WORKDIR $HOME
+RUN mkdir .aws
+COPY $HOME/.aws $HOME/.aws
+
 WORKDIR /root
 RUN mkdir valhub
 WORKDIR /root/valhub
 COPY . .
-RUN mkdir ~/.aws
-COPY ~/.aws ~/.aws
 
 # Set Django admin username and password
 ARG admin_username
