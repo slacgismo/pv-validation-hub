@@ -26,7 +26,7 @@ ENV PORT 8005
 
 # Install required system dependencies
 RUN apt-get update -qq && \
-    apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client
+    apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client supervisor
 
 # Install Python dependencies
 RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential && \
@@ -42,11 +42,16 @@ FROM nginx:latest
 # Copy Nginx configuration
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Copy the built Django application from the builder stage
+# Copy the built Django application and dependencies from the builder stage
 COPY --from=builder /root/valhub /usr/share/nginx/html
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
 # Expose port 80 for incoming HTTP traffic
 EXPOSE 80
 
-# Start Nginx
+# Install Supervisor in the final image
+RUN apt-get update -qq && \
+    apt-get install -y supervisor
+
+# Start Nginx and Supervisor
 CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]
