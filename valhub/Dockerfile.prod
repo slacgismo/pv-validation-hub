@@ -46,8 +46,8 @@ COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /root/valhub /root/valhub
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
-# Expose port 80 for incoming HTTP traffic
-EXPOSE 80
+# Expose ports for incoming HTTP traffic (80 and 8005 needed for nginx to forward to django)
+EXPOSE 80 443 22 8005
 
 # Install Supervisor in the final image
 RUN apt-get update -qq && \
