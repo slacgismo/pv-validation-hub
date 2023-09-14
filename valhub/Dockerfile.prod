@@ -1,5 +1,5 @@
-# Stage 1: Build the Django application
-FROM python:3.10-slim as builder
+# Stage 1: Build the Django application and Nginx
+FROM python:3.10-slim
 
 WORKDIR /root
 
@@ -24,9 +24,9 @@ ENV DJANGO_ADMIN_PASSWORD=$admin_password
 ENV DJANGO_SECRET_KEY=${djangosk}
 ENV PORT 8005
 
-# Install required system dependencies
+# Install required system dependencies including Nginx
 RUN apt-get update -qq && \
-    apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client supervisor
+    apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client supervisor nginx
 
 # Install Python dependencies
 RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential && \
@@ -36,22 +36,11 @@ RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential &&
 # Create Django database migrations
 RUN python3 manage.py makemigrations
 
-# Stage 2: Create the final image
-FROM nginx:latest
-
 # Copy Nginx configuration
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
-# Copy the built Django application and dependencies from the builder stage
-COPY --from=builder /root/valhub /root/valhub
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-
-# Expose ports for incoming HTTP traffic (80 and 8005 needed for nginx to forward to django)
+# Expose ports for incoming HTTP traffic (80 and 8005 needed for nginx to forward to Django)
 EXPOSE 80 443 22 8005
-
-# Install Supervisor in the final image
-RUN apt-get update -qq && \
-    apt-get install -y supervisor
 
 # Start Nginx and Supervisor
 CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]
