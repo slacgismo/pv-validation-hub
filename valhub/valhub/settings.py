@@ -179,6 +179,8 @@ except Exception as e:
     print("Error retrieving secrets:", e)
     hostname = None
 else:
+    db_name = 'postgres'
+    db_identifier = db_secrets['dbInstanceIdentifier']
     username = db_secrets['username']
     password = db_secrets['password']
     hostname = db_secrets['host']
@@ -188,7 +190,7 @@ if hostname is not None:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'postgres',  # db_name,
+            'NAME': db_name,  # db_name,
             'USER': username,
             'PASSWORD': password,
             'HOST': hostname,
