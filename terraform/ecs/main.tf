@@ -40,8 +40,8 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
       "essential": true,
       "portMappings": [
         {
-          "containerPort": 8005,
-          "hostPort": 8005
+          "containerPort": 80,
+          "hostPort": 80
         }
       ],
       "memory": ${var.ecs_task_definition_memory},
@@ -123,7 +123,7 @@ resource "aws_ecs_service" "valhub_my_first_service" {
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.arn
     container_name   = aws_ecs_task_definition.pv-validation-hub-test-task.family
-    container_port   = 8005
+    container_port   = 80
   }
 
   network_configuration {
