@@ -16,7 +16,16 @@ import boto3
 import base64
 from botocore.exceptions import ClientError
 import json
+from botocore.config import Config
 
+config = Config(
+    connect_timeout=2,
+    read_timeout=2,
+    retries = {
+        'max_attempts': 10,
+        'mode': 'standard'
+    }
+)
 
 def get_secret(secret_name):
     region_name = "us-west-2"
@@ -27,7 +36,8 @@ def get_secret(secret_name):
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
-        region_name=region_name
+        region_name=region_name,
+        config=config
     )
     print("Session started")
 
