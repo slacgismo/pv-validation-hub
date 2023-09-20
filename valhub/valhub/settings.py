@@ -193,7 +193,7 @@ else:
     db_identifier = db_secrets['dbInstanceIdentifier']
     username = db_secrets['username']
     password = db_secrets['password']
-    hostname = db_secrets['host']
+    hostname = db_secrets['proxy']
     port = db_secrets['port']
 
 if hostname is not None:
