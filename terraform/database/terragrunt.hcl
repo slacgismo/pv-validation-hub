@@ -10,9 +10,11 @@ dependency "network" {
 
 inputs = {
   vpc_id                                  = dependency.network.outputs.vpc_id
+  vpc_security_group_id                   = dependency.network.outputs.vpc_security_group_id
   subnet_ids                              = dependency.network.outputs.subnet_ids
   rds_subnet_group_id                     = dependency.network.outputs.rds_subnet_group_id
   rds_security_group_id                   = dependency.network.outputs.rds_security_group_id
+  rds_proxy_security_group_id             = dependency.network.outputs.rds_proxy_security_group_id
   db_subnet_group_name                    = dependency.network.outputs.rds_subnet_group_name
 }
 

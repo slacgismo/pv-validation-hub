@@ -21,6 +21,16 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "vpc_security_group_id" {
+  description = "The identifier for the VPC security group"
+  type        = string
+}
+
+variable "rds_proxy_security_group_id" {
+  description = "The identifier for the VPC security group"
+  type        = string
+}
+
 variable "rds_security_group_id" {
   description = "The identifier for the RDS instance"
   type        = string

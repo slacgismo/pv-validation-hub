@@ -3,8 +3,10 @@ provider "aws" {
   region = var.aws_region
 }
 
+########### SECURITY #############
+
 resource "aws_security_group" "load_balancer_security_group" {
-  name_prefix = var.sg_name_prefix
+  name_prefix = "${var.sg_name_prefix}-lb"
   vpc_id      = aws_vpc.pv-validation-hub.id
 
   ingress {
@@ -23,7 +25,7 @@ resource "aws_security_group" "load_balancer_security_group" {
 }
 
 resource "aws_security_group" "valhub_ecs_service_security_group" {
-  name_prefix = var.sg_name_prefix
+  name_prefix = "${var.sg_name_prefix}-ecs"
   vpc_id      = aws_vpc.pv-validation-hub.id
 
   ingress {
@@ -45,7 +47,7 @@ resource "aws_security_group" "valhub_ecs_service_security_group" {
 }
 
 resource "aws_security_group" "rds_security_group" {
-  name_prefix = var.sg_name_prefix
+  name_prefix = "${var.sg_name_prefix}-rds"
   vpc_id      = aws_vpc.pv-validation-hub.id
 
   ingress {
@@ -66,6 +68,56 @@ resource "aws_security_group" "rds_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_security_group" "rds_proxy_security_group" {
+  name_prefix = "${var.sg_name_prefix}-rds-proxy"
+  vpc_id      = aws_vpc.pv-validation-hub.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = merge(var.project_tags)
+}
+
+# replaces the vpc default security group
+# allows all egress and only ingress from within the vpc
+
+resource "aws_security_group" "vpc_security_group" {
+  name_prefix = "${var.sg_name_prefix}-vpc"
+  vpc_id      = aws_vpc.pv-validation-hub.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    # include all security groups in the vpc
+    security_groups = [
+      aws_security_group.load_balancer_security_group.id,
+      aws_security_group.valhub_ecs_service_security_group.id,
+      aws_security_group.rds_security_group.id,
+      aws_security_group.rds_proxy_security_group.id
+    ]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+}
+
+########### Network Resources #############
 
 resource "aws_vpc" "pv-validation-hub" {
   cidr_block = var.vpc_cidr_block
@@ -188,4 +240,12 @@ output "valhub_ecs_service_security_group_id" {
 
 output "rds_security_group_id" {
   value = aws_security_group.rds_security_group.id
+}
+
+output "rds_proxy_security_group_id" {
+  value = aws_security_group.rds_proxy_security_group.id
+}
+
+output "vpc_security_group_id" {
+  value = aws_security_group.vpc_security_group.id
 }
