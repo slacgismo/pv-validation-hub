@@ -55,6 +55,21 @@ variable "lb_target_group_name" {
   type        = string
 }
 
+variable "valhub_certificate_arn" {
+  description = "The name of the load balancer target group"
+  type        = string
+}
+
+variable "ecs_secrets_manager_policy_arn" {
+  description = "The arn for the policy granting access to AWS secrets manager."
+  type        = string
+}
+
+variable "valhub_ecs_task_role" {
+  description = "The arn for the policy granting access to AWS secrets manager."
+  type        = string
+}
+
 variable "ecs_service_name" {
   description = "The name of the ECS service"
   type        = string

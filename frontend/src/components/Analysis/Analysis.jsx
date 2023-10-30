@@ -36,29 +36,34 @@ export default function Analysis() {
     const [longDescription, setLongDescription] = useState("");
     const [shortDescription, setShortDescription] = useState("");
     const [rulesetDescription, setRulesetDescription] = useState("");
+    const [coverImageDir, setCoverImageDir] = useState("")
 
     useEffect(() => {
         console.log("analysis", analysis_id, typeof analysis_id)
-        if (analysis_id !== undefined && analysis_id !== null && analysis_id > 0) {
-            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/dataset.md`)
-            .then(res => res.text())
-            .then(text => setDatasetDescription(text))
-            .catch(err => console.log(err));
-         
-            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/longdesc.md`)
-            .then(res => res.text())
-            .then(text => setLongDescription(text))
-            .catch(err => console.log(err));
-         
-            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/shortdesc.md`)
-            .then(res => res.text())
-            .then(text => setShortDescription(text))
-            .catch(err => console.log(err));
-         
-            fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/ruleset.md`)
-            .then(res => res.text())
-            .then(text => setRulesetDescription(text))
-            .catch(err => console.log(err));
+        if (analysis_id !== undefined && analysis_id !== null && 
+            (analysis_id > 0 || analysis_id === "development")) {
+                setCoverImageDir(process.env.PUBLIC_URL + `/assets/${analysis_id}/headingCover.png`)
+                console.log(coverImageDir)
+
+                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/dataset.md`)
+                .then(res => res.text())
+                .then(text => setDatasetDescription(text))
+                .catch(err => console.log(err));
+            
+                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/longdesc.md`)
+                .then(res => res.text())
+                .then(text => setLongDescription(text))
+                .catch(err => console.log(err));
+            
+                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/shortdesc.md`)
+                .then(res => res.text())
+                .then(text => setShortDescription(text))
+                .catch(err => console.log(err));
+            
+                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/ruleset.md`)
+                .then(res => res.text())
+                .then(text => setRulesetDescription(text))
+                .catch(err => console.log(err));
          
         }
     }, [analysis_id]);
@@ -95,16 +100,11 @@ export default function Analysis() {
                     flexGrow: 1,
                     marginTop: 3,
                     height: 200,
-                    backgroundImage: `url(${faker.image.abstract(1200, 300)})`
+                    backgroundImage: `url(${coverImageDir})`
                 }}>
                     <Box sx={{ flexGrow: 1, marginTop: 4, marginLeft: 2 }}>
-                        <Typography color={"white"} variant="h4" gutterBottom>
+                        <Typography color={"black"} variant="h4" gutterBottom>
                             {card.analysis_name}
-                        </Typography>
-                    </Box>
-                    <Box sx={{ flexGrow: 1, marginTop: 2, marginLeft: 2 }}>
-                        <Typography color={"white"} variant="body2" gutterBottom>
-                            <ReactMarkdown children={shortDescription} />
                         </Typography>
                     </Box>
                 </Box>

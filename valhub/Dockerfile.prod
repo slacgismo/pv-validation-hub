@@ -1,0 +1,43 @@
+# Stage 1: Build the Django application and Nginx
+FROM python:3.10-slim
+
+WORKDIR /root
+
+# Copy AWS configuration if needed
+RUN mkdir -p .aws
+COPY .aws /root/.aws
+
+# Create and set up the application directory
+RUN mkdir valhub
+WORKDIR /root/valhub
+
+# Copy your application code
+COPY . .
+
+# Set Django admin username, password, and other environment variables
+ARG admin_username
+ARG admin_password
+ARG djangosk
+
+ENV DJANGO_ADMIN_USERNAME=$admin_username
+ENV DJANGO_ADMIN_PASSWORD=$admin_password
+ENV DJANGO_SECRET_KEY=${djangosk}
+ENV PORT 8005
+
+# Install required system dependencies including Nginx
+RUN apt-get update -qq && \
+    apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client supervisor
+
+# Install Python dependencies
+RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install -r requirements.txt
+
+# Create Django database migrations
+RUN python3 manage.py makemigrations
+
+# Expose ports for incoming HTTP traffic (80 and 8005 needed for nginx to forward to Django)
+EXPOSE 80 443 22 8005
+
+# Start Nginx and Supervisor
+CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.prod.conf"]

@@ -77,3 +77,8 @@ variable "secretsmanager_secret_name" {
   type        = string
 }
 
+variable "subnet_ids" {
+  type    = list(string)
+  description = "A list of subnet IDs."
+  default = [] # You can provide default values here if needed
+}

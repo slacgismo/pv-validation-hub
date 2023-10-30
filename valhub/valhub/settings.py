@@ -16,69 +16,84 @@ import boto3
 import base64
 from botocore.exceptions import ClientError
 import json
+from botocore.config import Config
 
+config = Config(
+    connect_timeout=2,
+    read_timeout=2,
+    retries = {
+        'max_attempts': 10,
+        'mode': 'standard'
+    }
+)
 
 def get_secret(secret_name):
     region_name = "us-west-2"
+    print("Start of get secret:", region_name)
+    print("Oh, and this:", secret_name)
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
-        region_name=region_name
+        region_name=region_name,
+        config=config
     )
+    print("Session started")
 
     # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
     # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
     # We rethrow the exception by default.
 
     try:
+        print("Pre get value")
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
+        print("Wow, really? Narrowed down a lot.", get_secret_value_response)
     except ClientError as e:
         if e.response['Error']['Code'] == 'DecryptionFailureException':
             # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
             # Deal with the exception here, and/or rethrow at your discretion.
+            print("Error retrieving secrets 1:", e)
             raise e
         elif e.response['Error']['Code'] == 'InternalServiceErrorException':
             # An error occurred on the server side.
             # Deal with the exception here, and/or rethrow at your discretion.
+            print("Error retrieving secrets 2:", e)
             raise e
         elif e.response['Error']['Code'] == 'InvalidParameterException':
             # You provided an invalid value for a parameter.
             # Deal with the exception here, and/or rethrow at your discretion.
+            print("Error retrieving secrets 3:", e)
             raise e
         elif e.response['Error']['Code'] == 'InvalidRequestException':
             # You provided a parameter value that is not valid for the current state of the resource.
             # Deal with the exception here, and/or rethrow at your discretion.
+            print("Error retrieving secrets 4:", e)
             raise e
         elif e.response['Error']['Code'] == 'ResourceNotFoundException':
             # We can't find the resource that you asked for.
             # Deal with the exception here, and/or rethrow at your discretion.
+            print("Error retrieving secrets 5:", e)
             raise e
         else:
+            print("Error retrieving secrets 6:", e)
             raise e
     else:
         # Decrypts secret using the associated KMS key.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
+        print("Else block")
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
             secret = json.loads(secret)
+            print("secret:",secret)
             return secret
         else:
             decoded_binary_secret = base64.b64decode(
                 get_secret_value_response['SecretBinary'])
+            print("Decode:", decoded_binary_secret)
             return decoded_binary_secret
-
-
-# build env variables
-try:
-    aws_account_credentials = get_secret("AwsAccountCredentials")
-    os.environ["AWS_SECRET_ACCESS_KEY"] = aws_account_credentials["AWS_SECRET_ACCESS_KEY"]
-    os.environ["AWS_ACCESS_KEY_ID"] = aws_account_credentials["AWS_ACCESS_KEY_ID"]
-except:
-    pass
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -169,13 +184,16 @@ WSGI_APPLICATION = 'valhub.wsgi.application'
 
 try:
     db_secrets = get_secret("pvinsight-db")
-except:
+    print("Retrieved secrets:", db_secrets)
+except Exception as e:
+    print("Error retrieving secrets:", e)
     hostname = None
 else:
-    db_name = db_secrets['dbInstanceIdentifier']
+    db_name = 'postgres'
+    db_identifier = db_secrets['dbInstanceIdentifier']
     username = db_secrets['username']
     password = db_secrets['password']
-    hostname = db_secrets['host']
+    hostname = db_secrets['proxy']
     port = db_secrets['port']
 
 if hostname is not None:

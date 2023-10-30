@@ -12,8 +12,7 @@ class AnalysisSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Analysis
-        fields = ("evaluation_script", "analysis_name", "description",
-                  "short_description", "ruleset", "dataset_description")
+        fields = ("evaluation_script", "analysis_name")
 
     def to_representation(self, instance):
         data = super(AnalysisSerializer, self).to_representation(instance)

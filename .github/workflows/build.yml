@@ -15,26 +15,18 @@ env:
 
 
 jobs:
-#  build-fe:
-#    name: Build and Test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#        name: Checkout Repository
+  build-fe:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Repository
 
-#      - name: install
-#        run: |
-#          cd frontend
-#          export DOCKER_BUILDKIT=1
-#          docker build -t pv/val:tag -f Dockerfile .
-
-# Needs to include aws login step as well
-#      - name: build
-#        run: |
-#          cd frontend
-#          npm run build
-#          aws s3 sync ./build/ s3://pv-validation-hub-website --acl public-read
-#
+      - name: install dependencies and build
+        run: |
+          cd frontend
+          npm install
+          npm run build
 
   build-api:
     name: Build and Test
@@ -49,15 +41,15 @@ jobs:
           export DOCKER_BUILDKIT=1
           docker build --build-arg admin_username="placeholder" --build-arg admin_password="replaceme" --build-arg djangosk="placeholder" -t pv/val:tag -f Dockerfile .
 
-#  build-worker:
-#    name: Build and Test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v2
-#        name: Checkout Repository
+  build-worker:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Repository
 
-#      - name: build
-#        run: |
-#          cd workers
-#          export DOCKER_BUILDKIT=1
-#          docker build -t pv/val:tag -f Dockerfile .
+      - name: build
+        run: |
+          cd workers
+          export DOCKER_BUILDKIT=1
+          docker build -t pv/val:tag -f Dockerfile .

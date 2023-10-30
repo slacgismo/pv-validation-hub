@@ -156,19 +156,17 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
 
 
 def run(module_to_import_s3_path,
-        config_file_path,
-        file_test_link_path,
-        optional_result_data_dir=None):
+        current_evaluation_dir=None):
     # If a path is provided, set the directories to that path, otherwise use default
-    if optional_result_data_dir is not None:
-        results_dir = optional_result_data_dir + "/results" if not optional_result_data_dir.endswith('/') else optional_result_data_dir + "results"
-        data_dir = optional_result_data_dir + "/data" if not optional_result_data_dir.endswith('/') else optional_result_data_dir + "data"
+    if current_evaluation_dir is not None:
+        results_dir = current_evaluation_dir + "/results" if not current_evaluation_dir.endswith('/') else current_evaluation_dir + "results"
+        data_dir = current_evaluation_dir + "/data" if not current_evaluation_dir.endswith('/') else current_evaluation_dir + "data"
     else:
         results_dir = "./results"
         data_dir = "./data"
 
-    if optional_result_data_dir is not None:
-        sys.path.append(optional_result_data_dir)  # append optional_result_data_dir to sys.path
+    if current_evaluation_dir is not None:
+        sys.path.append(current_evaluation_dir)  # append current_evaluation_dir to sys.path
 
     # Ensure results directory exists
     os.makedirs(results_dir, exist_ok=True)
@@ -200,7 +198,7 @@ def run(module_to_import_s3_path,
     results_list = list()
     # Load in data set that we're going to analyze.
 
-    # Make GET requests to the Django API to get the system metadata and validation tests
+    # Make GET requests to the Django API to get the system metadata
     system_metadata_response = requests.get('http://api:8005/system_metadata/systemmetadata/')
 
     # Convert the responses to DataFrames
@@ -216,7 +214,8 @@ def run(module_to_import_s3_path,
     # many-to-many relationships, where one file can link to multiple
     # categories/tests, and multiple categories/tests can link to multiple
     # files.
-    file_test_link = pd.read_csv(file_test_link_path)
+    file_test_link = pd.read_csv(os.path.join(current_evaluation_dir,
+                                              "file_test_link.csv"))
 
     # Get the unique file ids
     unique_file_ids = file_test_link['file_id'].unique()
@@ -237,7 +236,7 @@ def run(module_to_import_s3_path,
     file_metadata = pd.DataFrame(file_metadata_list)
     
     # Read in the configuration JSON for the particular run
-    with open(config_file_path) as f:
+    with open(os.path.join(current_evaluation_dir, "config.json")) as f:
         config_data = json.load(f)
 
     # Get the associated metrics we're supposed to calculate
@@ -357,7 +356,7 @@ def run(module_to_import_s3_path,
     # parameters. These params will be available as columns in the
     # 'associated_files' dataframe
     results_df_private = pd.merge(results_df,
-                                  associated_files,
+                                  file_metadata,
                                   on='file_name')
     # Filter to only the necessary columns (available via the config)
     results_df_private = results_df_private[config_data

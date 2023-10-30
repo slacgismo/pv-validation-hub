@@ -8,10 +8,6 @@ class Analysis(models.Model):
     analysis_id = models.AutoField(primary_key=True)
     analysis_name = models.CharField(max_length=100, default="analysis")
     
-    description = models.TextField(null=True, blank=True)
-    short_description = models.TextField(null=True, blank=True)
-    ruleset = models.TextField(null=True, blank=True)
-    dataset_description = models.TextField(null=True, blank=True)
     evaluation_script = models.FileField(max_length=1000, upload_to=RandomFileName(
         "evaluation_scripts"))  # url to zip file
     # annotation_file_name = models.FilePathField(default="test_annotation.txt", path="")

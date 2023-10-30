@@ -42,6 +42,17 @@ services:
     depends_on:
       - api
 
+  ec2:
+    build: ./ec2
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "7000:7000"
+    depends_on:
+      - api
+
   react-client:
     stdin_open: true
     build: ./frontend

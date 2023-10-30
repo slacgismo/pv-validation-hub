@@ -48,7 +48,7 @@ export const DashboardService = {
         return finalResponse;
     },
     useGetAnalysisSet(analysisUrl) {
-        const [analysesDetails, setAnalysesDetails] = useState();
+        const [analysesDetails, setAnalysesDetails] = useState([]);
         const [isAnalysesLoading, setAnalysesIsLoading] = useState(true);
         const [analysesError, setAnalysesError] = useState(null);
 
@@ -59,9 +59,19 @@ export const DashboardService = {
                     setAnalysesDetails(analysisResponse.data);
                 })
                 .catch(error => {
-                    setAnalysesError(error);
-                    setAnalysesDetails([]);
-                    setAnalysesIsLoading(false);
+                    if (window.location.hostname.includes('localhost') && (analysesDetails.length === 0 
+                        || analysesDetails.analysis_id === "development")) {
+                        setAnalysesDetails([{
+                            "analysis_id": "development",
+                            "analysis_name": "Dev Analysis"
+                        }])
+                        setAnalysesIsLoading(false);
+                        console.log("Using development analysis")
+                    } else {
+                        setAnalysesError(error);
+                        setAnalysesDetails([]);
+                        setAnalysesIsLoading(false);
+                    }
                 })
         }, [analysisUrl]);
         return [isAnalysesLoading, analysesError, analysesDetails];
