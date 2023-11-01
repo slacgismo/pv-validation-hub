@@ -12,7 +12,7 @@ inputs = {
   vpc_id                                  = dependency.network.outputs.vpc_id
   subnet_ids                              = slice(dependency.network.outputs.subnet_ids, 0, 2)
   load_balancer_security_group_id         = dependency.network.outputs.load_balancer_security_group_id
-  valhub_ecs_service_security_group_id    = dependency.network.outputs.valhub_ecs_service_security_group_id
+  valhub_api_service_security_group_id    = dependency.network.outputs.valhub_api_service_security_group_id
 }
 
 terraform {

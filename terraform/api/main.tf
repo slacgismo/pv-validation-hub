@@ -165,7 +165,7 @@ resource "aws_ecs_service" "valhub_my_first_service" {
   network_configuration {
     subnets          = var.subnet_ids
     assign_public_ip = true
-    security_groups  = [ var.valhub_ecs_service_security_group_id ]
+    security_groups  = [ var.valhub_api_service_security_group_id ]
   }
     # Add health check grace period (in seconds)
   health_check_grace_period_seconds = 120  # Adjust this value as needed

@@ -4,11 +4,6 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "sg_name_prefix" {
-  type    = string
-  default = "pv-validation-hub-sg-"
-}
-
 variable "project_tags" {
   type    = object({
     Project = string,

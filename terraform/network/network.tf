@@ -13,6 +13,28 @@ resource "aws_security_group" "load_balancer_security_group" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
+    cidr_blocks = [
+      var.vpc_cidr_block,
+      "pv-validation-hub.org",
+    ]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "admin_ec2_security_group" {
+  name_prefix = "${var.sg_name_prefix}-ec2"
+  vpc_id      = aws_vpc.pv-validation-hub.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -24,18 +46,56 @@ resource "aws_security_group" "load_balancer_security_group" {
   }
 }
 
-resource "aws_security_group" "valhub_ecs_service_security_group" {
-  name_prefix = "${var.sg_name_prefix}-ecs"
+resource "aws_security_group" "valhub_api_service_security_group" {
+  name_prefix = "${var.sg_name_prefix}-api"
   vpc_id      = aws_vpc.pv-validation-hub.id
 
   ingress {
-    from_port   = 3000
-    to_port     = 3000
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [
-      aws_subnet.pv-validation-hub_a.cidr_block,
-      aws_subnet.pv-validation-hub_b.cidr_block,
+    security_groups = [aws_security_group.load_balancer_security_group.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "valhub_sqs_security_group" {
+  name_prefix = "${var.sg_name_prefix}-sqs"
+  vpc_id      = aws_vpc.pv-validation-hub.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "tcp"
+    security_groups = [
+      aws_security_group.valhub_api_service_security_group.id,
+      aws_security_group.valhub_worker_service_security_group.id,
     ]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "valhub_worker_service_security_group" {
+  name_prefix = "${var.sg_name_prefix}-worker"
+  vpc_id      = aws_vpc.pv-validation-hub.id
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "tcp"
+    security_groups = [aws_security_group.sqs_security_group.id]
   }
 
   egress {
@@ -54,11 +114,8 @@ resource "aws_security_group" "rds_security_group" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [
-      aws_subnet.pv-validation-hub_c.cidr_block,
-      aws_subnet.pv-validation-hub_d.cidr_block,
-      aws_subnet.pv-validation-hub_e.cidr_block
-    ]
+    # 
+    cidr_blocks = []
   }
 
   egress {
@@ -78,6 +135,12 @@ resource "aws_security_group" "rds_proxy_security_group" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [
+      aws_security_group.valhub_api_service_security_group.id,
+      aws_security_group.rds_security_group.id,
+      aws_security_group.admin_ec2.id,
+      aws_default_security_group.vpc_security_group.id
+    ]
   }
 
   egress {
@@ -92,7 +155,7 @@ resource "aws_security_group" "rds_proxy_security_group" {
 # replaces the vpc default security group
 # allows all egress and only ingress from within the vpc
 
-resource "aws_security_group" "vpc_security_group" {
+resource "aws_default_security_group" "vpc_security_group" {
   name_prefix = "${var.sg_name_prefix}-vpc"
   vpc_id      = aws_vpc.pv-validation-hub.id
 
@@ -103,9 +166,11 @@ resource "aws_security_group" "vpc_security_group" {
     # include all security groups in the vpc
     security_groups = [
       aws_security_group.load_balancer_security_group.id,
-      aws_security_group.valhub_ecs_service_security_group.id,
+      aws_security_group.valhub_api_service_security_group.id,
       aws_security_group.rds_security_group.id,
-      aws_security_group.rds_proxy_security_group.id
+      aws_security_group.rds_proxy_security_group.id,
+      aws_security_group.admin_ec2.id,
+      aws_default_security_group.vpc_security_group.id
     ]
   }
 
@@ -128,6 +193,46 @@ resource "aws_vpc" "pv-validation-hub" {
   enable_dns_hostnames = true
 }
 
+resource "aws_sqs_queue" "valhub_submission_queue" {
+  name = "valhub_submission_queue.fifo"
+  fifo_queue = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Id = "example-policy"
+    Statement = [
+      {
+        Sid = "allow-api-service-to-send-messages"
+        Effect = "Allow"
+        Principal = "*"
+        Action = "sqs:SendMessage"
+        Resource = aws_sqs_queue.example.arn
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_security_group.valhub_api_service_security_group.arn
+          }
+        }
+      },
+      {
+        Sid = "allow-worker-service-to-receive-messages"
+        Effect = "Allow"
+        Principal = "*"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+        ]
+        Resource = aws_sqs_queue.example.arn
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_security_group.valhub_worker_service_security_group.arn
+          }
+        }
+      }
+    ]
+  })
+}
 
 resource "aws_internet_gateway" "pv-validation-hub_igw" {
   vpc_id = aws_vpc.pv-validation-hub.id
@@ -234,8 +339,8 @@ output "load_balancer_security_group_id" {
   value = aws_security_group.load_balancer_security_group.id
 }
 
-output "valhub_ecs_service_security_group_id" {
-  value = aws_security_group.valhub_ecs_service_security_group.id
+output "valhub_api_service_security_group_id" {
+  value = aws_security_group.valhub_api_service_security_group.id
 }
 
 output "rds_security_group_id" {

@@ -95,7 +95,7 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "valhub_ecs_service_security_group_id" {
+variable "valhub_api_service_security_group_id" {
   description = "The security group ID for the ecs service"
   type        = string  
 }
