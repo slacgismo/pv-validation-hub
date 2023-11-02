@@ -30,4 +30,5 @@ RUN python3 -m pip install -r requirements.txt
 
 RUN cd ./valhub
 RUN python3 manage.py makemigrations
+RUN python3 manage.py collectstatic
 CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]

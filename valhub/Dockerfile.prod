@@ -35,6 +35,7 @@ RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential &&
 
 # Create Django database migrations
 RUN python3 manage.py makemigrations
+RUN python3 manage.py collectstatic
 
 # Expose ports for incoming HTTP traffic
 EXPOSE 80 443 22 8005

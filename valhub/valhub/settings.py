@@ -17,6 +17,11 @@ import base64
 from botocore.exceptions import ClientError
 import json
 from botocore.config import Config
+import mimetypes
+
+# Add css mimetype
+mimetypes.add_type("text/css", ".css", True)
+mimetypes.add_type("text/html", ".css", True)
 
 config = Config(
     connect_timeout=2,
@@ -143,6 +148,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -252,7 +258,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
-STATIC_URL = '/static/'
+STATIC_URL = '/staticfiles/'
 
 
 # Default primary key field type
