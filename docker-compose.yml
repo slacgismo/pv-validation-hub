@@ -24,6 +24,9 @@ services:
       PGUSER: valhub
       PGHOST: db
       PG_DATABASE_URI: "postgresql://valhub:valhub@db/valhub"
+      DJANGO_SUPERUSER_USERNAME: ${admin_username}
+      DJANGO_SUPERUSER_PASSWORD: ${admin_password}
+      DJANGO_SUPERUSER_EMAIL: ${admin_email}
       DJANGO_SECRET_KEY: ${djangosk}
     ports:
       - "8005:8005"
