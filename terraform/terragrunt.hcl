@@ -3,6 +3,6 @@
 inputs = {
   project_tags = {
     Project = "pv-insight2",
-    project-pa-number = "20578-H2001"
+    project-pa-number = "21691-H2001"
   }
 }

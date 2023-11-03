@@ -5,52 +5,52 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "ecs_task_execution_role_name" {
+variable "ecs_api_task_execution_role_name" {
   description = "The name of the ECS task execution role"
   type        = string
 }
 
-variable "ecs_cluster_name" {
+variable "ecs_api_cluster_name" {
   description = "The name of the ECS cluster"
   type        = string
 }
 
-variable "cloudwatch_log_group_name" {
+variable "cloudwatch_api_log_group_name" {
   description = "The name of the CloudWatch log group"
   type        = string
 }
 
-variable "ecs_task_definition_family" {
+variable "api_task_definition_family" {
   description = "The family of the ECS task definition"
   type        = string
 }
 
-variable "ecs_task_definition_container_name" {
+variable "api_task_definition_container_name" {
   description = "The name of the container in the ECS task definition"
   type        = string
 }
 
-variable "ecs_task_definition_container_image" {
+variable "api_task_definition_container_image" {
   description = "The image of the container in the ECS task definition"
   type        = string
 }
 
-variable "ecs_task_definition_cpu" {
+variable "api_task_definition_cpu" {
   description = "The cpu for the ECS task definition"
   type        = number
 }
 
-variable "ecs_task_definition_memory" {
+variable "api_task_definition_memory" {
   description = "The memory for the ECS task definition"
   type        = number
 }
 
-variable "alb_name" {
+variable "api_alb_name" {
   description = "The name of the Application Load Balancer"
   type        = string
 }
 
-variable "lb_target_group_name" {
+variable "api_lb_target_group_name" {
   description = "The name of the load balancer target group"
   type        = string
 }
@@ -70,12 +70,12 @@ variable "valhub_ecs_task_role" {
   type        = string
 }
 
-variable "ecs_service_name" {
+variable "ecs_api_service" {
   description = "The name of the ECS service"
   type        = string
 }
 
-variable "ecs_service_desired_count" {
+variable "api_service_desired_count" {
   description = "The desired count of the ECS service"
   type        = number
 }

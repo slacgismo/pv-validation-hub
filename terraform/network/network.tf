@@ -65,28 +65,6 @@ resource "aws_security_group" "valhub_api_service_security_group" {
   }
 }
 
-resource "aws_security_group" "valhub_sqs_security_group" {
-  name_prefix = "${var.sg_name_prefix}-sqs"
-  vpc_id      = aws_vpc.pv-validation-hub.id
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "tcp"
-    security_groups = [
-      aws_security_group.valhub_api_service_security_group.id,
-      aws_security_group.valhub_worker_service_security_group.id,
-    ]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 resource "aws_security_group" "valhub_worker_service_security_group" {
   name_prefix = "${var.sg_name_prefix}-worker"
   vpc_id      = aws_vpc.pv-validation-hub.id
@@ -95,7 +73,7 @@ resource "aws_security_group" "valhub_worker_service_security_group" {
     from_port   = 0
     to_port     = 0
     protocol    = "tcp"
-    security_groups = [aws_security_group.sqs_security_group.id]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -139,6 +117,7 @@ resource "aws_security_group" "rds_proxy_security_group" {
       aws_security_group.valhub_api_service_security_group.id,
       aws_security_group.rds_security_group.id,
       aws_security_group.admin_ec2.id,
+      aws_security_group.valhub_worker_service_security_group.id,
       aws_default_security_group.vpc_security_group.id
     ]
   }
@@ -170,6 +149,7 @@ resource "aws_default_security_group" "vpc_security_group" {
       aws_security_group.rds_security_group.id,
       aws_security_group.rds_proxy_security_group.id,
       aws_security_group.admin_ec2.id,
+      aws_security_group.valhub_worker_service_security_group.id,
       aws_default_security_group.vpc_security_group.id
     ]
   }

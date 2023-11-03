@@ -4,7 +4,7 @@ provider "aws" {
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = var.ecs_task_execution_role_name
+  name = var.ecs_api_task_execution_role_name
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -21,22 +21,22 @@ resource "aws_iam_role" "ecs_task_execution_role" {
 }
 
 resource "aws_ecs_cluster" "pv-validation-hub-test-cluster" {
-  name = var.ecs_cluster_name 
+  name = var.ecs_api_cluster_name 
   tags = merge(var.project_tags)
 }
 
 resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
-  name = var.cloudwatch_log_group_name
+  name = var.cloudwatch_api_log_group_name
   tags = merge(var.project_tags)
 }
 
 resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
-  family                   = var.ecs_task_definition_family
+  family                   = var.api_task_definition_family
   container_definitions    = <<DEFINITION
   [
     {
-      "name": "${var.ecs_task_definition_container_name}",
-      "image": "${var.ecs_task_definition_container_image}",
+      "name": "${var.api_task_definition_container_name}",
+      "image": "${var.api_task_definition_container_image}",
       "essential": true,
       "portMappings": [
         {
@@ -52,13 +52,13 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
           "hostPort": 22
         }
       ],
-      "memory": ${var.ecs_task_definition_memory},
-      "cpu": ${var.ecs_task_definition_cpu},
+      "memory": ${var.api_task_definition_memory},
+      "cpu": ${var.api_task_definition_cpu},
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "${aws_cloudwatch_log_group.ecs_task_log_group.name}",
-          "awslogs-stream-prefix": "${var.ecs_task_definition_container_name}",
+          "awslogs-stream-prefix": "${var.api_task_definition_container_name}",
           "awslogs-create-group": "true",
           "awslogs-region": "${var.aws_region}"
         },
@@ -69,8 +69,8 @@ resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
   DEFINITION
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  memory                   = var.ecs_task_definition_memory
-  cpu                      = var.ecs_task_definition_cpu
+  memory                   = var.api_task_definition_memory
+  cpu                      = var.api_task_definition_cpu
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = var.valhub_ecs_task_role
   tags = merge(var.project_tags)
@@ -98,7 +98,7 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_smpolicy" {
 }
 
 resource "aws_alb" "application_load_balancer" {
-  name               = var.alb_name
+  name               = var.api_alb_name
   load_balancer_type = "application"
   subnets = var.subnet_ids
   security_groups = ["${var.load_balancer_security_group_id}"]
@@ -106,7 +106,7 @@ resource "aws_alb" "application_load_balancer" {
 }
 
 resource "aws_lb_target_group" "target_group" {
-  name             = var.lb_target_group_name
+  name             = var.api_lb_target_group_name
   port             = 80
   protocol         = "HTTP"
   target_type      = "ip"
@@ -149,12 +149,12 @@ resource "aws_lb_listener" "secure_listener" {
   }
 }
 
-resource "aws_ecs_service" "valhub_my_first_service" {
-  name            = var.ecs_service_name
+resource "aws_ecs_service" "valhub_api_service" {
+  name            = var.ecs_api_service
   cluster         = aws_ecs_cluster.pv-validation-hub-test-cluster.id
   task_definition = aws_ecs_task_definition.pv-validation-hub-test-task.arn
   launch_type     = "FARGATE"
-  desired_count   = var.ecs_service_desired_count
+  desired_count   = var.api_service_desired_count
 
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.arn
