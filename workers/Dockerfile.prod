@@ -2,12 +2,18 @@ FROM python:3.10-slim as base
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
+
+# Copy AWS configuration if needed
+RUN mkdir -p .aws
+COPY .aws /root/.aws
+
 RUN mkdir worker
 WORKDIR /root/worker
 COPY . .
 
 ENV PORT 8500
 EXPOSE 8500
+EXPOSE 65535
 
 RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2
