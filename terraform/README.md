@@ -10,3 +10,10 @@ All variable definitions will be done per each module. All variable assignment(e
 
 Each microservice (api, client, db, workers) should be built and defined in their respective module directories, located under the environments directory. All development should be done under "stage", and should replace "prod" once development is stable.
 
+# Dependency structure
+Network: None
+Cloudfront: Pre-made s3 bucket
+Database: Network
+ECS: Network
+Route53: RDS, ECS, Network
+Worker: Network, ECS

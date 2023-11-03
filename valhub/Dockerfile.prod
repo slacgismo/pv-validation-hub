@@ -17,10 +17,12 @@ COPY . .
 # Set Django admin username, password, and other environment variables
 ARG admin_username
 ARG admin_password
+ARG admin_email
 ARG djangosk
 
-ENV DJANGO_ADMIN_USERNAME=$admin_username
-ENV DJANGO_ADMIN_PASSWORD=$admin_password
+ENV DJANGO_SUPERUSER_USERNAME=${admin_username}
+ENV DJANGO_SUPERUSER_PASSWORD=${admin_password}
+ENV DJANGO_SUPERUSER_EMAIL=${admin_email}
 ENV DJANGO_SECRET_KEY=${djangosk}
 ENV PORT 8005
 
@@ -35,8 +37,9 @@ RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential &&
 
 # Create Django database migrations
 RUN python3 manage.py makemigrations
+RUN python3 manage.py collectstatic
 
-# Expose ports for incoming HTTP traffic (80 and 8005 needed for nginx to forward to Django)
+# Expose ports for incoming HTTP traffic
 EXPOSE 80 443 22 8005
 
 # Start Nginx and Supervisor

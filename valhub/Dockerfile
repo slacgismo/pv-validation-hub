@@ -8,16 +8,17 @@ RUN mkdir valhub
 WORKDIR /root/valhub
 COPY . .
 
-# Set Django admin username and password
+# Set Django admin username, password, and other environment variables
 ARG admin_username
 ARG admin_password
+ARG admin_email
 ARG djangosk
 
-ENV DJANGO_ADMIN_USERNAME=$admin_username
-ENV DJANGO_ADMIN_PASSWORD=$admin_password
+ENV DJANGO_SUPERUSER_USERNAME=$admin_username
+ENV DJANGO_SUPERUSER_PASSWORD=$admin_password
+ENV DJANGO_SUPERUSER_EMAIL=$admin_email
 ENV DJANGO_SECRET_KEY=${djangosk}
 ENV PORT 8005
-EXPOSE 8005
 
 RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2
@@ -30,4 +31,5 @@ RUN python3 -m pip install -r requirements.txt
 
 RUN cd ./valhub
 RUN python3 manage.py makemigrations
+RUN python3 manage.py collectstatic
 CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]

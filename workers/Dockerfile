@@ -8,6 +8,7 @@ COPY . .
 
 ENV PORT 8500
 EXPOSE 8500
+EXPOSE 65535
 
 RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2 curl nano

@@ -11,26 +11,6 @@ data "aws_secretsmanager_secret" "pv-valhub-dbsecret" {
 
 ########## POSTGRES RDS ############
 
-resource "aws_security_group" "rds_security_group" {
-  name_prefix = var.sg_name_prefix
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = merge(var.project_tags)
-}
-
 resource "aws_db_instance" "pv-validation-hub-rds" {
   identifier             = var.rds_identifier
   instance_class         = var.rds_instance_class
@@ -98,7 +78,7 @@ resource "aws_db_proxy" "valhub_db_proxy" {
   idle_client_timeout      = 1800
   require_tls              = true
   role_arn                 = aws_iam_role.valhub_db_proxy_role.arn
-  vpc_security_group_ids   = [aws_security_group.rds_security_group.id]
+  vpc_security_group_ids   = [var.rds_proxy_security_group_id]
   vpc_subnet_ids           = var.subnet_ids
   engine_family            = "POSTGRESQL"
   tags                     = merge(var.project_tags)

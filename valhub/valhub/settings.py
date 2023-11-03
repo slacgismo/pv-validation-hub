@@ -17,6 +17,11 @@ import base64
 from botocore.exceptions import ClientError
 import json
 from botocore.config import Config
+import mimetypes
+
+# Add css mimetype
+mimetypes.add_type("text/css", ".css", True)
+mimetypes.add_type("text/html", ".css", True)
 
 config = Config(
     connect_timeout=2,
@@ -29,8 +34,7 @@ config = Config(
 
 def get_secret(secret_name):
     region_name = "us-west-2"
-    print("Start of get secret:", region_name)
-    print("Oh, and this:", secret_name)
+    print("Start of get secret")
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -46,11 +50,11 @@ def get_secret(secret_name):
     # We rethrow the exception by default.
 
     try:
-        print("Pre get value")
+        print("Retrieving secrets")
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-        print("Wow, really? Narrowed down a lot.", get_secret_value_response)
+        print("Retrieved secrets")
     except ClientError as e:
         if e.response['Error']['Code'] == 'DecryptionFailureException':
             # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
@@ -87,12 +91,10 @@ def get_secret(secret_name):
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
             secret = json.loads(secret)
-            print("secret:",secret)
             return secret
         else:
             decoded_binary_secret = base64.b64decode(
                 get_secret_value_response['SecretBinary'])
-            print("Decode:", decoded_binary_secret)
             return decoded_binary_secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -109,7 +111,7 @@ except:
     SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -146,6 +148,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -184,7 +187,7 @@ WSGI_APPLICATION = 'valhub.wsgi.application'
 
 try:
     db_secrets = get_secret("pvinsight-db")
-    print("Retrieved secrets:", db_secrets)
+    print("Retrieved secrets")
 except Exception as e:
     print("Error retrieving secrets:", e)
     hostname = None
@@ -250,13 +253,12 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Static Root
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
-if hostname is not None:
-    STATIC_URL = 's3://pv-validation-hub-bucket/static/'
-else:
-    STATIC_URL = 's3:5000/pv-validation-hub-bucket/static/'
+STATIC_URL = '/staticfiles/'
 
 
 # Default primary key field type

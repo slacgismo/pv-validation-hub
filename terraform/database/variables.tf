@@ -4,11 +4,6 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-variable "sg_name_prefix" {
-  type    = string
-  default = "pv-validation-hub-sg-"
-}
-
 variable "project_tags" {
   type    = object({
     Project = string,
@@ -18,6 +13,16 @@ variable "project_tags" {
 
 variable "vpc_id" {
   description = "The VPC ID to create the security group in"
+  type        = string
+}
+
+variable "vpc_security_group_id" {
+  description = "The identifier for the VPC security group"
+  type        = string
+}
+
+variable "rds_proxy_security_group_id" {
+  description = "The identifier for the VPC security group"
   type        = string
 }
 
