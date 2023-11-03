@@ -5,7 +5,7 @@ WORKDIR /root
 
 # Copy AWS configuration if needed
 RUN mkdir -p .aws
-COPY .aws /root/.aws
+COPY $HOME/.aws /root/.aws
 
 RUN mkdir worker
 WORKDIR /root/worker
