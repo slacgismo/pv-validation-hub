@@ -12,11 +12,10 @@ class AnalysisSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Analysis
-        fields = ("evaluation_script", "analysis_name")
+        fields = ("analysis_name")
 
     def to_representation(self, instance):
         data = super(AnalysisSerializer, self).to_representation(instance)
         data["analysis_id"] = instance.analysis_id
-        # data["creator"] = {"uuid": instance.creator.uuid,
-        #                    "username": instance.creator.username}
+        data["analysis_name"] = instance.analysis_name
         return data
