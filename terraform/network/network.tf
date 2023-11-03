@@ -16,6 +16,13 @@ resource "aws_security_group" "load_balancer_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -50,6 +57,13 @@ resource "aws_security_group" "valhub_api_service_security_group" {
   ingress {
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    security_groups = [aws_security_group.load_balancer_security_group.id]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     security_groups = [aws_security_group.load_balancer_security_group.id]
   }
@@ -89,8 +103,8 @@ resource "aws_security_group" "rds_security_group" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    # 
-    cidr_blocks = []
+    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [aws_security_group.rds_proxy_security_group.id]
   }
 
   egress {
@@ -112,7 +126,6 @@ resource "aws_security_group" "rds_proxy_security_group" {
     cidr_blocks = ["0.0.0.0/0"]
     security_groups = [
       aws_security_group.valhub_api_service_security_group.id,
-      aws_security_group.rds_security_group.id,
       aws_security_group.admin_ec2_security_group.id,
       aws_security_group.valhub_worker_service_security_group.id
     ]
