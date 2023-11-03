@@ -5,7 +5,7 @@ WORKDIR /root
 
 # Copy AWS configuration if needed
 RUN mkdir -p .aws
-COPY $HOME/.aws /root/.aws
+COPY .aws /root/.aws
 
 # Create and set up the application directory
 RUN mkdir valhub
