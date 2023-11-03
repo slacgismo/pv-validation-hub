@@ -20,7 +20,7 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   tags = merge(var.project_tags)
 }
 
-resource "aws_ecs_cluster" "pv-validation-hub-test-cluster" {
+resource "aws_ecs_cluster" "pv-validation-hub-worker-cluster" {
   name = var.ecs_worker_cluster_name 
   tags = merge(var.project_tags)
 }
@@ -30,7 +30,7 @@ resource "aws_cloudwatch_log_group" "ecs_task_log_group" {
   tags = merge(var.project_tags)
 }
 
-resource "aws_ecs_task_definition" "pv-validation-hub-test-task" {
+resource "aws_ecs_task_definition" "pv-validation-hub-worker-task" {
   family                   = var.worker_task_definition_family
   container_definitions    = <<DEFINITION
   [
@@ -103,14 +103,14 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_smpolicy" {
 
 resource "aws_ecs_service" "valhub_worker_service" {
   name            = var.ecs_worker_service
-  cluster         = aws_ecs_cluster.pv-validation-hub-test-cluster.id
-  task_definition = aws_ecs_task_definition.pv-validation-hub-test-task.arn
+  cluster         = aws_ecs_cluster.pv-validation-hub-worker-cluster.id
+  task_definition = aws_ecs_task_definition.pv-validation-hub-worker-task.arn
   launch_type     = "FARGATE"
   desired_count   = var.worker_service_desired_count
 
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.arn
-    container_name   = aws_ecs_task_definition.pv-validation-hub-test-task.family
+    container_name   = aws_ecs_task_definition.pv-validation-hub-worker-task.family
     container_port   = 80
   }
 
