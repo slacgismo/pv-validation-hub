@@ -108,19 +108,11 @@ resource "aws_ecs_service" "valhub_worker_service" {
   launch_type     = "FARGATE"
   desired_count   = var.worker_service_desired_count
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.target_group.arn
-    container_name   = aws_ecs_task_definition.pv-validation-hub-worker-task.family
-    container_port   = 80
-  }
-
   network_configuration {
     subnets          = var.subnet_ids
     assign_public_ip = true
     security_groups  = [ var.valhub_worker_service_security_group_id ]
   }
-    # Add health check grace period (in seconds)
-  health_check_grace_period_seconds = 120  # Adjust this value as needed
 
   tags = merge(var.project_tags)
 }

@@ -51,16 +51,6 @@ variable "worker_task_definition_memory" {
   type        = number
 }
 
-variable "worker_alb_name" {
-  description = "The name of the Application Load Balancer"
-  type        = string
-}
-
-variable "worker_lb_target_group_name" {
-  description = "The name of the load balancer target group"
-  type        = string
-}
-
 variable "valhub_certificate_arn" {
   description = "The name of the load balancer target group"
   type        = string
@@ -89,11 +79,6 @@ variable "worker_service_desired_count" {
 variable "subnet_ids" {
   description = "The list of IDs for the subnets to be used"
   type        = list(string)
-}
-
-variable "load_balancer_security_group_id" {
-  description = "The security group ID for the load balancer"
-  type        = string
 }
 
 variable "vpc_id" {
