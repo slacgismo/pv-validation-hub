@@ -61,6 +61,11 @@ variable "ecs_secrets_manager_policy_arn" {
   type        = string
 }
 
+variable "sqs_policy_arn" {
+  description = "The arn for the policy granting access to AWS sqs queues."
+  type        = string
+}
+
 variable "valhub_ecs_task_role" {
   description = "The arn for the policy granting access to AWS secrets manager."
   type        = string

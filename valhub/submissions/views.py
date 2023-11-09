@@ -72,8 +72,6 @@ def analysis_submission(request, analysis_id):
             sqs = boto3.resource(
                 "sqs",
                 region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
-                aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-                aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
             )
         queue_name = "valhub_submission_queue.fifo"
         queue = sqs.get_queue_by_name(QueueName=queue_name)

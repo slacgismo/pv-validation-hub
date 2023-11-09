@@ -101,6 +101,11 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_smpolicy" {
   policy_arn = var.ecs_secrets_manager_policy_arn
 }
 
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionRole_sqs" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = var.sqs_policy_arn
+}
+
 resource "aws_ecs_service" "valhub_worker_service" {
   name            = var.ecs_worker_service
   cluster         = aws_ecs_cluster.pv-validation-hub-worker-cluster.id
