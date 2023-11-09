@@ -297,8 +297,6 @@ def download_and_extract_zip_file(file_name, download_location, extract_location
         s3 = boto3.client(
             's3',
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
         )
         s3.download_file(S3_BUCKET_NAME, file_name, download_location)
     except Exception as e:
@@ -595,8 +593,6 @@ def get_or_create_sqs_queue(queue_name):
         sqs = boto3.resource(
             "sqs",
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
-            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
         )
 
     if queue_name == "":
@@ -623,8 +619,6 @@ def get_analysis_pk():
     ec2_resource = boto3.resource(
         'ec2',
         region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
-        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
     )
     ec2_instance = ec2_resource.Instance(instance_id)
     tags = ec2_instance.tags

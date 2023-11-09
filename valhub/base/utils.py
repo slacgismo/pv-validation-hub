@@ -50,11 +50,7 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
                 return s3_file_full_path.replace('http://s3:5000/put_object/', 'http://s3:5000/get_object/')
     else:
         """Upload file to S3 bucket and return object URL"""
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
-        )
+        s3 = boto3.client('s3')
 
         try:
             s3.upload_file(local_path, bucket_name, upload_path)
