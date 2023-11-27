@@ -54,6 +54,11 @@ def is_local():
 
 is_s3_emulation = is_local()
 
+if is_s3_emulation:
+    api_base_url = 'api:8005'
+else:
+    api_base_url = 'api.pv-validation-hub.org'
+
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 def pull_from_s3(s3_file_path):
@@ -204,7 +209,7 @@ def run(module_to_import_s3_path,
     # Load in data set that we're going to analyze.
 
     # Make GET requests to the Django API to get the system metadata
-    system_metadata_response = requests.get('http://api:8005/system_metadata/systemmetadata/')
+    system_metadata_response = requests.get('http://{api_base_url}/system_metadata/systemmetadata/')
 
     # Convert the responses to DataFrames
 
@@ -234,7 +239,7 @@ def run(module_to_import_s3_path,
     # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
     file_metadata_list = []
     for file_id in unique_file_ids:
-        response = requests.get(f'http://api:8005/file_metadata/filemetadata/{file_id}/')
+        response = requests.get(f'http://{api_base_url}/file_metadata/filemetadata/{file_id}/')
         file_metadata_list.append(response.json())
 
     # Convert the list of file metadata to a DataFrame

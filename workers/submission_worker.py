@@ -106,6 +106,14 @@ def list_s3_bucket(s3_dir):
         ret = r.json()
         for entry in ret['Contents']:
             all_files.append(os.path.join(s3_dir.split('/')[0], entry['Key']))
+    else:
+        s3 = boto3.client('s3')
+        paginator = s3.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
+        for page in pages:
+            if page['KeyCount'] > 0:
+                for entry in page['Contents']:
+                    all_files.append(entry['Key'])
     
     return all_files
 
