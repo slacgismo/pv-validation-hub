@@ -27,6 +27,7 @@ def is_local():
 
 is_s3_emulation = is_local()
 
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 
 SUBMITTING = "submitting"
@@ -55,7 +56,12 @@ def pull_from_s3(s3_file_path):
         with open(target_file_path, "wb") as f:
             f.write(r.content)
     else:
-        raise NotImplementedError("real s3 mode not implemented")
+        s3 = boto3.client('s3')
+
+        try:
+            s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
+        except:
+            return None
 
     return target_file_path
 
@@ -76,9 +82,14 @@ def push_to_s3(local_file_path, s3_file_path):
             if r.status_code != 204:
                 print(f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
     else:
-        raise NotImplementedError("real s3 mode not implemented")
-    
 
+        s3 = boto3.client('s3')
+
+        try:
+            s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
+        except:
+            return None
+        
 def list_s3_bucket(s3_dir):
     if s3_dir.startswith('/'):
         s3_dir = s3_dir[1:]

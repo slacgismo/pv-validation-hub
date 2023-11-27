@@ -35,6 +35,7 @@ import sys
 import zipfile
 import subprocess
 import logging
+import boto3
 
 # Basic logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -52,6 +53,8 @@ def is_local():
     return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ
 
 is_s3_emulation = is_local()
+
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 def pull_from_s3(s3_file_path):
     if s3_file_path.startswith('/'):
@@ -71,7 +74,8 @@ def pull_from_s3(s3_file_path):
         with open(target_file_path, "wb") as f:
             f.write(r.content)
     else:
-        raise NotImplementedError("real s3 mode not implemented")
+        s3 = boto3.client('s3')
+        s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
 
     return target_file_path
 
@@ -92,7 +96,8 @@ def push_to_s3(local_file_path, s3_file_path):
             if r.status_code != 204:
                 print(f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}", file=sys.stderr)
     else:
-        raise NotImplementedError("real s3 mode not implemented")
+        s3 = boto3.client('s3')
+        s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
 
 
 def convert_compressed_file_path_to_directory(compressed_file_path):
