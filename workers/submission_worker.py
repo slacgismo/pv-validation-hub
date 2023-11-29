@@ -23,7 +23,7 @@ def is_local():
     Returns:
         bool: True if the application is running locally, False otherwise.
     """
-    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ
+    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ and 'PROD' not in os.environ
 
 is_s3_emulation = is_local()
 

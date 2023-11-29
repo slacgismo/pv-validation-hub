@@ -11,6 +11,9 @@ RUN mkdir worker
 WORKDIR /root/worker
 COPY . .
 
+# Set environment variables for prod
+ENV PROD=true
+
 ENV PORT 8500
 EXPOSE 8500
 EXPOSE 65535
