@@ -36,8 +36,19 @@ RUNNING = "running"
 FAILED = "failed"
 FINISHED = "finished"
 
+formatter = logging.Formatter(
+    "[%(asctime)s] %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(formatter)
+
+logger = logging.getLogger(__name__)
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 def pull_from_s3(s3_file_path):
+    logger.info(f'pull file {s3_file_path} from s3')
     if s3_file_path.startswith('/'):
         s3_file_path = s3_file_path[1:]
 
@@ -67,6 +78,7 @@ def pull_from_s3(s3_file_path):
 
 
 def push_to_s3(local_file_path, s3_file_path):
+    logger.info(f'push file {local_file_path} to s3')
     if s3_file_path.startswith('/'):
         s3_file_path = s3_file_path[1:]
 
@@ -91,6 +103,7 @@ def push_to_s3(local_file_path, s3_file_path):
             return None
         
 def list_s3_bucket(s3_dir):
+    logger.info(f'list s3 bucket {s3_dir}')
     if s3_dir.startswith('/'):
         s3_dir = s3_dir[1:]
 
@@ -107,6 +120,7 @@ def list_s3_bucket(s3_dir):
         for entry in ret['Contents']:
             all_files.append(os.path.join(s3_dir.split('/')[0], entry['Key']))
     else:
+        logger.info(f'list s3 bucket {s3_dir_full_path}')
         s3 = boto3.client('s3')
         paginator = s3.get_paginator('list_objects_v2')
         pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
@@ -115,6 +129,7 @@ def list_s3_bucket(s3_dir):
                 for entry in page['Contents']:
                     all_files.append(entry['Key'])
     
+    logger.info(f'list s3 bucket {s3_dir_full_path} returns {all_files}')
     return all_files
 
 
@@ -206,20 +221,6 @@ S3_BUCKET_NAME = "pv-validation-hub-bucket"
 EVALUATION_SCRIPTS = {}
 SUBMISSION_ALGORITHMS = {}
 ANNOTATION_FILE_NAME_MAP = {}
-
-formatter = logging.Formatter(
-    "[%(asctime)s] %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-)
-
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(formatter)
-
-logger = logging.getLogger(__name__)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
-
-# django.db.close_old_connections()
-
 
 class GracefulKiller:
     kill_now = False
@@ -339,6 +340,7 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
 
     # download evaluation scripts and requirements.txt etc.
     files = list_s3_bucket(f'pv-validation-hub-bucket/evaluation_scripts/{analysis_id}/')
+    logger.info(f'pull evaluation scripts from s3')
     for file in files:
         tmp_path = pull_from_s3(file)
         shutil.move(tmp_path, os.path.join(current_evaluation_dir, tmp_path.split('/')[-1]))

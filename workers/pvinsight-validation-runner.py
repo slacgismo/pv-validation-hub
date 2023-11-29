@@ -62,8 +62,10 @@ else:
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 def pull_from_s3(s3_file_path):
+    logger.info(f"pulling file {s3_file_path} from s3")
     if s3_file_path.startswith('/'):
         s3_file_path = s3_file_path[1:]
+        logger.info(f"modified path to {s3_file_path}")
 
     if is_s3_emulation:
         s3_file_full_path = 'http://s3:5000/get_object/' + s3_file_path
