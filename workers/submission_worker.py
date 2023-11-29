@@ -369,8 +369,10 @@ def create_current_evaluation_dir(dir_name='current_evaluation'):
     local_dir = dir_name
     logger.info(f'create local folder {local_dir}')
     current_evaluation_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_dir)
+    logger.info(f'local folder located at {current_evaluation_dir}')
     if not os.path.exists(current_evaluation_dir):
         os.makedirs(current_evaluation_dir)
+        logger.info(f'created local folder {current_evaluation_dir}')
     return current_evaluation_dir
 
 
