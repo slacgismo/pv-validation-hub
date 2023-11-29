@@ -120,7 +120,11 @@ def list_s3_bucket(s3_dir):
         for entry in ret['Contents']:
             all_files.append(os.path.join(s3_dir.split('/')[0], entry['Key']))
     else:
-        logger.info(f'list s3 bucket {s3_dir_full_path}')
+        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
+        # if so, remove it
+        s3_dir = s3_dir.replace('pv-validation-hub-bucket/', '')
+        logger.info(f'dir after removing pv-validation-hub-bucket/ returns {s3_dir}')
+
         s3 = boto3.client('s3')
         paginator = s3.get_paginator('list_objects_v2')
         pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
@@ -129,7 +133,7 @@ def list_s3_bucket(s3_dir):
                 for entry in page['Contents']:
                     all_files.append(entry['Key'])
     
-    logger.info(f'list s3 bucket {s3_dir_full_path} returns {all_files}')
+    logger.info(f'listed s3 bucket {s3_dir_full_path} returns {all_files}')
     return all_files
 
 
