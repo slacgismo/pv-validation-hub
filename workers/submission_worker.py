@@ -554,9 +554,11 @@ def process_submission_message(message):
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
-    argument = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}'
+    argument = f'submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}'
     logger.info(f'execute runner module function with argument {argument}')
 
+    # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
+    # bucket name must be passed seperately to boto3 calls.
     ret = analysis_function(argument, current_evaluation_dir)
     logger.info(f'runner module function returns {ret}')
 
