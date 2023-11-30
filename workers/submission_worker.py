@@ -132,6 +132,10 @@ def list_s3_bucket(s3_dir):
             if page['KeyCount'] > 0:
                 for entry in page['Contents']:
                     all_files.append(entry['Key'])
+
+        # remove the first entry if it is the same as s3_dir
+        if len(all_files) > 0 and all_files[0] == s3_dir:
+            all_files.pop(0)
     
     logger.info(f'listed s3 bucket {s3_dir_full_path} returns {all_files}')
     return all_files
@@ -346,6 +350,7 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     files = list_s3_bucket(f'pv-validation-hub-bucket/evaluation_scripts/{analysis_id}/')
     logger.info(f'pull evaluation scripts from s3')
     for file in files:
+        logger.info(f'pull file {file} from s3')
         tmp_path = pull_from_s3(file)
         shutil.move(tmp_path, os.path.join(current_evaluation_dir, tmp_path.split('/')[-1]))
     # create data directory and sub directories
