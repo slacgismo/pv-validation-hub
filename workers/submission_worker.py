@@ -238,6 +238,7 @@ class GracefulKiller:
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
     def exit_gracefully(self, signum, frame):
+        logger.info(f'Set signal to exit gracefully')
         self.kill_now = True
 
 
@@ -688,6 +689,9 @@ def main():
             process_submission_callback(message.body)
             # Let the queue know that the message is processed
             message.delete()
+            logger.info(
+                "{} Message processed successfully".format(WORKER_LOGS_PREFIX)
+            )
 
         if killer.kill_now:
             break
