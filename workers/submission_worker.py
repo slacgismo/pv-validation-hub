@@ -29,6 +29,10 @@ is_s3_emulation = is_local()
 
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
+if is_s3_emulation:
+    api_base_url = 'api:8005'
+else:
+    api_base_url = 'api.pv-validation-hub.org'
 
 SUBMITTING = "submitting"
 SUBMITTED = "submitted"
@@ -142,7 +146,7 @@ def list_s3_bucket(s3_dir):
 
 
 def update_submission_status(analysis_id, submission_id, new_status):
-    r = requests.put(f'http://api:8005/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}',
+    r = requests.put(f'http://{api_base_url}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}',
                      data={'status': new_status})
     if r.status_code != 200:
         print(f"error update submission status to {new_status}, status code {r.status_code} {r.content}", file=sys.stderr)
@@ -150,7 +154,7 @@ def update_submission_status(analysis_id, submission_id, new_status):
 
 def update_submission_result(analysis_id, submission_id, result_json):
     headers = {"Content-Type": "application/json"}
-    r = requests.put(f'http://api:8005/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}',
+    r = requests.put(f'http://{api_base_url}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}',
                      json=result_json, headers=headers)
     if r.status_code != 200:
         print(f"error update submission result to {result_json}, status code {r.status_code} {r.content}", file=sys.stderr)
