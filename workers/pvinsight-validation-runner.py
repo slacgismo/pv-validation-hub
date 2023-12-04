@@ -50,7 +50,7 @@ def is_local():
     Returns:
         bool: True if the application is running locally, False otherwise.
     """
-    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ and 'PROD' not in os.environ
+    return 'PROD' not in os.environ
 
 is_s3_emulation = is_local()
 
@@ -68,7 +68,7 @@ def pull_from_s3(s3_file_path):
         logger.info(f"modified path to {s3_file_path}")
 
     if is_s3_emulation:
-        s3_file_full_path = 'http://s3:5000/get_object/' + s3_file_path
+        s3_file_full_path = 'http://s3:5000/get_object/' + S3_BUCKET_NAME + "/" + s3_file_path
     else:
         s3_file_full_path = 's3://' + s3_file_path
     
@@ -92,7 +92,7 @@ def push_to_s3(local_file_path, s3_file_path):
         s3_file_path = s3_file_path[1:]
 
     if is_s3_emulation:
-        s3_file_full_path = 'http://s3:5000/put_object/' + s3_file_path
+        s3_file_full_path = 'http://s3:5000/put_object/' + S3_BUCKET_NAME + "/" + s3_file_path
     else:
         s3_file_full_path = 's3://' + s3_file_path
     
