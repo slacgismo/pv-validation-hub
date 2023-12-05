@@ -146,7 +146,8 @@ def list_s3_bucket(s3_dir):
 
 
 def update_submission_status(analysis_id, submission_id, new_status):
-    r = requests.put(f'http://{api_base_url}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}',
+    api_route = f'http://{api_base_url}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}'
+    r = requests.put(api_route,
                      data={'status': new_status})
     if r.status_code != 200:
         print(f"error update submission status to {new_status}, status code {r.status_code} {r.content}", file=sys.stderr)
@@ -154,7 +155,8 @@ def update_submission_status(analysis_id, submission_id, new_status):
 
 def update_submission_result(analysis_id, submission_id, result_json):
     headers = {"Content-Type": "application/json"}
-    r = requests.put(f'http://{api_base_url}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}',
+    api_route = f'http://{api_base_url}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}'
+    r = requests.put(api_route,
                      json=result_json, headers=headers)
     if r.status_code != 200:
         print(f"error update submission result to {result_json}, status code {r.status_code} {r.content}", file=sys.stderr)
@@ -582,7 +584,12 @@ def process_submission_message(message):
         for file_name in file_names:
             full_file_name = os.path.join(dir_path, file_name)
             relative_file_name = full_file_name[len(f'{res_files_path}/'):]
-            s3_full_path = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}'
+            
+            if is_s3_emulation:
+                s3_full_path = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}'
+            else:
+                s3_full_path = f'submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}'
+            
             logger.info(f'upload result file "{full_file_name}" to s3 path "{s3_full_path}"')
             push_to_s3(full_file_name, s3_full_path)
 
