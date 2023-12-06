@@ -584,7 +584,7 @@ def process_submission_message(message):
         for file_name in file_names:
             full_file_name = os.path.join(dir_path, file_name)
             relative_file_name = full_file_name[len(f'{res_files_path}/'):]
-            
+
             if is_s3_emulation:
                 s3_full_path = f'pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}'
             else:
@@ -688,7 +688,7 @@ def main():
     while True:
         messages = queue.receive_messages(
             MaxNumberOfMessages=1,
-            VisibilityTimeout=7200
+            VisibilityTimeout=28800
         )
         for message in messages:
             logger.info(

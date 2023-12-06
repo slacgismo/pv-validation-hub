@@ -315,8 +315,17 @@ def get_submission_results(request, submission_id):
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         file_list = response.json()
     else:
-        storage = default_storage
-        _, file_list = storage.listdir(results_directory)
+        # get the list of files in the results directory
+        s3 = boto3.client('s3')
+        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=results_directory)
+        if response['KeyCount'] == 0:
+            return JsonResponse({"error": "No files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
+        # remove the first entry if it is the same as results_directory
+        if response['Contents'][0]['Key'] == results_directory:
+            file_list = [file['Key'] for file in response['Contents'][1:]]
+        else:
+            file_list = [file['Key'] for file in response['Contents']]
+
 
     png_files = [file for file in file_list if file.lower().endswith(".png")]
 
