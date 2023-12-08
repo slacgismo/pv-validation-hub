@@ -15,6 +15,8 @@ import json
 import time
 import urllib.request
 import inspect
+import threading
+import time
 
 def is_local():
     """
@@ -673,6 +675,16 @@ def get_analysis_pk():
             return int(tag['Value'])
     return 1
 
+# function to update visibility timeout, to prevent the error "ReceiptHandle is invalid. Reason: The receipt handle has expired."
+def update_visibility_timeout(queue, message, timeout):
+    while True:
+        # Update visibility timeout
+        queue.change_message_visibility(
+            QueueUrl=queue.url,
+            ReceiptHandle=message.receipt_handle,
+            VisibilityTimeout=timeout
+        )
+        time.sleep(60)  # Adjust the sleep duration as needed
 
 def main():
     killer = GracefulKiller()
@@ -688,8 +700,9 @@ def main():
     while True:
         messages = queue.receive_messages(
             MaxNumberOfMessages=1,
-            VisibilityTimeout=28800
+            VisibilityTimeout=43200
         )
+
         for message in messages:
             logger.info(
                 "{} Processing message body: {}".format(
@@ -697,12 +710,23 @@ def main():
                 )
             )
             print(message.body)
+
+            # start a thread to refresh the timeout
+            t = threading.Thread(target=update_visibility_timeout, args=(queue, message, 43200))
+            t.start()
+
             process_submission_callback(message.body)
+
             # Let the queue know that the message is processed
             message.delete()
             logger.info(
                 "{} Message processed successfully".format(WORKER_LOGS_PREFIX)
             )
+            
+            # stop the thread
+            t.do_run = False
+            t.join()
+            break
 
         if killer.kill_now:
             break

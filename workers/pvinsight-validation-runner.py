@@ -366,6 +366,8 @@ def run(module_to_import_s3_path,
     with open(os.path.join(results_dir, config_data['public_results_table']),
               'w') as fp:
         json.dump(public_metrics_dict, fp)
+
+    logger.info(f"public_metrics_dict: {public_metrics_dict}")
     # Now generate private results. These will be more specific to the
     # type of analysis being run as results will be color-coded by certain
     # parameters. These params will be available as columns in the
@@ -374,8 +376,7 @@ def run(module_to_import_s3_path,
                                   file_metadata,
                                   on='file_name')
     # Filter to only the necessary columns (available via the config)
-    results_df_private = results_df_private[config_data
-                                            ["private_results_columns"]]
+    results_df_private = results_df_private[config_data["private_results_columns"]]
     results_df_private.to_csv(
         os.path.join(results_dir,
                       module_name + "_full_results.csv"))

@@ -11,24 +11,24 @@
 		"file_name",
 		"run_time",
 		"data_requirements",
-		"mean_absolute_error",
+		"mean_absolute_error_time_series",
 		"data_sampling_frequency",
 		"issue"
 	],
 	"plots": [
 		{
 			"type": "histogram",
-			"x_val": "mean_absolute_error",
+			"x_val": "mean_absolute_error_time_series",
 			"color_code": "issue",
 			"title": "Time Series MAE Distribution by Issue",
-			"save_file_path": "mean_absolute_error_dist.png"
+			"save_file_path": "mean_absolute_error_time_series_dist.png"
 		},
 		{
 			"type": "histogram",
-			"x_val": "mean_absolute_error",
+			"x_val": "mean_absolute_error_time_series",
 			"color_code": "data_sampling_frequency",
 			"title": "Time Series MAE Distribution by Sampling Frequency",
-			"save_file_path": "mean_absolute_error_dist.png"
+			"save_file_path": "mean_absolute_error_time_series_dist.png"
 		},
 		{
 			"type": "histogram",
