@@ -256,6 +256,7 @@ def run(module_to_import_s3_path,
 
     # Get the associated metrics we're supposed to calculate
     performance_metrics = config_data['performance_metrics']
+    logger.info(f"performance_metrics: {performance_metrics}")
 
     # Get the name of the function we want to import associated with this
     # test
@@ -360,9 +361,10 @@ def run(module_to_import_s3_path,
     for metric in performance_metrics:
         if 'absolute_error' in metric:
             for val in config_data['ground_truth_compare']:
-                public_metrics_dict['mean_' + metric + '_' + val] = \
+                logger.info(f"metric: {metric}, val: {val}, combined: {'mean_' + metric}")
+                public_metrics_dict['mean_' + metric] = \
                     results_df[metric + "_" + val].mean()
-                public_metrics_dict['median_' + metric + '_' + val] = \
+                public_metrics_dict['median_' + metric] = \
                     results_df[metric + "_" + val].median()   
     # Write public metric information to a public results table.
     with open(os.path.join(results_dir, config_data['public_results_table']),
