@@ -341,9 +341,11 @@ def run(module_to_import_s3_path,
                                            ground_truth_dict[val]))
                     results_dictionary[metric + "_" + val] = error
         results_list.append(results_dictionary)
+        logger.info(f"results_dictionary: {results_dictionary}")
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
     results_df = pd.DataFrame(results_list)
+    logger.info(f"results_df: {results_df}")
     # Build out the final processed results:
     #   1) Public reporting: mean MAE, mean run time, etc.
     #   2) Private reporting: graphics and tables split by different factors
