@@ -358,6 +358,11 @@ def run(module_to_import_s3_path,
     public_metrics_dict['mean_run_time'] = results_df['run_time'].mean()
     public_metrics_dict['median_run_time'] = results_df['run_time'].median()
     public_metrics_dict['function_parameters'] = function_parameters
+
+    # Get the mean and median absolute errors
+    # when combining the metric and name for the public metrics dictionary,
+    # do not add anything to them. mean_mean_average_error and median_mean_average_error
+    # are valid keys, anything else breaks our results processing
     for metric in performance_metrics:
         if 'absolute_error' in metric:
             for val in config_data['ground_truth_compare']:
