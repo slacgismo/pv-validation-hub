@@ -179,7 +179,7 @@ def update_submission_result(request, analysis_id, submission_id):
     logging.info(f"results = {results}")
     submission.mae = float(results['mean_mean_absolute_error'])
     submission.mrt = float(results['mean_run_time'])
-    submission.data_requirements = results['data_requirements']
+    submission.data_requirements = results['function_parameters']
     try:
         submission.save()
     except ValidationError as e:
