@@ -148,7 +148,8 @@ def list_s3_bucket(s3_dir):
 
 
 def update_submission_status(analysis_id, submission_id, new_status):
-    api_route = f'http://{api_base_url}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}'
+    # route needs to be a string stored in a variable, cannot parse in deployed environment
+    api_route = f'http://{api_base_url}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}'
     r = requests.put(api_route,
                      data={'status': new_status})
     if r.status_code != 200:

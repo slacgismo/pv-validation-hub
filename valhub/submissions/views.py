@@ -175,9 +175,11 @@ def update_submission_result(request, analysis_id, submission_id):
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    submission.mae = float(request.data.get('mean_mean_absolute_error'))
-    submission.mrt = float(request.data.get('mean_run_time'))
-    submission.data_requirements = request.data.get('data_requirements')
+    results = request.data
+    logging.info(f"results = {results}")
+    submission.mae = float(results['mean_mean_absolute_error'])
+    submission.mrt = float(results['mean_run_time'])
+    submission.data_requirements = results['data_requirements']
     try:
         submission.save()
     except ValidationError as e:
