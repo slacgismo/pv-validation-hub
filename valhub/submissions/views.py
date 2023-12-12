@@ -306,27 +306,29 @@ def get_submission_results(request, submission_id):
     user_id = submission.created_by.uuid
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
-    ## Update for actual s3 usage as well
+
+    # Update for actual S3 usage as well
     if is_emulation:
         storage_endpoint_url = "http://s3:5000/"
         static_endpoint_url = "http://localhost:5000/"
         directory_url = urljoin(storage_endpoint_url, f"{bucket_name}/{results_directory}/list")
         response = requests.get(directory_url)
         if response.status_code != 200:
-            return JsonResponse({"error": "Error retrieving results list"}, 
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse({"error": "Error retrieving results list"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         file_list = response.json()
+        base_url = urljoin(static_endpoint_url, f"static/{bucket_name}/")
     else:
         # get the list of files in the results directory
         s3 = boto3.client('s3')
         response = s3.list_objects_v2(Bucket=bucket_name, Prefix=results_directory)
-        if response['KeyCount'] == 0:
+        if 'Contents' not in response or not response['Contents']:
             return JsonResponse({"error": "No files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
         # remove the first entry if it is the same as results_directory
         if response['Contents'][0]['Key'] == results_directory:
             file_list = [file['Key'] for file in response['Contents'][1:]]
         else:
             file_list = [file['Key'] for file in response['Contents']]
+        base_url = f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
 
 
     png_files = [file for file in file_list if file.lower().endswith(".png")]
@@ -335,11 +337,9 @@ def get_submission_results(request, submission_id):
         return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
 
     file_urls = []
+
     for png_file in png_files:
-        png_file_path = os.path.join(results_directory, png_file)
-        
-        file_url = urljoin(static_endpoint_url, f"static/{bucket_name}/{png_file_path}")
-        
+        file_url = urljoin(base_url, png_file)
         if file_url:
             file_urls.append(file_url)
         else:
