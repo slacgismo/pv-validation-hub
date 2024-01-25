@@ -8,3 +8,5 @@ psycopg2-binary
 psycopg2
 django-storages[boto3]
 whitenoise
+datetime
+rsa
