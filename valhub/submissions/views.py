@@ -344,7 +344,6 @@ def get_submission_results(request, submission_id):
         print(f"emulation: {base_url}")
         # create an emulated signed session cookie for the results directory
         cloudfront_cookie = create_cloudfront_cookie(base_url)
-        file_urls = [urljoin(base_url, file) for file in file_urls]
 
         for png_file in png_files:
             file_url = urljoin(base_url, png_file)
@@ -358,7 +357,6 @@ def get_submission_results(request, submission_id):
         # create a signed session cookie for the results directory
         cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net" + cf_results_path
         cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
-        file_urls = [urljoin(cloudfront_url, file) for file in file_urls]
 
         for png_file in png_files:
             file_url = urljoin(cloudfront_url, png_file)

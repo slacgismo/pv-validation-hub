@@ -71,7 +71,7 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
 # Create signed session cookie for S3 directory object
     
 def rsa_signer(message):
-    with open('~/.pem/private-key.pem', 'r') as key_file:
+    with open('/root/.pem/private-key.pem', 'r') as key_file:
         private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
     return rsa.sign(message, private_key, 'SHA-1')
 
