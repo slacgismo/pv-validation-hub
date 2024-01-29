@@ -18,7 +18,6 @@ export default function SubmissionReport(props) {
   useEffect(() => {
     const fetchSubmissionResults = async () => {
       try {
-        console.log(props.submissionId)
         const result = await SubmissionService.getSubmissionResults(props.submissionId);
         console.log("result", result);
         const cloudfront_cookie = result.cloudfront_cookie;

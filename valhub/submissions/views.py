@@ -335,11 +335,13 @@ def get_submission_results(request, submission_id):
 
 
     png_files = [file for file in file_list if file.lower().endswith(".png")]
+    print(f"png_files: {png_files}")
 
     if not png_files:
         return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
 
     if is_emulation:
+        print(f"emulation: {base_url}")
         # create an emulated signed session cookie for the results directory
         cloudfront_cookie = create_cloudfront_cookie(base_url)
         file_urls = [urljoin(base_url, file) for file in file_urls]
@@ -352,6 +354,7 @@ def get_submission_results(request, submission_id):
                 return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     else:
+        print(f"not emulation: {cf_results_path}")
         # create a signed session cookie for the results directory
         cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net" + cf_results_path
         cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
@@ -365,8 +368,9 @@ def get_submission_results(request, submission_id):
                 return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     #set returns
-    ret.file_urls = file_urls
-    ret.cloudfront_cookie = cloudfront_cookie
+    print(f"setting returns")
+    ret['file_urls'] = file_urls
+    ret['cloudfront_cookie'] = cloudfront_cookie
 
     return JsonResponse(ret, status=status.HTTP_200_OK)
 
