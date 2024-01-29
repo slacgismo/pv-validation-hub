@@ -19,7 +19,7 @@ import botocore
 import logging
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket, is_emulation, get_cloudfront_cookie
+from base.utils import upload_to_s3_bucket, is_emulation, create_cloudfront_cookie
 from accounts.models import Account
 from .models import Submission
 from urllib.parse import urljoin
@@ -341,7 +341,7 @@ def get_submission_results(request, submission_id):
 
     if is_emulation:
         # create an emulated signed session cookie for the results directory
-        cloudfront_cookie = get_cloudfront_cookie(base_url)
+        cloudfront_cookie = create_cloudfront_cookie(base_url)
         file_urls = [urljoin(base_url, file) for file in file_urls]
 
         for png_file in png_files:
@@ -354,7 +354,7 @@ def get_submission_results(request, submission_id):
     else:
         # create a signed session cookie for the results directory
         cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net" + cf_results_path
-        cloudfront_cookie = get_cloudfront_cookie(cloudfront_url)
+        cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
         file_urls = [urljoin(cloudfront_url, file) for file in file_urls]
 
         for png_file in png_files:
@@ -367,7 +367,7 @@ def get_submission_results(request, submission_id):
     #set returns
     ret.file_urls = file_urls
     ret.cloudfront_cookie = cloudfront_cookie
-    
+
     return JsonResponse(ret, status=status.HTTP_200_OK)
 
 @api_view(["GET"])
