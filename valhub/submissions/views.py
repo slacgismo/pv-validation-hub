@@ -19,7 +19,7 @@ import botocore
 import logging
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket, is_emulation
+from base.utils import upload_to_s3_bucket, is_emulation, get_cloudfront_cookie
 from accounts.models import Account
 from .models import Submission
 from urllib.parse import urljoin
@@ -306,6 +306,9 @@ def get_submission_results(request, submission_id):
     user_id = submission.created_by.uuid
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
+    cf_results_path = f"/submission_user_{user_id}/submission_{submission_id}/results/"
+    file_urls = []
+    ret = {}
 
     # Update for actual S3 usage as well
     if is_emulation:
@@ -336,16 +339,36 @@ def get_submission_results(request, submission_id):
     if not png_files:
         return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
 
-    file_urls = []
+    if is_emulation:
+        # create an emulated signed session cookie for the results directory
+        cloudfront_cookie = get_cloudfront_cookie(base_url)
+        file_urls = [urljoin(base_url, file) for file in file_urls]
 
-    for png_file in png_files:
-        file_url = urljoin(base_url, png_file)
-        if file_url:
-            file_urls.append(file_url)
-        else:
-            return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        for png_file in png_files:
+            file_url = urljoin(base_url, png_file)
+            if file_url:
+                file_urls.append(file_url)
+            else:
+                return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    else:
+        # create a signed session cookie for the results directory
+        cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net" + cf_results_path
+        cloudfront_cookie = get_cloudfront_cookie(cloudfront_url)
+        file_urls = [urljoin(cloudfront_url, file) for file in file_urls]
 
-    return JsonResponse({"file_urls": file_urls})
+        for png_file in png_files:
+            file_url = urljoin(cloudfront_url, png_file)
+            if file_url:
+                file_urls.append(file_url)
+            else:
+                return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    #set returns
+    ret.file_urls = file_urls
+    ret.cloudfront_cookie = cloudfront_cookie
+    
+    return JsonResponse(ret, status=status.HTTP_200_OK)
 
 @api_view(["GET"])
 @csrf_exempt

@@ -1,11 +1,9 @@
 import {
     create_fake_image_array_list,
-    fake_discussion_output,
-    create_fake_leaderboard_array
+    fake_discussion_output
 } from './fake_data_service';
 import client from './api_service';
 import { useEffect, useState } from 'react';
-import { faker } from '@faker-js/faker';
 
 
 export const DashboardService = {

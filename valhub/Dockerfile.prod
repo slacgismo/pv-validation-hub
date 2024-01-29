@@ -3,9 +3,12 @@ FROM python:3.10-slim
 
 WORKDIR /root
 
-# Copy AWS configuration if needed
+# Copy AWS and PEM configuration if needed
+# Manually add the files to copy if not included in the host system
 RUN mkdir -p .aws
+RUN mkdir -p .pem
 COPY .aws /root/.aws
+COPY .pem /root/.pem
 
 # Create and set up the application directory
 RUN mkdir valhub

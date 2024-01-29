@@ -75,17 +75,14 @@ def rsa_signer(message):
         private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
     return rsa.sign(message, private_key, 'SHA-1')
 
-def get_cloudfront_cookie(directory_path):
-    if is_emulation:
-        return None
-    else:
-        key_id = 'your-cloudfront-key-pair-id'
-        url = 'https://your-cloudfront-url' + directory_path
-        expiration = datetime.datetime.now() + datetime.timedelta(hours=1)
+def create_cloudfront_cookie(directory_path):
+
+        key_id = 'K38U4Q0ELOYHZ1'
+        url = 'https://drt7tcx7xxmuz.cloudfront.net' + directory_path
         cloudfront_signer = CloudFrontSigner(key_id, rsa_signer)
 
         # Create signed cookies
-        policy = cloudfront_signer.build_policy(url, expiration)
+        policy = cloudfront_signer.build_policy(url)
         signed_cookies = cloudfront_signer.generate_cookies(policy=policy)
 
         return signed_cookies

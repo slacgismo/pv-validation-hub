@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { SubmissionService } from '../../../services/submission_service';
+import { CookieService } from '../../../services/cookie_service';
 import ImageList from '@mui/material/ImageList';
 import ImageListItem from '@mui/material/ImageListItem';
 import List from '@mui/material/List';
@@ -19,7 +20,21 @@ export default function SubmissionReport(props) {
       try {
         console.log(props.submissionId)
         const result = await SubmissionService.getSubmissionResults(props.submissionId);
+        console.log("result", result);
+        const cloudfront_cookie = result.cloudfront_cookie;
+        console.log("cookie", cloudfront_cookie);
+
         setImageUrls(result.file_urls);
+        // CookieService.setPrivateReportCookies(x,props.submissionId,cloudfront_cookie);
+        // Add cookie logic here
+        /*
+        const cookie = CookieService.getCookie('access_token');
+        if (user signed in) {
+          CookieService.setPrivateReportCookies(user_id, report_id, domainName, policy, signature, keyPairId);
+        } else {
+          console.log('Access Denied: User not signed in. How did you get here?);
+        }
+        */
       } catch (error) {
         console.error('Error fetching submission results:', error);
       }
@@ -44,7 +59,7 @@ export default function SubmissionReport(props) {
           ))}
         </ImageList>
       </ListItem>
-
+{/*
       <Divider sx={{margin: '5%'}}/>
 
       <ListItem disablePadding sx={{margin: '3%'}}>
@@ -67,6 +82,7 @@ export default function SubmissionReport(props) {
             </ImageListItem>
         </ImageList>
       </ListItem>
+          */}
     </List>
 
   )
