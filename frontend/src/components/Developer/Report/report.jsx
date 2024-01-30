@@ -19,21 +19,15 @@ export default function SubmissionReport(props) {
     const fetchSubmissionResults = async () => {
       try {
         const result = await SubmissionService.getSubmissionResults(props.submissionId);
-        console.log("result", result);
         const cloudfront_cookie = result.cloudfront_cookie;
-        console.log("cookie", cloudfront_cookie);
+
+        CookieService.setPrivateReportCookies(props.submissionId, 
+          cloudfront_cookie['CloudFront-Policy'], 
+          cloudfront_cookie['CloudFront-Signature'], 
+          cloudfront_cookie['CloudFront-Key-Pair-Id']);
 
         setImageUrls(result.file_urls);
-        // CookieService.setPrivateReportCookies(x,props.submissionId,cloudfront_cookie);
-        // Add cookie logic here
-        /*
-        const cookie = CookieService.getCookie('access_token');
-        if (user signed in) {
-          CookieService.setPrivateReportCookies(user_id, report_id, domainName, policy, signature, keyPairId);
-        } else {
-          console.log('Access Denied: User not signed in. How did you get here?);
-        }
-        */
+        
       } catch (error) {
         console.error('Error fetching submission results:', error);
       }
