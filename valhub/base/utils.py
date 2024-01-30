@@ -9,10 +9,13 @@ import sys
 
 from datetime import datetime, timedelta
 from botocore.signers import CloudFrontSigner
-import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+
 import base64
 import json
-
 import os
 
 def is_local():
@@ -73,9 +76,18 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
 # Create signed session cookie for S3 directory object
     
 def rsa_signer(message):
-    with open('/root/.pem/private-key.pem', 'r') as key_file:
-        private_key = rsa.PrivateKey.load_pkcs1(key_file.read())
-    return rsa.sign(message, private_key, 'SHA-1')
+    with open('/root/.pem/private-key.pem', 'rb') as key_file:
+        private_key = serialization.load_pem_private_key(
+            key_file.read(),
+            password=None,
+            backend=default_backend()
+        )
+    signature = private_key.sign(
+        message,
+        padding.PKCS1v15(),
+        hashes.SHA1()
+    )
+    return signature
 
 def create_cloudfront_cookie(directory_path):
 
