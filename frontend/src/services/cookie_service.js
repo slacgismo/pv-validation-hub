@@ -11,21 +11,21 @@ export const CookieService = {
     },
     setPrivateReportCookies(report_id, policy, signature, keyPairId) {
         const cookies = new Cookies();
+        console.log("Setting cookies");
         cookies.set('CloudFront-Policy', 
             policy, 
             { path: '/', 
-            secure: true, 
-            httpOnly: true });
+            secure: true });
         cookies.set('CloudFront-Signature', 
             signature, 
             { path: '/', 
-            secure: true, 
-            httpOnly: true });
+            secure: true });
         cookies.set('CloudFront-Key-Pair-Id', 
-        keyPairId, 
-        { path: '/', 
-        secure: true, 
-        httpOnly: true });
+            keyPairId, 
+            { path: '/', 
+            secure: true });
+
+        console.log("Private Report Cookies set for user report " + report_id);
 
         return "Private Report Cookies set for user report " + report_id;
     }
