@@ -374,9 +374,7 @@ def get_submission_results(request, submission_id):
     ret['file_urls'] = file_urls
     ret['cloudfront_cookie'] = cloudfront_cookie
 
-    # HTTP Response needed as JSON response cannot handle sending bytes, 
-    # which is used for encoded cookie
-    return HttpResponse(ret, status=status.HTTP_200_OK)
+    return JsonResponse(ret, status=status.HTTP_200_OK)
 
 @api_view(["GET"])
 @csrf_exempt

@@ -107,8 +107,8 @@ def create_cloudfront_cookie(directory_path):
 
         # Create the signed cookies
         signed_cookies = {
-            'CloudFront-Policy': base64.b64encode(policy.encode('utf8')),
-            'CloudFront-Signature': base64.b64encode(signature),
+            'CloudFront-Policy': base64.b64encode(policy.encode('utf-8')).decode('utf-8'),
+            'CloudFront-Signature': base64.b64encode(signature).decode('utf-8'),
             'CloudFront-Key-Pair-Id': key_id
         }
 
