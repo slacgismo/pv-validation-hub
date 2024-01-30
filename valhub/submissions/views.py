@@ -308,7 +308,7 @@ def get_submission_results(request, submission_id):
     user_id = submission.created_by.uuid
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
-    cf_results_path = f"/submission_user_{user_id}/submission_{submission_id}/results/"
+    cf_results_path = f"submission_user_{user_id}/submission_{submission_id}/results/"
     file_urls = []
     ret = {}
 
@@ -359,10 +359,13 @@ def get_submission_results(request, submission_id):
     else:
         logging.info(f"not emulation: {cf_results_path}")
         # create a signed session cookie for the results directory
-        cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net" + cf_results_path
+        cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net/"
         cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
 
         for png_file in png_files:
+            # If png_file starts with 'submission_files/', remove it
+            if png_file.startswith('submission_files/'):
+                png_file = png_file[len('submission_files/'):]
             file_url = urljoin(cloudfront_url, png_file)
             if file_url:
                 file_urls.append(file_url)
