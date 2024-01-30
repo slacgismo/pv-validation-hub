@@ -302,6 +302,8 @@ def get_submission_results(request, submission_id):
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+    
+    logging.info(f"start")
 
     user_id = submission.created_by.uuid
     bucket_name = "pv-validation-hub-bucket"
@@ -323,7 +325,9 @@ def get_submission_results(request, submission_id):
     else:
         # get the list of files in the results directory
         s3 = boto3.client('s3')
+        logging.info(f"pre-list_objects_v2")
         response = s3.list_objects_v2(Bucket=bucket_name, Prefix=results_directory)
+        logging.info(f"post-list_objects_v2")
         if 'Contents' not in response or not response['Contents']:
             return JsonResponse({"error": "No files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
         # remove the first entry if it is the same as results_directory
@@ -335,13 +339,13 @@ def get_submission_results(request, submission_id):
 
 
     png_files = [file for file in file_list if file.lower().endswith(".png")]
-    print(f"png_files: {png_files}")
+    logging.info(f"png_files: {png_files}")
 
     if not png_files:
         return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
 
     if is_emulation:
-        print(f"emulation: {base_url}")
+        logging.info(f"emulation: {base_url}")
         # create an emulated signed session cookie for the results directory
         cloudfront_cookie = create_cloudfront_cookie(base_url)
 
@@ -353,7 +357,7 @@ def get_submission_results(request, submission_id):
                 return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     else:
-        print(f"not emulation: {cf_results_path}")
+        logging.info(f"not emulation: {cf_results_path}")
         # create a signed session cookie for the results directory
         cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net" + cf_results_path
         cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
@@ -366,7 +370,7 @@ def get_submission_results(request, submission_id):
                 return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     #set returns
-    print(f"setting returns")
+    logging.info(f"setting returns")
     ret['file_urls'] = file_urls
     ret['cloudfront_cookie'] = cloudfront_cookie
 
