@@ -91,8 +91,9 @@ def rsa_signer(message):
 
 def create_cloudfront_cookie(directory_path):
 
+        # cookie url/domain needs to match the site, otherwise cookies will not pass to cf
         key_id = 'K38U4Q0ELOYHZ1'
-        url = 'https://drt7tcx7xxmuz.cloudfront.net' + directory_path
+        url = 'https://private-content.pv-validation-hub.org' + directory_path
         cloudfront_signer = CloudFrontSigner(key_id, rsa_signer)
 
         # Set an expiration time 1 hour from now

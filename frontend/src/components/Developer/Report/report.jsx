@@ -21,7 +21,7 @@ export default function SubmissionReport(props) {
         const result = await SubmissionService.getSubmissionResults(props.submissionId);
         const cloudfront_cookie = result.cloudfront_cookie;
 
-        CookieService.setPrivateReportCookies(props.submissionId, 
+        CookieService.setPrivateReportCookies(props.submissionId,
           cloudfront_cookie['CloudFront-Policy'], 
           cloudfront_cookie['CloudFront-Signature'], 
           cloudfront_cookie['CloudFront-Key-Pair-Id']);
