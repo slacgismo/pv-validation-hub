@@ -359,7 +359,7 @@ def get_submission_results(request, submission_id):
     else:
         logging.info(f"not emulation: {cf_results_path}")
         # create a signed session cookie for the results directory
-        cloudfront_url = "https://drt7tcx7xxmuz.cloudfront.net/"
+        cloudfront_url = "https://private-content.pv-validation-hub.org/"
         cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
 
         for png_file in png_files:
