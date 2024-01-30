@@ -100,13 +100,14 @@ def create_cloudfront_cookie(directory_path):
 
         # Create signed policy
         policy = cloudfront_signer.build_policy(url, date_less_than=date_less_than)
+        print(f"policy: {policy}")
 
         # Create the signature
         signature = rsa_signer(policy)
 
         # Create the signed cookies
         signed_cookies = {
-            'CloudFront-Policy': base64.b64encode(policy),
+            'CloudFront-Policy': base64.b64encode(policy.encode('utf8')),
             'CloudFront-Signature': base64.b64encode(signature),
             'CloudFront-Key-Pair-Id': key_id
         }
