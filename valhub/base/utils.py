@@ -10,6 +10,8 @@ import sys
 from datetime import datetime, timedelta
 from botocore.signers import CloudFrontSigner
 import rsa
+import base64
+import json
 
 import os
 
@@ -84,8 +86,17 @@ def create_cloudfront_cookie(directory_path):
         # Set an expiration time 1 hour from now
         date_less_than = datetime.utcnow() + timedelta(hours=1)
 
-        # Create signed cookies
+        # Create signed policy
         policy = cloudfront_signer.build_policy(url, date_less_than=date_less_than)
-        signed_cookies = cloudfront_signer.generate_cookies(policy=policy)
+
+        # Create the signature
+        signature = rsa_signer(policy)
+
+        # Create the signed cookies
+        signed_cookies = {
+            'CloudFront-Policy': base64.b64encode(json.dumps(policy)),
+            'CloudFront-Signature': base64.b64encode(signature),
+            'CloudFront-Key-Pair-Id': key_id
+        }
 
         return signed_cookies
