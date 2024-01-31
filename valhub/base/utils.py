@@ -83,7 +83,7 @@ def rsa_signer(message):
             backend=default_backend()
         )
     signature = private_key.sign(
-        message.encode(),  # Encode the message
+        message,
         padding.PKCS1v15(),
         hashes.SHA1()
     )
