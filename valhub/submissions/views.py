@@ -358,9 +358,6 @@ def get_submission_results(request, submission_id):
         logging.info(f"not emulation: {cf_results_path}")
 
         for png_file in png_files:
-            # If png_file starts with 'submission_files/', remove it
-            if png_file.startswith('submission_files/'):
-                png_file = png_file[len('submission_files/'):]
             file_url = create_cloudfront_url(png_file)
             if file_url:
                 file_urls.append(file_url)
