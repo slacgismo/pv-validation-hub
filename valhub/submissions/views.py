@@ -19,7 +19,7 @@ import botocore
 import logging
 
 from analyses.models import Analysis
-from base.utils import upload_to_s3_bucket, is_emulation, create_cloudfront_cookie
+from base.utils import upload_to_s3_bucket, is_emulation, create_cloudfront_url
 from accounts.models import Account
 from .models import Submission
 from urllib.parse import urljoin
@@ -346,8 +346,6 @@ def get_submission_results(request, submission_id):
 
     if is_emulation:
         logging.info(f"emulation: {base_url}")
-        # create an emulated signed session cookie for the results directory
-        cloudfront_cookie = create_cloudfront_cookie(base_url)
 
         for png_file in png_files:
             file_url = urljoin(base_url, png_file)
@@ -358,15 +356,12 @@ def get_submission_results(request, submission_id):
     
     else:
         logging.info(f"not emulation: {cf_results_path}")
-        # create a signed session cookie for the results directory
-        cloudfront_url = "https://private-content.pv-validation-hub.org/"
-        cloudfront_cookie = create_cloudfront_cookie(cloudfront_url)
 
         for png_file in png_files:
             # If png_file starts with 'submission_files/', remove it
             if png_file.startswith('submission_files/'):
                 png_file = png_file[len('submission_files/'):]
-            file_url = urljoin(cloudfront_url, png_file)
+            file_url = create_cloudfront_url(png_file)
             if file_url:
                 file_urls.append(file_url)
             else:
@@ -375,7 +370,6 @@ def get_submission_results(request, submission_id):
     #set returns
     logging.info(f"setting returns")
     ret['file_urls'] = file_urls
-    ret['cloudfront_cookie'] = cloudfront_cookie
 
     return JsonResponse(ret, status=status.HTTP_200_OK)
 

@@ -8,7 +8,8 @@ export const CookieService = {
     getUserCookie() {
         const cookies = new Cookies();
         return cookies.get('user');
-    },
+    }
+    /*
     setPrivateReportCookies(report_id, policy, signature, keyPairId) {
         const cookies = new Cookies();
         console.log("Setting cookies");
@@ -29,4 +30,5 @@ export const CookieService = {
 
         return "Private Report Cookies set for user report " + report_id;
     }
+    */
 }

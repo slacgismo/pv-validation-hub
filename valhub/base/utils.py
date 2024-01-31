@@ -89,9 +89,8 @@ def rsa_signer(message):
     )
     return signature
 
-def create_cloudfront_cookie(directory_path):
+def create_cloudfront_url(directory_path):
 
-        # cookie url/domain needs to match the site, otherwise cookies will not pass to cf
         key_id = 'K38U4Q0ELOYHZ1'
         url = 'https://private-content.pv-validation-hub.org' + directory_path
         cloudfront_signer = CloudFrontSigner(key_id, rsa_signer)
@@ -99,18 +98,7 @@ def create_cloudfront_cookie(directory_path):
         # Set an expiration time 1 hour from now
         date_less_than = datetime.utcnow() + timedelta(hours=1)
 
-        # Create signed policy
-        policy = cloudfront_signer.build_policy(url, date_less_than=date_less_than)
-        print(f"policy: {policy}")
+        # Create signed URL
+        signed_url = cloudfront_signer.generate_presigned_url(url, date_less_than=date_less_than)
 
-        # Create the signature
-        signature = rsa_signer(policy)
-
-        # Create the signed cookies
-        signed_cookies = {
-            'CloudFront-Policy': base64.b64encode(policy.encode('utf-8')).decode('utf-8'),
-            'CloudFront-Signature': base64.b64encode(signature).decode('utf-8'),
-            'CloudFront-Key-Pair-Id': key_id
-        }
-
-        return signed_cookies
+        return signed_url
