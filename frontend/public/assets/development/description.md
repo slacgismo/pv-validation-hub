@@ -1,6 +1,21 @@
-# Time Shift Validation Analysis
 
-**Description:** Time shift validation analysis is a statistical technique used to evaluate the accuracy and consistency of forecasting models. It involves shifting time series data and comparing forecasts against actual values. The purpose is to assess the reliability of models for predicting future time periods. The data is split into a training and validation set, and forecasts are generated for the validation set. Time shifts are then applied to the validation set, and forecasts for the shifted data are compared against the original validation set. The accuracy is measured using statistical metrics like MAE or RMSE. The analysis can provide insights into the stability and reliability of the model. It is useful for evaluating forecasting models and ensuring they are trustworthy for real-world predictions.
+# Description
+Measured photovolataic (PV) data from fielded systems may be incorrectly labeled by time zone, erroneously
+contain daylight savings time (DST), or have time shift issues due to operator error. Correcting time shifts in PV data is essential for accurate solar performance analysis, including degradation analysis. To illustrate this associated issue, Figures 1, 2, and 3, respectively, show AC power data streams heatmapped by hour of the day for the following scenarios: 
+1) No issues
+2) DST is present
+3) A random time shift is present
 
-**Note:** This technique is commonly used in various fields to validate forecasting models and enhance their performance. For more in-depth information, refer to the [official documentation](link_to_documentation). This can also be quite long.
+![image info](./time_shift_no_issues.png)
+*Heatmapped AC power stream with no time shift issues.*
+
+![image info](./daylight_savings_time.png)
+*Heatmapped AC power stream with daylight savings time.*
+
+![image info](./random_time_shift.png)
+*Heatmapped AC power stream with a random time shift.*
+
+Ideally, we want to run analysis on an AC power data stream like Figure 1, where no random time shifts or DST is present.
+
+This analysis benchmarks algorithm performance for finding time shifts in PV data and correcting them accordingly. To do this, real-world PV data sets are manipulated to create common time shift issues, such as incorrect time zone, partial DST, full DST, and random time shifts. All ground truth time shift issues for each data set are recorded, and used here to validate submitted time shift detection algorithms. In particular, the associated time shift amount at each value in the predicted time series will be compared to the associated ground-truth time shift value. 
 
