@@ -18,6 +18,7 @@ import { AnalysisService } from "../../services/analysis_service";
 import { faker } from "@faker-js/faker";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import replaceImagePaths from "../../config/mdurl";
 
 export default function Analysis() {
     const navigate = useNavigate();
@@ -42,7 +43,7 @@ export default function Analysis() {
         console.log("analysis", analysis_id, typeof analysis_id)
         if (analysis_id !== undefined && analysis_id !== null && 
             (analysis_id > 0 || analysis_id === "development")) {
-                setCoverImageDir(process.env.PUBLIC_URL + `/assets/${analysis_id}/headingCover.png`)
+                setCoverImageDir(process.env.PUBLIC_URL + `/assets/${analysis_id}/banner.png`)
                 console.log(coverImageDir)
 
                 fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/dataset.md`)
@@ -50,8 +51,9 @@ export default function Analysis() {
                 .then(text => setDatasetDescription(text))
                 .catch(err => console.log(err));
             
-                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/longdesc.md`)
+                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/description.md`)
                 .then(res => res.text())
+                .then(text => replaceImagePaths(text, analysis_id))
                 .then(text => setLongDescription(text))
                 .catch(err => console.log(err));
             
@@ -60,8 +62,9 @@ export default function Analysis() {
                 .then(text => setShortDescription(text))
                 .catch(err => console.log(err));
             
-                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/ruleset.md`)
+                fetch(process.env.PUBLIC_URL + `/assets/${analysis_id}/SubmissionInstructions.md`)
                 .then(res => res.text())
+                .then(text => replaceImagePaths(text, analysis_id))
                 .then(text => setRulesetDescription(text))
                 .catch(err => console.log(err));
          
@@ -117,7 +120,7 @@ export default function Analysis() {
                                     <Tab label="Overview" />
                                     <Tab label="Data" />
                                     <Tab label="Leaderboard" />
-                                    <Tab label="Rules" />
+                                    <Tab label="Instructions" />
                                     <Tab label="Discussion" />
                                 </Tabs>
                             </Grid>
