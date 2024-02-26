@@ -5,22 +5,22 @@ import {
   Stack,
   TextField,
   ThemeProvider,
-} from "@mui/material";
-import { Box } from "@mui/system";
+} from '@mui/material';
+import { Box } from '@mui/system';
 import Cookies from 'universal-cookie';
-import React, { useContext, useState } from "react";
-import CommentContext from "./CommentContext";
-import theme from "./styles";
+import React, { useContext, useState } from 'react';
+import CommentContext from './CommentContext.js';
+import theme from './styles.jsx';
 
-const AddReply = ({ onAdd }) => {
+function AddReply({ onAdd }) {
   const cookies = new Cookies();
-  let user = cookies.get("user");
+  const user = cookies.get('user');
   const { IMGOBJ } = useContext(CommentContext);
-  const [replyText, setReplyText] = useState("");
+  const [replyText, setReplyText] = useState('');
   return (
     <ThemeProvider theme={theme}>
       <Card>
-        <Box sx={{ p: "15px" }}>
+        <Box sx={{ p: '15px' }}>
           <Stack direction="row" spacing={2} alignItems="flex-start">
             <Avatar
               src={IMGOBJ[`${user.username}`]}
@@ -41,16 +41,16 @@ const AddReply = ({ onAdd }) => {
             <Button
               size="large"
               sx={{
-                bgcolor: "custom.moderateBlue",
-                color: "neutral.white",
-                p: "8px 25px",
-                "&:hover": {
-                  bgcolor: "custom.lightGrayishBlue",
+                bgcolor: 'custom.moderateBlue',
+                color: 'neutral.white',
+                p: '8px 25px',
+                '&:hover': {
+                  bgcolor: 'custom.lightGrayishBlue',
                 },
               }}
               onClick={(e) => {
                 !replyText.trim() ? e.preventDefault() : onAdd(replyText);
-                setReplyText("");
+                setReplyText('');
               }}
             >
               Reply
@@ -60,6 +60,6 @@ const AddReply = ({ onAdd }) => {
       </Card>
     </ThemeProvider>
   );
-};
+}
 
 export default AddReply;

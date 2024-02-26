@@ -1,14 +1,13 @@
-import { createContext, useState } from "react";
-import { DashboardService } from "../../../services/dashboard_service";
+import React, { createContext, useState } from 'react';
 import Cookies from 'universal-cookie';
+import { DashboardService } from '../../../services/dashboard_service.js';
 
 const CommentContext = createContext();
 
 export function CommentProvider({ children }) {
-
   const cookies = new Cookies();
-  var comment_user = cookies.get("user");
-  var data = DashboardService.getDiscussionComments("", comment_user.username);
+  const commentUser = cookies.get('user');
+  const data = DashboardService.getDiscussionComments('', commentUser.username);
   const [currentUser, comments] = [data.currentUser, data.comments];
   const [commentSection, setCommentSection] = useState(comments);
   const IMGOBJ = DashboardService.getImageObjects();
@@ -18,10 +17,10 @@ export function CommentProvider({ children }) {
       {
         id: Math.floor(Math.random() * 10000),
         content: data,
-        createdAt: "Just now",
+        createdAt: 'Just now',
         score: 0,
         replies: [],
-        user: { username: comment_user.username },
+        user: { username: commentUser.username },
       },
     ]);
   };
@@ -31,7 +30,7 @@ export function CommentProvider({ children }) {
         currentUser,
         commentSection,
         IMGOBJ,
-        addComment
+        addComment,
       }}
     >
       {children}

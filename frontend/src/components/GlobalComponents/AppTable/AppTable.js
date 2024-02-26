@@ -108,7 +108,7 @@ export default function AppTable({rows, cols}) {
                           const value = row[column.id];
                           return (
                             <TableCell key={column.id} align={column.align}>
-                              {column.format && (value != null || value != undefined) ? column.format(value) : "-"}
+                              {column.format && (value !== null || value !== undefined) ? column.format(value) : "-"}
                             </TableCell>
                           );
                         })

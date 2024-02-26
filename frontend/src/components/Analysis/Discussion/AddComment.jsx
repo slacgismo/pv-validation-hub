@@ -5,22 +5,22 @@ import {
   Stack,
   TextField,
   ThemeProvider,
-} from "@mui/material";
+} from '@mui/material';
 import Cookies from 'universal-cookie';
-import { Box } from "@mui/system";
-import React, { useContext, useState } from "react";
-import CommentContext from "./CommentContext";
-import theme from "./styles";
+import { Box } from '@mui/system';
+import React, { useContext, useState } from 'react';
+import CommentContext from './CommentContext.js';
+import theme from './styles.jsx';
 
-const AddComment = () => {
+function AddComment() {
   const cookies = new Cookies();
-  let user = cookies.get("user");
+  const user = cookies.get('user');
   const { IMGOBJ, addComment } = useContext(CommentContext);
-  const [commentTxt, setCommentTxt] = useState("");
+  const [commentTxt, setCommentTxt] = useState('');
   return (
     <ThemeProvider theme={theme}>
       <Card>
-        <Box sx={{ p: "15px" }}>
+        <Box sx={{ p: '15px' }}>
           <Stack direction="row" spacing={2} alignItems="flex-start">
             <Avatar
               src={IMGOBJ[`${user.username}`]}
@@ -41,18 +41,18 @@ const AddComment = () => {
             <Button
               size="large"
               sx={{
-                bgcolor: "custom.moderateBlue",
-                color: "neutral.white",
-                p: "8px 25px",
-                "&:hover": {
-                  bgcolor: "custom.lightGrayishBlue",
+                bgcolor: 'custom.moderateBlue',
+                color: 'neutral.white',
+                p: '8px 25px',
+                '&:hover': {
+                  bgcolor: 'custom.lightGrayishBlue',
                 },
               }}
               onClick={(e) => {
                 !commentTxt.trim()
                   ? e.preventDefault()
                   : addComment(commentTxt.trim());
-                setCommentTxt("");
+                setCommentTxt('');
               }}
             >
               Send
@@ -62,6 +62,6 @@ const AddComment = () => {
       </Card>
     </ThemeProvider>
   );
-};
+}
 
 export default AddComment;
