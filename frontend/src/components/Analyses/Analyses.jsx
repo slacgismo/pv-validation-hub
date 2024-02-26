@@ -11,7 +11,7 @@ import Avatar from '@mui/material/Avatar';
 import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import ReactMarkdown from 'react-markdown';
-import { DashboardService } from '../../services/dashboard_service.js';
+import DashboardService from '../../services/dashboard_service.js';
 import { isDevelopment } from '../../config/environment.js';
 
 export default function Dashboard() {

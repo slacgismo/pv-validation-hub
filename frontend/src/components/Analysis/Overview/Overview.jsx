@@ -3,7 +3,7 @@ import { Grid, Typography } from '@mui/material';
 import { Box, Container } from '@mui/system';
 import PropTypes from 'prop-types';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
-import { DashboardService } from '../../../services/dashboard_service.js';
+import DashboardService from '../../../services/dashboard_service.js';
 
 export default function Overview(props) {
   return (

@@ -10,7 +10,7 @@ import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import LinkIcon from '@mui/icons-material/Link';
 import Cookies from 'universal-cookie';
 import AppTable from '../../GlobalComponents/AppTable/AppTable.js';
-import { DashboardService } from '../../../services/dashboard_service.js';
+import DashboardService from '../../../services/dashboard_service.js';
 
 export default function Submission(props) {
   const statusToIcon = {

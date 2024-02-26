@@ -22,7 +22,7 @@ if (isDevelopment()) baseApiUrlApp = BASE_API_URL_APP_DEVELOPMENT;
 else if (isStaging()) baseApiUrlApp = BASE_API_URL_APP_STAGING;
 else if (isProduction()) baseApiUrlApp = BASE_API_URL_APP_PRODUCTION;
 
-let hubapi = {
+const hubapi = {
   api: {
     defaultTimeout: 60000,
     baseUrl: {
@@ -31,4 +31,4 @@ let hubapi = {
   },
 };
 
-export default hubapi; 
+export default hubapi;

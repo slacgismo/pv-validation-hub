@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { Container } from '@mui/system';
 import { FileUploader } from 'react-drag-drop-files';
-import { AnalysisService } from '../../../services/analysis_service.js';
+import AnalysisService from '../../../services/analysis_service.js';
 
 const defaultValues = {
   name: `Analysis ${faker.word.noun()}`,

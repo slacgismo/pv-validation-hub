@@ -18,7 +18,7 @@ import Overview from './Overview/Overview.jsx';
 import Rules from './Rules/Rules.jsx';
 import Submission from './Submissions/Submission.jsx';
 import BlurryPage from '../GlobalComponents/BlurryPage/blurryPage.jsx';
-import { AnalysisService } from '../../services/analysis_service.js';
+import AnalysisService from '../../services/analysis_service.js';
 import replaceImagePaths from '../../config/mdurl.js';
 
 export default function Analysis() {

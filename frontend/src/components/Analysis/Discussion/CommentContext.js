@@ -1,6 +1,6 @@
 import React, { createContext, useState } from 'react';
 import Cookies from 'universal-cookie';
-import { DashboardService } from '../../../services/dashboard_service.js';
+import DashboardService from '../../../services/dashboard_service.js';
 
 const CommentContext = createContext();
 

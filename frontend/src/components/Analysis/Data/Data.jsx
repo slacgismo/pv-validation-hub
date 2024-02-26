@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
-import { DashboardService } from '../../../services/dashboard_service.js';
+import DashboardService from '../../../services/dashboard_service.js';
 
 export default function Data(props) {
   const handleDownloadClick = (url) => {

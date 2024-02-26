@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Box, CircularProgress, Link } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import DownloadIcon from '@mui/icons-material/Download';
-import { DashboardService } from '../../../services/dashboard_service.js';
+import DashboardService from '../../../services/dashboard_service.js';
 
 export default function Leaderboard(props) {
   const columns = [

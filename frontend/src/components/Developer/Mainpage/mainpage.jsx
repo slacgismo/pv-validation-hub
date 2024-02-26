@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Container } from "@mui/system";
+import { Container } from '@mui/system';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
@@ -15,13 +15,13 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import Toolbar from '@mui/material/Toolbar';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import Grid from '@mui/material/Grid';
-import SubmissionReport from '../Report/report';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
 import DoneIcon from '@mui/icons-material/Done';
-import { useState, useEffect } from "react";
-import { SubmissionService } from '../../../services/submission_service';
-import { UserService } from '../../../services/user_service';
+import { useState, useEffect } from 'react';
+import SubmissionReport from '../Report/report.jsx';
+import SubmissionService from '../../../services/submission_service.js';
+import UserService from '../../../services/user_service.js';
 
 export default function DeveloperHome() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -41,7 +41,7 @@ export default function DeveloperHome() {
   const renderComponent = () => {
     if (showComponent.name === 'home') {
       return <Home onClick={(submissionId) => handleNavClick('report', submissionId)} />;
-    } else if (showComponent.name === 'report') {
+    } if (showComponent.name === 'report') {
       return <SubmissionReport submissionId={showComponent.submissionId} />;
     }
   };
@@ -50,21 +50,21 @@ export default function DeveloperHome() {
     {
       title: 'Submissions',
       icon: <AccessTimeIcon />,
-      handler: () => { handleNavClick("home") },
+      handler: () => { handleNavClick('home'); },
     },
     {
       title: 'Available Analyses',
       icon: <AssessmentIcon />,
       handler: () => {},
-    }
+    },
   ];
 
   return (
-    <Container sx={{position: 'absolute'}}>
+    <Container sx={{ position: 'absolute' }}>
       <Grid container alignItems="center" spacing={2}>
-        <Grid item xs = {3}>
-          <Box component="Nav" aria-label="mailbox folders" sx={{ position: 'fixed', display: 'flex'}}>
-            <Drawer variant="permanent"  sx={{ top: '10%', border: '1px solid rgba(0, 0, 0, 0.12)', }} open>
+        <Grid item xs={3}>
+          <Box component="Nav" aria-label="mailbox folders" sx={{ position: 'fixed', display: 'flex' }}>
+            <Drawer variant="permanent" sx={{ top: '10%', border: '1px solid rgba(0, 0, 0, 0.12)' }} open>
               <Toolbar />
               <Divider />
               <List>
@@ -84,16 +84,14 @@ export default function DeveloperHome() {
           </Box>
         </Grid>
 
-        <Grid item xs = {9} style={{ marginTop: '2%' }}>
-            <Box
-              component="main"
-              display="flex"
-              // justifyContent="center"
-              // alignItems="center"
-            >
-              <Toolbar />
-              {renderComponent()}
-            </Box>
+        <Grid item xs={9} style={{ marginTop: '2%' }}>
+          <Box
+            component="main"
+            display="flex"
+          >
+            <Toolbar />
+            {renderComponent()}
+          </Box>
         </Grid>
       </Grid>
     </Container>
@@ -108,18 +106,19 @@ function Home({ onClick }) {
       const user = UserService.getUserCookie();
       const user_id = await UserService.getUserId(user.token);
       SubmissionService.getAllSubmissionsForUser(user_id)
-        .then(fetchedSubmissions => {
+        .then((fetchedSubmissions) => {
           setSubmissions(fetchedSubmissions);
         });
     };
-  
+
     fetchSubmissions();
   }, []);
-  
 
   return (
     <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
-      {submissions.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map((submission, index) => {
+      {submissions.sort(
+        (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at),
+      ).map((submission, index) => {
         const labelId = `checkbox-list-label-${submission.submission_id}`;
         return (
           <ListItem key={submission.submission_id} disablePadding>
@@ -136,7 +135,9 @@ function Home({ onClick }) {
                 {submission.status === 'finished' ? <DoneIcon /> : <QueryBuilderIcon />}
               </ListItemIcon>
               <ListItemText id={labelId} primary={`Submission ${submission.submission_id}`} />
-              <ListItemIcon onClick={() => onClick(submission.submission_id)}> {/* Pass the submission id directly */}
+              <ListItemIcon onClick={() => onClick(submission.submission_id)}>
+                {' '}
+                {/* Pass the submission id directly */}
                 <SummarizeIcon />
               </ListItemIcon>
             </ListItemButton>

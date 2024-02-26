@@ -8,6 +8,7 @@
     "@mui/icons-material": "^5.10.9",
     "@mui/material": "^5.10.10",
     "@mui/system": "^5.15.11",
+    "@mui/utils": "^5.15.11",
     "@mui/x-data-grid": "^5.17.14",
     "apexcharts": "^3.36.3",
     "axios": "^1.2.0",
