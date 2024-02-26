@@ -72,7 +72,7 @@ function RepliesSection({ onReplies, onClicked, onTar }) {
                       variant="text"
                       sx={{
                         fontWeight: 500,
-                        textTransform: 'capitalize',
+                        texttransform: 'capitalize',
                         color: 'custom.moderateBlue',
                       }}
                       startIcon={<ReplyIcon />}

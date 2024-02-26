@@ -63,7 +63,7 @@ function Comment({ onPass }) {
                       disabled={editingComm}
                       sx={{
                         fontWeight: 500,
-                        textTransform: 'capitalize',
+                        texttransform: 'capitalize',
                         color: 'custom.moderateBlue',
                       }}
                       startIcon={<Edit />}
@@ -80,7 +80,7 @@ function Comment({ onPass }) {
                     variant="text"
                     sx={{
                       fontWeight: 500,
-                      textTransform: 'capitalize',
+                      texttransform: 'capitalize',
                       color: 'custom.moderateBlue',
                     }}
                     startIcon={<ReplyIcon />}

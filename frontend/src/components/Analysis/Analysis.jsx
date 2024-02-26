@@ -144,7 +144,7 @@ export default function Analysis() {
                       marginTop: 1,
                     }}
                   >
-                    <Typography textTransform="none">
+                    <Typography texttransform="none">
                       Upload Algorithm
                     </Typography>
                   </Button>

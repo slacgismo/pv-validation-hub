@@ -144,7 +144,7 @@ export default function Profile() {
                             </ProfileCardContent>
                             <CardActions>
                               <Button variant="contained" onClick={handleProfileUpdateClick}>
-                                <Typography textTransform="none">Update profile</Typography>
+                                <Typography texttransform="none">Update profile</Typography>
                               </Button>
                             </CardActions>
                           </Card>

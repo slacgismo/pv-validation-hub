@@ -55,7 +55,7 @@ function OwnReply({
                   disabled={clicked}
                   sx={{
                     fontWeight: 500,
-                    textTransform: 'capitalize',
+                    texttransform: 'capitalize',
                     color: 'custom.moderateBlue',
                   }}
                   startIcon={<Edit />}

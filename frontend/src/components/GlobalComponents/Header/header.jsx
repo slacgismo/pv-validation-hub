@@ -119,9 +119,9 @@ function NavMenu({ pages, onClose }) {
           key={page}
           onClick={() => { onClose(page); }}
           sx={{ my: 2, color: '#18A0FB', display: 'block' }}
-          textTransform="none"
+          texttransform="none"
         >
-          <Typography textTransform="none">{page}</Typography>
+          <Typography texttransform="none">{page}</Typography>
         </Button>
       ))}
     </Box>
@@ -132,12 +132,12 @@ function UserLoggedInMenu({ onClick }) {
   return (
     <Box sx={{ flexGrow: 0, '& button': { m: 1, maxWidth: '8em', minWidth: '8em' } }}>
       <Button onClick={() => onClick('login')} variant="outlined">
-        <Typography textTransform="none">
+        <Typography texttransform="none">
           Sign In
         </Typography>
       </Button>
       <Button onClick={() => onClick('register')} variant="contained">
-        <Typography textTransform="none">
+        <Typography texttransform="none">
           Register
         </Typography>
       </Button>

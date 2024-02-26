@@ -16,13 +16,13 @@ import { isDevelopment } from '../../config/environment.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [analysisId, setAnalysisId] = useState();
+  const [analysis_id, setAnalysisId] = useState();
 
   useEffect(() => {
-    if (analysisId !== null) {
-      navigate(`/analysis/${analysisId}`);
+    if (analysis_id !== null && analysis_id !== undefined) {
+      navigate(`/analysis/${analysis_id}`);
     }
-  }, [analysisId, navigate]);
+  }, [analysis_id, navigate]);
 
   const handleCardClick = (card_id, card_title) => {
     setAnalysisId(card_id);
