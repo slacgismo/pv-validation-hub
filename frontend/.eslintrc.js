@@ -30,6 +30,8 @@ module.exports = {
         devDependencies: [
           '**/*.test.js',
           '**/*.test.jsx',
+          '**/test.js',
+          '**/*.testsuite.js',
         ],
       },
     ],

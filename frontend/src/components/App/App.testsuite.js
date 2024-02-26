@@ -1,6 +1,6 @@
 import React from 'react';
+import '@testing-library/jest-dom';
 import { render, screen, cleanup } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 
 // This is the exported function that contains all the tests
@@ -10,14 +10,15 @@ export default function AppTests() {
 
   describe('App component', () => {
     it('renders without crashing', () => {
-      render(<BrowserRouter><App /></BrowserRouter>);
+      render(<App />);
     });
 
     // Add more describe calls and it statements as needed
     describe('Navigation', () => {
       it('renders Register route', () => {
-        render(<BrowserRouter><App /></BrowserRouter>);
+        render(<App />);
         expect(screen.getByText('Register')).toBeInTheDocument();
+        expect(screen.getByText('PV Validation HUB')).toBeInTheDocument();
       });
 
       // Add more it statements to test other routes
