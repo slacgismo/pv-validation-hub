@@ -1,14 +1,5 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import App from '../components/App/App.jsx';
+// This file is used to run all the tests in the application
+import AppTests from '../components/App/App.test.js';
 
-const AppTest = () => {
-  it('should display initial UI', () => {
-    render(<App />);
-    expect(screen.getByText(/Welcome to the Developer Group Leaderboard!/i)).toBeInTheDocument();
-  });
-};
-
-AppTest();
+// This is the exported function that checks the main app page
+AppTests();
