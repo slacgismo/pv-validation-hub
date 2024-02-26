@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useEffect } from "react";
 import CircularProgress from '@mui/material/CircularProgress';
-import { faker } from "@faker-js/faker";
 import ReactMarkdown from "react-markdown";
 import { isDevelopment } from "../../config/environment";
 
