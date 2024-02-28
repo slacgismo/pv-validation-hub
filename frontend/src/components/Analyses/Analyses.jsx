@@ -16,7 +16,7 @@ import { isDevelopment } from '../../config/environment.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [analysis_id, setAnalysisId] = useState();
+  const [analysis_id, setanalysis_id] = useState();
 
   useEffect(() => {
     if (analysis_id !== null && analysis_id !== undefined) {
@@ -24,8 +24,8 @@ export default function Dashboard() {
     }
   }, [analysis_id, navigate]);
 
-  const handleCardClick = (card_id, card_title) => {
-    setAnalysisId(card_id);
+  const handleCardClick = (cardId, cardTitle) => {
+    setanalysis_id(cardId);
   };
 
   const [isLoading, isError, cardDetails] = DashboardService.useGetAnalysisSet('/analysis/home');
@@ -81,6 +81,7 @@ export default function Dashboard() {
                                     index={index}
                                     card={card}
                                     onClick={handleCardClick}
+                                    testId={`analysis-card${index}`}
                                   />
                                 ))
                             }
@@ -92,7 +93,7 @@ export default function Dashboard() {
   );
 }
 
-function CustomizedCard({ index, card, onClick }) {
+function CustomizedCard({ index, card, onClick, testId }) {
   const [shortDescription, setShortDescription] = useState('');
   const [cardDir, setCardDir] = useState('');
 
@@ -113,6 +114,7 @@ function CustomizedCard({ index, card, onClick }) {
         sx={{ maxWidth: 345, height: 380 }}
         key={card.analysis_id}
         onClick={() => onClick(card.analysis_id, card.analysis_name)}
+        data-testid={testId}
       >
         <CardHeader
           sx={{ height: 61 }}

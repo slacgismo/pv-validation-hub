@@ -108,12 +108,12 @@ The current process is to add all the analysis files into our pvhb s3 bucket and
     #!/bin/bash
 
     API_URL="http://api:8005/analysis/create/"
-    ANALYSIS_NAME="Time Shift Analysis"
+    analysis_name="Time Shift Analysis"
     EVALUATION_SCRIPT_PATH="/pv-validation-hub-bucket/evaluation_scripts/3/pvinsight-time-shift-runner.py"
     MAX_CONCURRENT_SUBMISSION_EVALUATION="100"
 
     curl -X POST -H "Content-Type: multipart/form-data" \
-    -F "analysis_name=$ANALYSIS_NAME" \
+    -F "analysis_name=$analysis_name" \
     -F "evaluation_script=@$EVALUATION_SCRIPT_PATH" \
     -F "max_concurrent_submission_evaluation=$MAX_CONCURRENT_SUBMISSION_EVALUATION" \
     $API_URL
