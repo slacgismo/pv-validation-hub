@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -16,7 +16,7 @@ services:
     build:
       context: ./valhub
       args:
-        djangosk: ${djangosk} 
+        djangosk: ${djangosk}
     env_file:
       - .env
     environment:
@@ -49,6 +49,8 @@ services:
     build: ./ec2
     env_file:
       - .env
+    volumes:
+      - ./ec2:/root/admin
     environment:
       HOST: 0.0.0.0
     ports:
@@ -68,7 +70,7 @@ services:
     depends_on:
       - api
       - s3
-      
+
   sqs:
     image: softwaremill/elasticmq:latest
     ports:
@@ -79,7 +81,6 @@ services:
       - ./custom.conf:/opt/elasticmq.conf
       - ./application.ini:/opt/docker/conf/application.ini
 
-      
   worker:
     build:
       context: ./workers
@@ -93,4 +94,4 @@ services:
       - sqs
 
 volumes:
- valhub:
+  valhub:
