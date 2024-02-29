@@ -22,8 +22,14 @@ jobs:
       - name: install dependencies and build
         run: |
           cd frontend
+          cp .env.example .env
           npm install
           npm run build
+
+      - name: run tests
+        run: |
+          cd frontend
+          npm run test
 
   build-api:
     name: Build and Test
@@ -36,7 +42,7 @@ jobs:
         run: |
           cd valhub
           export DOCKER_BUILDKIT=1
-          docker build --build-arg admin_username="placeholder" --build-arg admin_password="replaceme" --build-arg djangosk="placeholder" -t pv/val:tag -f Dockerfile .
+          docker build --build-arg admin_username="placeholder" --build-arg admin_password="placeholder" --build-arg djangosk="${{ env.DJANGO_SECRET_KEY }}" -t pv/val:tag -f Dockerfile .
 
   build-worker:
     name: Build and Test
