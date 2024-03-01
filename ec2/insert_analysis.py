@@ -218,7 +218,7 @@ class InsertAnalysis:
 
             # upload validation data to s3
             local_path = os.path.join(self.validation_data_path, metadata["file_name"])
-            upload_path = f'data_files/analytical/{metadata["file_name"]}'
+            upload_path = f'data_files/ground_truth/{metadata["file_name"]}'
             upload_to_s3_bucket(self.s3_bucket_name, local_path, upload_path)
 
     def createValidationData(self):
