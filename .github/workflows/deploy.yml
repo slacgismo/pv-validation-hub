@@ -6,25 +6,39 @@ on:
     types: [published]
 
 env:
-  AWS_REGION: AWS_REGION                      
-  ECR_REPOSITORY: ECR_REPOSITORY              
-  ECS_WORKER_SERVICE: ECS_SERVICE 
-  ECS_WORKER_CLUSTER: ECS_CLUSTER        
-  ECS_API_SERVICE: ECS_SERVICE 
-  ECS_API_CLUSTER: ECS_CLUSTER               
-
-  API_CONTAINER_NAME: API_CONTAINER_NAME  
-  WORKER_CONTAINER_NAME: API_CONTAINER_NAME  
+  AWS_REGION: us-west-2                    
+  ECR_API_REPOSITORY: pv-validation-hub-api 
+  ECR_WORKER_REPOSITORY: pv-validation-hub-worker           
+  ECS_WORKER_SERVICE: valhub-worker-service
+  ECS_WORKER_CLUSTER: pv-validation-hub-worker-cluster      
+  ECS_API_SERVICE: ecs-api-service
+  ECS_API_CLUSTER: pv-validation-hub-api-cluster               
+  API_CONTAINER_NAME: pv-validation-hub-api-task
+  WORKER_CONTAINER_NAME: pv-validation-hub-worker-task
 
 jobs:
-  deploy_FE:
+  build_fe:
     name: Build and Test
     runs-on: ubuntu-latest
     environment: production
 
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.11.1'
+
+      - name: Cache node modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
 
       - name: install dependencies and build
         run: |
@@ -32,121 +46,129 @@ jobs:
           npm install
           npm run build
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Website s3 sync
+      - name: Move Build to tmp
         run: |
-          aws s3 sync ./frontend/build/ s3://pv-validation-hub-website --acl public-read
+          mkdir -p /tmp/workspace/build
+          mv -v frontend/build/* /tmp/workspace/build
 
-      - name: Run CF invalidation
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.PROD_CF_ID }} --paths '/*'
+      - name: Temporarily save Build to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-client
+          path: /tmp/workspace
 
-  deploy_WORKER:
-    name: Deploy
+  deploy_fe:
+    needs: build_fe
     runs-on: ubuntu-latest
     environment: production
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.PROD_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.PROD_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      # uses repository in your authorized registry to push to.
-      # sign in to your ecr page for a list of all your repositories.
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: pv-validation-hub-worker
-          IMAGE_TAG: latest
-        run: |
-          export DOCKER_BUILDKIT=1
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      # needed for the task-definition.json file, update task family here
-      # can also use the CLI to manually generate the task 
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition --task-definition openfido-prod-app-task --query taskDefinition > task-definition.json
-
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      - name: Retrieve saved Build
+        uses: actions/download-artifact@v2
         with:
-          task-definition: task-definition.json
-          container-name: 'openfido-prod-app-task'
-          image: ${{ steps.build-image.outputs.image }}
+          name: build-client
+          path: /tmp/workspace
 
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: 'openfido-prod-app-service'
-          cluster: 'openfido-prod-ecs-cluster'
-          wait-for-service-stability: true
+      - name: Deploy to S3
+        run: aws s3 sync /tmp/workspace/build/ s3://${{ secrets.FE_S3_URL }}
 
-  deploy_API:
-    name: Deploy
+      - name: Run CF invalidation
+        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.FE_CF_ID }} --paths '/*'
+
+  deploy_worker:
+    name: Deploy Worker
     runs-on: ubuntu-latest
     environment: production
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+        uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build, tag, and push image to Amazon ECR
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY: openfido/prod-worker
+          IMAGE_TAG: latest
         run: |
-          # Build a docker container and
-          # push it to ECR so that it can
-          # be deployed to ECS.
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@97587c9d45a4930bf0e3da8dd2feb2a463cf4a3a
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ${{ env.ECS_TASK_DEFINITION }}
-          container-name: ${{ env.CONTAINER_NAME }}
+          task-definition: task-definition.json
+          container-name: 'openfido-prod-worker-task'
           image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@de0132cf8cdedb79975c6d42b77eb7ea193cf28e
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
+          service: 'openfido-prod-worker-service'
+          cluster: 'openfido-prod-ecs-cluster'
+          wait-for-service-stability: true
+
+  deploy_api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: openfido/prod-api
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: 'openfido-prod-api-task'
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: 'openfido-prod-api-service'
+          cluster: 'openfido-prod-ecs-cluster'
           wait-for-service-stability: true
