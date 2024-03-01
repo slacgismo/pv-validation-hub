@@ -85,6 +85,7 @@ class InsertAnalysis:
         config_file_path: str,
         file_data_path: str,
         validation_data_path: str,
+        evaluation_scripts_path: str,
         sys_metadata_file_path: str,
         file_metadata_file_path: str,
         validation_tests_file_path: str,
@@ -101,6 +102,8 @@ class InsertAnalysis:
         self.db_file_metadata_df = db_file_metadata_df
         self.config_file_path = config_file_path
         self.file_data_path = file_data_path
+        self.evaluation_scripts_path = evaluation_scripts_path
+        self.validation_tests_file_path = validation_tests_file_path
         self.new_sys_metadata_df = pd.read_csv(sys_metadata_file_path)
         self.new_file_metadata_df = pd.read_csv(file_metadata_file_path)
         self.validation_tests_df = pd.read_csv(validation_tests_file_path)
@@ -218,7 +221,7 @@ class InsertAnalysis:
             upload_path = f'data_files/analytical/{metadata["file_name"]}'
             upload_to_s3_bucket(self.s3_bucket_name, local_path, upload_path)
 
-    def createValidationData(self, validation_tests_csv_path: str):
+    def createValidationData(self):
         """
         Upload the validation data to the API.
 
@@ -227,19 +230,47 @@ class InsertAnalysis:
         validation_tests_df: Pandas dataframe. Dataframe of the validation
             tests.
         """
-        url = f"{API_URI}/validation_tests/bulk_create/"
+        url = f"{API_URI}/validation_tests/upload_csv/"
 
-        file = open(validation_tests_csv_path, "r")
+        file = open(self.validation_tests_file_path, "r")
 
-        response = requests.post(
-            url, files={"file": file}, headers={"Content-Type": "multipart/form-data"}
-        )
+        response = requests.post(url, files={"file": file})
         if not response.ok:
             raise ValueError(
                 f"Error creating validation tests. Status code: {response.status_code}. {response.content}"
             )
         data = response.json()
         print(data)
+
+    def createEvaluationScripts(self):
+        """
+        Upload the evaluation scripts to the S3 bucket.
+
+        Parameters
+        ----------
+        eval_folder: String. File path to the evaluation subfolder for a
+            particular analysis (ex: /1/, /2/, etc). Ths folder will contain
+            the config JSON.
+        """
+
+        evaluation_folder_path = os.path.join(
+            self.evaluation_scripts_path, f"{str(self.analysis_id)}/"
+        )
+
+        # Upload the evaluation scripts to the S3 bucket
+        for root, dirs, files in os.walk(evaluation_folder_path):
+            directory = os.path.dirname(root)
+
+            folder = "/".join(directory.split("/")[-2:])
+
+            for file in files:
+
+                local_path = os.path.join(evaluation_folder_path, file)
+                upload_path = os.path.join(
+                    folder,
+                    file,
+                )
+                upload_to_s3_bucket(self.s3_bucket_name, local_path, upload_path)
 
     def buildSystemMetadata(self):
         """
@@ -421,7 +452,7 @@ class InsertAnalysis:
         )
         return overlapping_files
 
-    def insertConfig(self, evaluation_folder_path):
+    def prepareConfig(self):
         """
         Create new folder path and insert the associated config.json in that
         path. In the future, we can add additional files for the insertion.
@@ -437,23 +468,15 @@ class InsertAnalysis:
             particular analysis (example:
             ./s3Emulator/pv-validation-hub-bucket/evaluation_scripts/1/)
         """
-        # Check the sub-folders in the evaluation_folder_path
-        # subfolders = [
-        #     int(os.path.basename(f.path))
-        #     for f in os.scandir(evaluation_folder_path)
-        #     if f.is_dir()
-        # ]
-        # if len(subfolders) == 0:
-        #     new_analysis_id = 1
-        # else:
-        #     new_analysis_id = max(subfolders) + 1
-        # Create a new folder for the analysis
-        # new_folder = os.path.join(evaluation_folder_path, str(new_analysis_id))
+        evaluation_folder_path = os.path.join(
+            self.evaluation_scripts_path, str(self.analysis_id)
+        )
         if not os.path.exists(evaluation_folder_path):
             os.makedirs(evaluation_folder_path)
         # Drop the config JSON into the new folder
-        shutil.copyfile(self.config_file_path, "config.json")
-        # TODO: any additional files we'd want to pipe over???
+
+        shutil.copy(self.config_file_path, evaluation_folder_path)
+
         return evaluation_folder_path
 
     def getNewAnalysisId(self, api_url):
@@ -474,7 +497,7 @@ class InsertAnalysis:
 
         return new_analysis_id
 
-    def generateFileTestLinker(self, new_evaluation_folder):
+    def prepareFileTestLinker(self):
         """
         Generate the file test linker and drop it into the new evaluation
         folder.
@@ -485,28 +508,38 @@ class InsertAnalysis:
             for a particular analysis (ex: /1/, /2/, etc). Ths folder will
             contain the config JSON.
         """
+        # Retrieve all file metadata from the database. This will contain all the file metadata that was just inserted.
+        url = f"{API_URI}/file_metadata/filemetadata/"
 
-        file_test_link = pd.Series(
-            self.new_file_metadata_df["file_id"],
-            name="file_id",
-            index=self.new_file_metadata_df.index,
-        )
+        response = requests.get(url)
+        if not response.ok:
+            raise ValueError(
+                f"Error retreiving db file metadata. Status code: {response.status_code}. {response.content}"
+            )
+        data = response.json()
+        print(data)
+
+        db_filemetadata_df = pd.DataFrame(data)
+        print(db_filemetadata_df)
+
+        file_test_link = db_filemetadata_df["file_id"]
 
         file_test_link.index.name = "test_id"
-        # Add back any files that were previously entered into the DB and
-        # have existing file ID's
-        overlapping_files = self.getOverlappingMetadataFiles()
-        print(overlapping_files)
 
-        if len(overlapping_files) > 0:
-            file_test_link = file_test_link.append(overlapping_files["file_id"])
+        local_file_path = os.path.join(
+            self.evaluation_scripts_path, str(self.analysis_id)
+        )
+
+        if not os.path.exists(local_file_path):
+            os.makedirs(local_file_path)
+
         # Write to the folder
         file_test_link_path = file_test_link.to_csv(
-            os.path.join(new_evaluation_folder, "file_test_link.csv")
+            os.path.join(local_file_path, "file_test_link.csv")
         )
         return file_test_link_path
 
-    def insertData(self, s3_path, evaluation_folder_path):
+    def insertData(self, api_url: str):
         """
         Insert the system metadata, file metadata, and S3 file data into the
         Postgres database. Also, create a new folder for the evaluation
@@ -518,33 +551,20 @@ class InsertAnalysis:
         evaluation_folder_path: String. File path to the evaluation folder,
             which includes all of the analysis subfolders (/1/, /2/, etc)
         """
-        sys_data_insert = self.buildSystemMetadata()
-        file_data_insert = self.buildFileMetadata(s3_path)
-        s3_insert_list = self.buildS3fileInserts()
-        new_folder = self.insertConfig(evaluation_folder_path)
-        link_file = self.generateFileTestLinker(new_folder)
-        return sys_data_insert, file_data_insert, s3_insert_list, new_folder, link_file
+        sys_metadata_df = self.buildSystemMetadata()
+        file_metadata_df = self.buildFileMetadata()
+        self.buildValidationTests()
 
-    def uploadEvaluationScripts(self, bucket_name: str, eval_folder: str):
-        """
-        Upload the evaluation scripts to the S3 bucket.
+        self.getNewAnalysisId(api_url)
 
-        Parameters
-        ----------
-        bucket_name: String. Name of the S3 bucket to upload the evaluation
-            scripts to.
-        """
-        # TODO: add the evaluation scripts to the S3 bucket
-        # Upload the evaluation scripts to the S3 bucket
-        for root, dirs, files in os.walk(eval_folder):
-            for file in files:
-                local_path = os.path.join(root, file)
-                upload_path = os.path.join(
-                    "evaluation_scripts",
-                    eval_folder,
-                    os.path.relpath(local_path, eval_folder),
-                )
-                upload_to_s3_bucket(bucket_name, local_path, upload_path)
+        self.createAnalysis(100)
+        self.createSystemMetadata(sys_metadata_df)
+        self.createFileMetadata(file_metadata_df)
+        self.createValidationData()
+
+        self.prepareFileTestLinker()
+        self.prepareConfig()
+        self.createEvaluationScripts()
 
 
 if __name__ == "__main__":

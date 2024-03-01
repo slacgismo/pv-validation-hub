@@ -95,45 +95,10 @@ r = InsertAnalysis(
     file_metadata_file_path=file_metadata_file_path,
     validation_tests_file_path=validation_tests_file_path,
     validation_data_path=validation_data_path,
+    evaluation_scripts_path=evaluation_scripts_path,
 )
-# sys_metadata_df = r.buildSystemMetadata()
+r.insertData(api_url)
 
-# print(f"sys_metadata_df: {sys_metadata_df.head()}")
-
-# file_metadata_df = r.buildFileMetadata()
-
-# print(f"file_data_insert: {file_metadata_df.head()}")
-
-# validation_tests_df = r.buildValidationTests()
-
-# print(f"validation_tests_df: {validation_tests_df.head()}")
-
-
-# # exit()
-# r.getNewAnalysisId(api_url)
-
-# r.createAnalysis(100)
-# r.createSystemMetadata(sys_metadata_df)
-# r.createFileMetadata(file_metadata_df)
-r.createValidationData(validation_tests_file_path)
-
-exit()
-
-new_folder = r.insertConfig(evaluation_scripts_path)
-
-print(f"new_folder: {new_folder}")
-
-
-link_file = r.generateFileTestLinker(new_folder)
-
-print(f"link_file: {link_file}")
-
-
-bucket_name = "pv-validation-hub-bucket"
-# r.uploadFileData(bucket_name)
-
-
-raise NotImplementedError("This code is not yet implemented.")
 
 db = ""
 s3 = ""
