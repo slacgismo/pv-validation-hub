@@ -98,15 +98,3 @@ r = InsertAnalysis(
     evaluation_scripts_path=evaluation_scripts_path,
 )
 r.insertData(api_url)
-
-
-db = ""
-s3 = ""
-puser = ""
-ppass = ""
-
-if is_s3_emulation:
-    db = config.local.db
-    s3 = config.local.s3
-    puser = config.local.puser
-    ppass = config.local.ppass

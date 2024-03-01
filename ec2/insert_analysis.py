@@ -39,7 +39,20 @@ def is_local():
     )
 
 
-def upload_to_s3_bucket(bucket_name, local_path, upload_path):
+def upload_to_s3_bucket(bucket_name: str, local_path: str, upload_path: str):
+    """
+    Upload file to S3 bucket and return object URL
+
+    Parameters
+    ----------
+    bucket_name: String. Name of the S3 bucket.
+    local_path: String. Local path to the file we want to upload.
+    upload_path: String. Path in the S3 bucket where we want to upload the file.
+
+    Returns
+    -------
+    String: URL of the object in the S3 bucket.
+    """
 
     if is_local():
         upload_path = os.path.join(bucket_name, upload_path)
@@ -89,7 +102,6 @@ class InsertAnalysis:
         sys_metadata_file_path: str,
         file_metadata_file_path: str,
         validation_tests_file_path: str,
-        analysis_id: int | None = None,
         system_id_mapping: dict = dict(),
         s3_bucket_name: str = "pv-validation-hub-bucket",
         config: dict = dict(),
@@ -173,7 +185,7 @@ class InsertAnalysis:
 
     def createFileMetadata(self, file_metadata_df: pd.DataFrame):
         """
-        Upload the file data to the S3 bucket.
+        Upload the file metadata and validation tests to the API and S3.
 
         Parameters
         ----------
@@ -245,12 +257,6 @@ class InsertAnalysis:
     def createEvaluationScripts(self):
         """
         Upload the evaluation scripts to the S3 bucket.
-
-        Parameters
-        ----------
-        eval_folder: String. File path to the evaluation subfolder for a
-            particular analysis (ex: /1/, /2/, etc). Ths folder will contain
-            the config JSON.
         """
 
         evaluation_folder_path = os.path.join(
@@ -274,15 +280,8 @@ class InsertAnalysis:
 
     def buildSystemMetadata(self):
         """
-        Check what exists in the system_metadata table to see
-        if we have overlap with the systems we want to insert. Build out
-        the system metadata for insert and return the dataframe for
-        DB insert.
-
-        Returns
-        -------
-        Pandas dataframe: Pandas df ready for insert into the system_metadata
-            table.
+        Check for duplicates in the system metadata table. Build non duplicated
+        system metadata for insert into the system_metadata table.
         """
 
         # Check cases to determine if we have overlap, using the name,
@@ -353,17 +352,8 @@ class InsertAnalysis:
 
     def buildFileMetadata(self):
         """
-        Check for duplicates in the file metadata table. Build nonduplicated
+        Check for duplicates in the file metadata table. Build non duplicated
         file metadata for insert into the file_metadata table.
-
-        Parameters
-        ----------
-        s3_path: String. S3 path that we want to write the files to.
-
-        Returns
-        -------
-        Pandas dataframe: Pandas df ready for insert into the file_metadata
-            table.
         """
 
         overlapping_files = self.getOverlappingMetadataFiles()
@@ -416,20 +406,6 @@ class InsertAnalysis:
 
         return validation_tests_df
 
-    def buildS3fileInserts(self):
-        """
-        Build out the list of lists for routing the associated files into S3.
-        """
-        file_insert_list = [
-            (os.path.join(self.file_data_path, x), y)
-            for x, y in zip(
-                self.new_file_metadata_df["file_name"],
-                self.new_file_metadata_df["s3_file_path"],
-            )
-        ]
-
-        return file_insert_list
-
     def getOverlappingMetadataFiles(self):
         """
         Return a dataframe files that are in both the new load and previously
@@ -454,19 +430,7 @@ class InsertAnalysis:
 
     def prepareConfig(self):
         """
-        Create new folder path and insert the associated config.json in that
-        path. In the future, we can add additional files for the insertion.
-
-        Parameters
-        ----------
-        evaluation_folder_path: String. File path to the evaluation folder,
-            which includes all of the analysis subfolders (/1/, /2/, etc)
-
-        Returns
-        -------
-        new_folder: String. File path where we're going to insert data for the
-            particular analysis (example:
-            ./s3Emulator/pv-validation-hub-bucket/evaluation_scripts/1/)
+        Drop the config JSON into the new evaluation folder.
         """
         evaluation_folder_path = os.path.join(
             self.evaluation_scripts_path, str(self.analysis_id)
@@ -479,7 +443,18 @@ class InsertAnalysis:
 
         return evaluation_folder_path
 
-    def getNewAnalysisId(self, api_url):
+    def getNewAnalysisId(self, api_url: str):
+        """
+        Get the new analysis ID from the API.
+
+        Parameters
+        ----------
+        api_url: String. URL to the API.
+
+        Returns
+        -------
+        int: New analysis ID.
+        """
 
         full_url = api_url + "/analysis/home"
 
@@ -499,14 +474,7 @@ class InsertAnalysis:
 
     def prepareFileTestLinker(self):
         """
-        Generate the file test linker and drop it into the new evaluation
-        folder.
-
-        Parameters
-        ----------
-        new_evaluation_folder: String. File path to the evaluation subfolder
-            for a particular analysis (ex: /1/, /2/, etc). Ths folder will
-            contain the config JSON.
+        Prepare the file test linker and drop it into the new evaluation folder.
         """
         # Retrieve all file metadata from the database. This will contain all the file metadata that was just inserted.
         url = f"{API_URI}/file_metadata/filemetadata/"
@@ -541,15 +509,7 @@ class InsertAnalysis:
 
     def insertData(self, api_url: str):
         """
-        Insert the system metadata, file metadata, and S3 file data into the
-        Postgres database. Also, create a new folder for the evaluation
-        analysis and drop in the config JSON and file test linker.
-
-        Parameters
-        ----------
-        s3_path: String. S3 path that we want to write the files to.
-        evaluation_folder_path: String. File path to the evaluation folder,
-            which includes all of the analysis subfolders (/1/, /2/, etc)
+        Insert all the data into the API and S3.
         """
         sys_metadata_df = self.buildSystemMetadata()
         file_metadata_df = self.buildFileMetadata()
@@ -569,25 +529,3 @@ class InsertAnalysis:
 
 if __name__ == "__main__":
     pass
-    # db_metadata_df = pd.read_csv("./time-shift-validation-hub/data/system_metadata.csv")
-
-    # db_file_metadata_df = pd.read_csv(
-    #     "./time-shift-validation-hub/data/file_metadata.csv"
-    # )
-
-    # r = InsertAnalysis(
-    #     db_metadata_df,
-    #     db_file_metadata_df,
-    #     config_file_path="C:/Users/kperry/Documents/source/repos/az-tilt-estimation-validation/config.json",
-    #     file_data_path="C:/Users/kperry/Documents/source/repos/az-tilt-estimation-validation/data/file_data/",
-    #     sys_metadata_file_path="C:/Users/kperry/Documents/source/repos/az-tilt-estimation-validation/data/system_metadata.csv",
-    #     file_metadata_file_path="C:/Users/kperry/Documents/source/repos/az-tilt-estimation-validation/data/file_metadata.csv",
-    # )
-    # sys_data_insert = r.buildSystemMetadata()
-    # file_data_insert = r.buildFileMetadata(s3_path="s3://eval/")
-    # s3_insert_list = r.buildS3fileInserts()
-    # # Create folder and insert the config
-    # new_folder = r.insertConfig(
-    #     "C:/Users/kperry/Documents/source/repos/pv-validation-hub/s3Emulator/pv-validation-hub-bucket/evaluation_scripts/"
-    # )
-    # r.generateFileTestLinker(new_folder)
