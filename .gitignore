@@ -142,3 +142,10 @@ frotend/.DS_Store
 *.DS_Store
 
 node-docker-ecs
+
+ec2/az-tilt-estimation-validation
+ec2/time-shift-validation-hub
+ec2/test_analysis
+
+**/.vscode
+**/.venv
