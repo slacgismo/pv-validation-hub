@@ -10,10 +10,9 @@ env:
   S3BUCKET: pv-validation-hub-bucket
   DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
-
 jobs:
   build-fe:
-    name: Build and Test
+    name: Build and Test Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -32,11 +31,17 @@ jobs:
           npm run test
 
   build-api:
-    name: Build and Test
+    name: Build and Test API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         name: Checkout Repository
+
+      - uses: psf/black@stable
+        with:
+          options: "--check --verbose"
+          src: "./valhub"
+          version: "24.2.0"
 
       - name: build
         run: |
@@ -45,11 +50,17 @@ jobs:
           docker build --build-arg admin_username="placeholder" --build-arg admin_password="placeholder" --build-arg djangosk="${{ env.DJANGO_SECRET_KEY }}" -t pv/val:tag -f Dockerfile .
 
   build-worker:
-    name: Build and Test
+    name: Build and Test Worker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         name: Checkout Repository
+
+      - uses: psf/black@stable
+        with:
+          options: "--check --verbose"
+          src: "./workers"
+          version: "24.2.0"
 
       - name: build
         run: |
