@@ -5,4 +5,4 @@ from .models import ValidationTests
 class ValidationTestsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ValidationTests
-        fields = '__all__'
+        fields = "__all__"

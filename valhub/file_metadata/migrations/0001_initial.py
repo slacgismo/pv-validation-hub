@@ -9,20 +9,26 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('system_metadata', '0001_initial'),
+        ("system_metadata", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='FileMetadata',
+            name="FileMetadata",
             fields=[
-                ('file_id', models.AutoField(primary_key=True, serialize=False)),
-                ('file_name', models.CharField(max_length=256)),
-                ('timezone', models.CharField(max_length=128)),
-                ('data_sampling_frequency', models.PositiveIntegerField()),
-                ('issue', models.CharField(max_length=256)),
-                ('subissue', models.CharField(max_length=256)),
-                ('system_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='system_metadata.systemmetadata')),
+                ("file_id", models.AutoField(primary_key=True, serialize=False)),
+                ("file_name", models.CharField(max_length=256)),
+                ("timezone", models.CharField(max_length=128)),
+                ("data_sampling_frequency", models.PositiveIntegerField()),
+                ("issue", models.CharField(max_length=256)),
+                ("subissue", models.CharField(max_length=256)),
+                (
+                    "system_id",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="system_metadata.systemmetadata",
+                    ),
+                ),
             ],
         ),
     ]

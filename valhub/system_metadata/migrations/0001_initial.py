@@ -7,22 +7,21 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='SystemMetadata',
+            name="SystemMetadata",
             fields=[
-                ('system_id', models.AutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=256)),
-                ('azimuth', models.FloatField()),
-                ('tilt', models.FloatField()),
-                ('elevation', models.FloatField()),
-                ('latitude', models.FloatField()),
-                ('longitude', models.FloatField()),
-                ('tracking', models.BooleanField()),
-                ('dc_capacity', models.FloatField()),
+                ("system_id", models.AutoField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=256)),
+                ("azimuth", models.FloatField()),
+                ("tilt", models.FloatField()),
+                ("elevation", models.FloatField()),
+                ("latitude", models.FloatField()),
+                ("longitude", models.FloatField()),
+                ("tracking", models.BooleanField()),
+                ("dc_capacity", models.FloatField()),
             ],
         ),
     ]

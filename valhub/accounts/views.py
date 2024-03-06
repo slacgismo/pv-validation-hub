@@ -3,7 +3,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import django.contrib.auth as auth
 
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
@@ -35,11 +39,12 @@ def register(request):
     serializer = AccountSerializer(account)
     return JsonResponse(serializer.data)
 
+
 @csrf_exempt
 @api_view(["POST"])
 def login(request):
-    _username = request.data['username']
-    _password = request.data['password']
+    _username = request.data["username"]
+    _password = request.data["password"]
 
     user = auth.authenticate(request, username=_username, password=_password)
 
@@ -51,20 +56,21 @@ def login(request):
         # get or create login token for the user
         token = Token.objects.get_or_create(user=user)
         data = {
-            'token': str(token[0].key),
+            "token": str(token[0].key),
         }
 
         dump = json.dumps(data)
-        return HttpResponse(dump, content_type='application/json', status=200)
+        return HttpResponse(dump, content_type="application/json", status=200)
     else:
         return HttpResponse("wrong password", status=400)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class AccountDetail(APIView):
     """
     Retrieve, update or delete a user.
     """
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -89,6 +95,7 @@ class AccountDetail(APIView):
         account = request.user
         account.delete()
         return HttpResponse(status=204)
+
 
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication])
