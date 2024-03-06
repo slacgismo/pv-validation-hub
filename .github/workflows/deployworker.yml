@@ -1,0 +1,61 @@
+name: Deploy Production to Amazon ECS/ECR
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  AWS_REGION: us-west-2                    
+  ECR_WORKER_REPOSITORY: pv-validation-hub-worker           
+  ECS_WORKER_SERVICE: valhub-worker-service
+  ECS_WORKER_CLUSTER: pv-validation-hub-worker-cluster      
+  WORKER_CONTAINER_NAME: pv-validation-hub-worker-task
+
+jobs:
+    deploy_worker:
+        name: Deploy Worker
+        runs-on: ubuntu-latest
+        environment: production
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v3
+    
+          - name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@v1
+            with:
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: ${{ env.AWS_REGION }}
+    
+          - name: Login to Amazon ECR
+            id: login-ecr
+            uses: aws-actions/amazon-ecr-login@v1
+    
+          - name: Build, tag, and push image to Amazon ECR
+            id: build-image-worker
+            env:
+              ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+              ECR_REPOSITORY: ${{ env.ECR_WORKER_REPOSITORY }}
+              IMAGE_TAG: latest
+            run: |
+              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+              docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+              echo "{image}={$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG}" >> $GITHUB_OUTPUT
+    
+          - name: Fill in the new image ID in the Amazon ECS task definition
+            id: task-def
+            uses: aws-actions/amazon-ecs-render-task-definition@v1
+            with:
+              task-definition: task-definition.json
+              container-name: ${{ env.WORKER_CONTAINER_NAME }}
+              image: ${{ steps.build-image-worker.outputs.image }}
+    
+          - name: Deploy Amazon ECS task definition
+            uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+            with:
+              task-definition: ${{ steps.task-def.outputs.task-definition }}
+              service: ${{ env.ECS_WORKER_SERVICE }}
+              cluster: ${{ env.ECS_WORKER_CLUSTER }}
+              wait-for-service-stability: true
+    
