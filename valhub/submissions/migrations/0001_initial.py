@@ -12,24 +12,61 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('analyses', '0001_initial'),
+        ("analyses", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Submission',
+            name="Submission",
             fields=[
-                ('submission_id', models.AutoField(primary_key=True, serialize=False)),
-                ('submitted_at', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('algorithm', models.FileField(max_length=1000, upload_to=base.utils.RandomFileName('submission_files'))),
-                ('algorithm_s3_path', models.URLField(max_length=1000)),
-                ('result', models.TextField(blank=True, default='', null=True)),
-                ('status', models.CharField(choices=[('submitted', 'submitted'), ('running', 'running'), ('failed', 'failed'), ('finished', 'finished'), ('submitting', 'submitting')], db_index=True, default='submitting', max_length=30)),
-                ('mae', models.FloatField(blank=True, null=True)),
-                ('mrt', models.FloatField(blank=True, null=True)),
-                ('data_requirements', models.JSONField(blank=True, null=True)),
-                ('analysis', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='submissions', to='analyses.analysis')),
-                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='submission_creator', to=settings.AUTH_USER_MODEL)),
+                ("submission_id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "submitted_at",
+                    models.DateTimeField(auto_now_add=True, db_index=True),
+                ),
+                (
+                    "algorithm",
+                    models.FileField(
+                        max_length=1000,
+                        upload_to=base.utils.RandomFileName("submission_files"),
+                    ),
+                ),
+                ("algorithm_s3_path", models.URLField(max_length=1000)),
+                ("result", models.TextField(blank=True, default="", null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("submitted", "submitted"),
+                            ("running", "running"),
+                            ("failed", "failed"),
+                            ("finished", "finished"),
+                            ("submitting", "submitting"),
+                        ],
+                        db_index=True,
+                        default="submitting",
+                        max_length=30,
+                    ),
+                ),
+                ("mae", models.FloatField(blank=True, null=True)),
+                ("mrt", models.FloatField(blank=True, null=True)),
+                ("data_requirements", models.JSONField(blank=True, null=True)),
+                (
+                    "analysis",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="submissions",
+                        to="analyses.analysis",
+                    ),
+                ),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="submission_creator",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

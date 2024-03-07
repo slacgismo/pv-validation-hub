@@ -7,17 +7,16 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='ValidationTests',
+            name="ValidationTests",
             fields=[
-                ('category_id', models.AutoField(primary_key=True, serialize=False)),
-                ('category_name', models.CharField(max_length=128)),
-                ('performance_metrics', models.JSONField()),
-                ('function_name', models.CharField(max_length=128)),
+                ("category_id", models.AutoField(primary_key=True, serialize=False)),
+                ("category_name", models.CharField(max_length=128)),
+                ("performance_metrics", models.JSONField()),
+                ("function_name", models.CharField(max_length=128)),
             ],
         ),
     ]

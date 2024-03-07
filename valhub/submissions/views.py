@@ -6,7 +6,12 @@ from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import api_view, parser_classes, permission_classes, authentication_classes
+from rest_framework.decorators import (
+    api_view,
+    parser_classes,
+    permission_classes,
+    authentication_classes,
+)
 from rest_framework.parsers import JSONParser
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -29,6 +34,7 @@ from .models import Submission
 
 # Create your views here.
 
+
 def is_local():
     """
     Checks if the application is running locally or in an Amazon ECS environment.
@@ -36,9 +42,15 @@ def is_local():
     Returns:
         bool: True if the application is running locally, False otherwise.
     """
-    return 'AWS_EXECUTION_ENV' not in os.environ and 'ECS_CONTAINER_METADATA_URI' not in os.environ and 'ECS_CONTAINER_METADATA_URI_V4' not in os.environ
+    return (
+        "AWS_EXECUTION_ENV" not in os.environ
+        and "ECS_CONTAINER_METADATA_URI" not in os.environ
+        and "ECS_CONTAINER_METADATA_URI_V4" not in os.environ
+    )
+
 
 is_s3_emulation = is_local()
+
 
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication])
@@ -54,7 +66,7 @@ def analysis_submission(request, analysis_id):
     except Analysis.DoesNotExist:
         response_data = {"error": "Analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-    
+
     logging.error("analysis exists")
 
     # check if the analysis queue exists or not
@@ -62,11 +74,11 @@ def analysis_submission(request, analysis_id):
         if is_s3_emulation:
             sqs = boto3.resource(
                 "sqs",
-                endpoint_url='http://sqs:9324',
-                region_name='elasticmq',
-                aws_secret_access_key='x',
-                aws_access_key_id='x',
-                use_ssl=False
+                endpoint_url="http://sqs:9324",
+                region_name="elasticmq",
+                aws_secret_access_key="x",
+                aws_access_key_id="x",
+                use_ssl=False,
             )
         else:
             sqs = boto3.resource(
@@ -94,27 +106,37 @@ def analysis_submission(request, analysis_id):
         # print("submission_path: {}".format(submission_path))
         bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
-            "submission_files", f"submission_user_{user.uuid}", f"submission_{submission_id}", f"{submission_path.split('/')[-1]}")
+            "submission_files",
+            f"submission_user_{user.uuid}",
+            f"submission_{submission_id}",
+            f"{submission_path.split('/')[-1]}",
+        )
 
-        object_url = upload_to_s3_bucket(
-            bucket_name, submission_path, upload_path)
+        object_url = upload_to_s3_bucket(bucket_name, submission_path, upload_path)
         if object_url is None:
             response_data = {"error": "Cannot upload file to S3 bucket"}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         Submission.objects.filter(submission_id=submission_id).update(
-            algorithm_s3_path=object_url, status=Submission.SUBMITTED)
+            algorithm_s3_path=object_url, status=Submission.SUBMITTED
+        )
         # serializer.save(algorithm=object_url)
 
         # send a message to SQS queue
         message = json.dumps(
-            {"analysis_pk": int(analysis_id), 
-             "submission_pk": int(submission_id), 
-             "user_pk": int(user.uuid),
-             "submission_filename": object_url.split('/')[-1]})
+            {
+                "analysis_pk": int(analysis_id),
+                "submission_pk": int(submission_id),
+                "user_pk": int(user.uuid),
+                "submission_filename": object_url.split("/")[-1],
+            }
+        )
 
         response = queue.send_message(
-            MessageBody=message, MessageGroupId="1", MessageDeduplicationId=str(submission_id))
+            MessageBody=message,
+            MessageGroupId="1",
+            MessageDeduplicationId=str(submission_id),
+        )
 
         # serializers.serialize('json', [serializer.instance])
         # response_data = serializers.serialize('json', [serializer.instance])
@@ -138,12 +160,12 @@ def submission_detail(request, analysis_id, submission_id):
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
     serializer = SubmissionDetailSerializer(
         data={
-            'submission_id': str(submission.submission_id),
-            'analysis_id': str(submission.analysis.analysis_id),
-            'user_id': str(submission.created_by.id),
-            'algorithm': str(submission.algorithm),
-            'result': str(submission.result),
-            'status': str(submission.status)
+            "submission_id": str(submission.submission_id),
+            "analysis_id": str(submission.analysis.analysis_id),
+            "user_id": str(submission.created_by.id),
+            "algorithm": str(submission.algorithm),
+            "result": str(submission.result),
+            "status": str(submission.status),
         }
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -157,13 +179,15 @@ def change_submission_status(request, analysis_id, submission_id):
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    submission.status = request.data['status']
+    submission.status = request.data["status"]
     try:
         submission.save()
     except ValidationError as e:
         response_data = {"error": "invalid submission status"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    response_data = {"success": f"submission {submission_id} status changed to {request.data['status']}"}
+    response_data = {
+        "success": f"submission {submission_id} status changed to {request.data['status']}"
+    }
     return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -177,15 +201,17 @@ def update_submission_result(request, analysis_id, submission_id):
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
     results = request.data
     logging.info(f"results = {results}")
-    submission.mae = float(results['mean_mean_absolute_error'])
-    submission.mrt = float(results['mean_run_time'])
-    submission.data_requirements = results['function_parameters']
+    submission.mae = float(results["mean_mean_absolute_error"])
+    submission.mrt = float(results["mean_run_time"])
+    submission.data_requirements = results["function_parameters"]
     try:
         submission.save()
     except ValidationError as e:
         response_data = {"error": "invalid submission result"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    response_data = {"success": f"submission {submission_id} result changed to {request.data}"}
+    response_data = {
+        "success": f"submission {submission_id} result changed to {request.data}"
+    }
     return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -228,6 +254,7 @@ def analysis_user_submission(request, analysis_id):
     response_data = SubmissionSerializer(submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
 
+
 @api_view(["PUT", "POST"])
 @csrf_exempt
 @parser_classes([JSONParser])
@@ -239,12 +266,17 @@ def leaderboard_update(request):
         data_requirements = request.data.get("data_requirements")
 
         if not submission_id:
-            return Response({"error": "submission_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "submission_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             submission = Submission.objects.get(submission_id=submission_id)
         except Submission.DoesNotExist:
-            return Response({"error": "submission does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "submission does not exist"}, status=status.HTTP_404_NOT_FOUND
+            )
 
         if mae is not None:
             submission.mae = mae
@@ -260,7 +292,11 @@ def leaderboard_update(request):
         response_data = SubmissionSerializer(submission).data
         return Response(response_data, status=status.HTTP_200_OK)
     else:
-        return Response({"error": "Invalid request method"}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return Response(
+            {"error": "Invalid request method"},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
 
 # Preloader route is not for regular use. It is meant only to create examples quickly for demonstration purposes.
 @api_view(["POST"])
@@ -268,31 +304,39 @@ def leaderboard_update(request):
 def preload_submissions(request):
     data = request.data
     if not isinstance(data, list):
-        return JsonResponse({"error": "Invalid data format. Expected a list of submissions."}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(
+            {"error": "Invalid data format. Expected a list of submissions."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     for submission_data in data:
-        analysis_id = submission_data.get('analysis_id')
-        user_id = submission_data.get('user_id')
+        analysis_id = submission_data.get("analysis_id")
+        user_id = submission_data.get("user_id")
 
         try:
             analysis = Analysis.objects.get(pk=analysis_id)
             user = Account.objects.get(uuid=user_id)
-            
+
         except (Analysis.DoesNotExist, Account.DoesNotExist):
             continue
 
         submission = Submission(
             analysis=analysis,
             created_by=user,
-            algorithm=submission_data.get('algorithm'),
-            mae=submission_data.get('mae'),
-            mrt=submission_data.get('mrt'),
+            algorithm=submission_data.get("algorithm"),
+            mae=submission_data.get("mae"),
+            mrt=submission_data.get("mrt"),
             status=Submission.FINISHED,
-            data_requirements=submission_data.get('data_requirements').get('data_requirements')
+            data_requirements=submission_data.get("data_requirements").get(
+                "data_requirements"
+            ),
         )
         submission.save()
 
-    return JsonResponse({"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK)
+    return JsonResponse(
+        {"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK
+    )
+
 
 @api_view(["GET"])
 @csrf_exempt
@@ -302,7 +346,7 @@ def get_submission_results(request, submission_id):
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    
+
     logging.info(f"start")
 
     user_id = submission.created_by.uuid
@@ -316,33 +360,43 @@ def get_submission_results(request, submission_id):
     if is_emulation:
         storage_endpoint_url = "http://s3:5000/"
         static_endpoint_url = "http://localhost:5000/"
-        directory_url = urljoin(storage_endpoint_url, f"{bucket_name}/{results_directory}/list")
+        directory_url = urljoin(
+            storage_endpoint_url, f"{bucket_name}/{results_directory}/list"
+        )
         response = requests.get(directory_url)
         if response.status_code != 200:
-            return JsonResponse({"error": "Error retrieving results list"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return JsonResponse(
+                {"error": "Error retrieving results list"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
         file_list = response.json()
         base_url = urljoin(static_endpoint_url, f"static/{bucket_name}/")
     else:
         # get the list of files in the results directory
-        s3 = boto3.client('s3')
+        s3 = boto3.client("s3")
         logging.info(f"pre-list_objects_v2")
         response = s3.list_objects_v2(Bucket=bucket_name, Prefix=results_directory)
         logging.info(f"post-list_objects_v2")
-        if 'Contents' not in response or not response['Contents']:
-            return JsonResponse({"error": "No files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
+        if "Contents" not in response or not response["Contents"]:
+            return JsonResponse(
+                {"error": "No files found in the results directory"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         # remove the first entry if it is the same as results_directory
-        if response['Contents'][0]['Key'] == results_directory:
-            file_list = [file['Key'] for file in response['Contents'][1:]]
+        if response["Contents"][0]["Key"] == results_directory:
+            file_list = [file["Key"] for file in response["Contents"][1:]]
         else:
-            file_list = [file['Key'] for file in response['Contents']]
+            file_list = [file["Key"] for file in response["Contents"]]
         base_url = f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
-
 
     png_files = [file for file in file_list if file.lower().endswith(".png")]
     logging.info(f"png_files: {png_files}")
 
     if not png_files:
-        return JsonResponse({"error": "No .png files found in the results directory"}, status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse(
+            {"error": "No .png files found in the results directory"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     if is_emulation:
         logging.info(f"emulation: {base_url}")
@@ -352,8 +406,11 @@ def get_submission_results(request, submission_id):
             if file_url:
                 file_urls.append(file_url)
             else:
-                return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+                return JsonResponse(
+                    {"error": f"Error retrieving .png file: {png_file}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
     else:
         logging.info(f"not emulation: {cf_results_path}")
 
@@ -362,13 +419,17 @@ def get_submission_results(request, submission_id):
             if file_url:
                 file_urls.append(file_url)
             else:
-                return JsonResponse({"error": f"Error retrieving .png file: {png_file}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    #set returns
+                return JsonResponse(
+                    {"error": f"Error retrieving .png file: {png_file}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+    # set returns
     logging.info(f"setting returns")
-    ret['file_urls'] = file_urls
+    ret["file_urls"] = file_urls
 
     return JsonResponse(ret, status=status.HTTP_200_OK)
+
 
 @api_view(["GET"])
 @csrf_exempt

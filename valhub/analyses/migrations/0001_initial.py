@@ -7,16 +7,18 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Analysis',
+            name="Analysis",
             fields=[
-                ('analysis_id', models.AutoField(primary_key=True, serialize=False)),
-                ('analysis_name', models.CharField(default='analysis', max_length=100)),
-                ('max_concurrent_submission_evaluation', models.IntegerField(default=100)),
+                ("analysis_id", models.AutoField(primary_key=True, serialize=False)),
+                ("analysis_name", models.CharField(default="analysis", max_length=100)),
+                (
+                    "max_concurrent_submission_evaluation",
+                    models.IntegerField(default=100),
+                ),
             ],
         ),
     ]

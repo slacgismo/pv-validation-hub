@@ -19,6 +19,7 @@ from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 from accounts.models import Account
 import logging
+
 # Create your views here.
 
 
@@ -66,7 +67,7 @@ def leaderboard(request, analysis_id):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# Update this later to only accept route calls from within localhost or own container 
+# Update this later to only accept route calls from within localhost or own container
 @api_view(["POST"])
 def create_new_analysis(request):
     # Remove user_id related code
