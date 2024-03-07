@@ -9,11 +9,11 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TableSortLabel
+  TableSortLabel,
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
 
-export default function AppTable({rows, cols}) {
+export default function AppTable({ rows, cols }) {
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('');
   const [page, setPage] = useState(0);
@@ -100,22 +100,20 @@ export default function AppTable({rows, cols}) {
             {
               stableSort(rows, getComparator(order, orderBy))
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row, index) => {
-                  return (
-                    <TableRow hover role="checkbox" tabIndex={-1} key={index}>
-                      {
+                .map((row, index) => (
+                  <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                    {
                         cols.map((column) => {
                           const value = row[column.id];
                           return (
                             <TableCell key={column.id} align={column.align}>
-                              {column.format && (value != null || value != undefined) ? column.format(value) : "-"}
+                              {column.format && (value !== null || value !== undefined) ? column.format(value) : '-'}
                             </TableCell>
                           );
                         })
                       }
-                    </TableRow>
-                  );
-                })
+                  </TableRow>
+                ))
             }
           </TableBody>
         </Table>

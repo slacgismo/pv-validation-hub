@@ -2,9 +2,7 @@ name: Build and Test
 
 on:
   push:
-    branches: [ develop ]
-  pull_request:
-    branches: [ develop ]
+  workflow_dispatch:
 
 env:
   applicationfolder: valhub
@@ -12,48 +10,57 @@ env:
   S3BUCKET: pv-validation-hub-bucket
   DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
 
-
 jobs:
   build-fe:
-    name: Build and Test
+    name: Build and Test Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         name: Checkout Repository
 
-      - name: install
+      - name: install dependencies and build
         run: |
           cd frontend
-          export DOCKER_BUILDKIT=1
-          docker build -t pv/val:tag -f Dockerfile .
+          cp .env.example .env
+          npm install
+          npm run build
 
-# Needs to include aws login step as well
-#      - name: build
-#        run: |
-#          cd frontend
-#          npm run build
-#          aws s3 sync ./build/ s3://pv-validation-hub-website --acl public-read
-#
+      - name: run tests
+        run: |
+          cd frontend
+          npm run test
 
   build-api:
-    name: Build and Test
+    name: Build and Test API
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         name: Checkout Repository
+
+      - uses: psf/black@stable
+        with:
+          options: "--check --verbose"
+          src: "./valhub"
+          version: "24.2.0"
 
       - name: build
         run: |
           cd valhub
           export DOCKER_BUILDKIT=1
-          docker build --build-arg admin_username="placeholder" --build-arg admin_password="replaceme" --build-arg djangosk="placeholder" -t pv/val:tag -f Dockerfile .
+          docker build --build-arg admin_username="placeholder" --build-arg admin_password="placeholder" --build-arg djangosk="${{ env.DJANGO_SECRET_KEY }}" -t pv/val:tag -f Dockerfile .
 
   build-worker:
-    name: Build and Test
+    name: Build and Test Worker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         name: Checkout Repository
+
+      - uses: psf/black@stable
+        with:
+          options: "--check --verbose"
+          src: "./workers"
+          version: "24.2.0"
 
       - name: build
         run: |

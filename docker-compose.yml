@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -16,7 +16,7 @@ services:
     build:
       context: ./valhub
       args:
-        djangosk: ${djangosk} 
+        djangosk: ${djangosk}
     env_file:
       - .env
     environment:
@@ -24,6 +24,9 @@ services:
       PGUSER: valhub
       PGHOST: db
       PG_DATABASE_URI: "postgresql://valhub:valhub@db/valhub"
+      DJANGO_SUPERUSER_USERNAME: ${admin_username}
+      DJANGO_SUPERUSER_PASSWORD: ${admin_password}
+      DJANGO_SUPERUSER_EMAIL: ${admin_email}
       DJANGO_SECRET_KEY: ${djangosk}
     ports:
       - "8005:8005"
@@ -42,6 +45,17 @@ services:
     depends_on:
       - api
 
+  ec2:
+    build: ./ec2
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "7000:7000"
+    depends_on:
+      - api
+
   react-client:
     stdin_open: true
     build: ./frontend
@@ -54,7 +68,7 @@ services:
     depends_on:
       - api
       - s3
-      
+
   sqs:
     image: softwaremill/elasticmq:latest
     ports:
@@ -65,7 +79,6 @@ services:
       - ./custom.conf:/opt/elasticmq.conf
       - ./application.ini:/opt/docker/conf/application.ini
 
-      
   worker:
     build:
       context: ./workers
@@ -79,4 +92,4 @@ services:
       - sqs
 
 volumes:
- valhub:
+  valhub:

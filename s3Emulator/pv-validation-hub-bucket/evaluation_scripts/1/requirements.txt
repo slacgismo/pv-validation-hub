@@ -1,8 +1,8 @@
-matplotlib==3.7.1
-numpy==1.22.0
-pandas==1.5.3
-pvanalytics==0.1.3
-pvlib==0.9.4
-ruptures==1.1.7
-seaborn==0.11.1
-solar_data_tools==0.7.0
+matplotlib
+numpy
+pandas
+pvanalytics
+pvlib
+ruptures
+seaborn
+solar_data_tools

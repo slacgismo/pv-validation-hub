@@ -1,6 +1,7 @@
 from django.db import models
 from system_metadata.models import SystemMetadata
 
+
 class FileMetadata(models.Model):
     file_id = models.AutoField(primary_key=True)
     system_id = models.ForeignKey(SystemMetadata, on_delete=models.CASCADE)

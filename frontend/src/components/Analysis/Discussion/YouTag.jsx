@@ -1,8 +1,8 @@
-import { Chip, ThemeProvider } from "@mui/material";
-import React from "react";
-import theme from "./styles";
+import { Chip, ThemeProvider } from '@mui/material';
+import React from 'react';
+import theme from './styles.jsx';
 
-const YouTag = () => {
+function YouTag() {
   return (
     <ThemeProvider theme={theme}>
       <Chip
@@ -10,14 +10,14 @@ const YouTag = () => {
         variant="filled"
         size="small"
         sx={{
-          bgcolor: "custom.moderateBlue",
-          color: "neutral.white",
+          bgcolor: 'custom.moderateBlue',
+          color: 'neutral.white',
           fontWeight: 500,
-          borderRadius: "5px",
+          borderRadius: '5px',
         }}
       />
     </ThemeProvider>
   );
-};
+}
 
 export default YouTag;

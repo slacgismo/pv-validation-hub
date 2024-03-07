@@ -1,6 +1,6 @@
-import React, { Component } from "react";
-import Chart from "react-apexcharts";
-import { SubmissionService } from "../../services/submission_service";
+import React, { Component } from 'react';
+import Chart from 'react-apexcharts';
+import SubmissionService from '../../services/submission_service.js';
 
 export default class BarChart extends Component {
   constructor(props) {
@@ -9,18 +9,18 @@ export default class BarChart extends Component {
     this.state = {
       options: {
         chart: {
-          id: "submission-bar"
+          id: 'submission-bar',
         },
         xaxis: {
-          categories: SubmissionService.getSubmissionDateRangeSet(props.user_id)
-        }
+          categories: SubmissionService.getSubmissionDateRangeSet(props.user_id),
+        },
       },
       series: [
         {
-          name: "submissions",
-          data: SubmissionService.getSubmissionsSet(props.user_id)
-        }
-      ]
+          name: 'submissions',
+          data: SubmissionService.getSubmissionsSet(props.user_id),
+        },
+      ],
     };
   }
 

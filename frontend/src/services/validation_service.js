@@ -1,10 +1,9 @@
-export default class Validation{
+export default class Validation {
+  static isUserNameTaken(username) {
+    return true;
+  }
 
-    static isUserNameTaken(username){
-        return true;
-    }
-
-    static isEmailInUse(email){
-        return true;
-    }
+  static isEmailInUse(email) {
+    return true;
+  }
 }

@@ -1,0 +1,69 @@
+# Stage 1: Build the Django application and Nginx
+FROM python:3.10-slim
+
+WORKDIR /root
+
+RUN apt-get update && apt-get install -y gawk
+
+ARG region=us-west-2
+# Copy AWS and PEM configuration if needed
+# Manually add the files to copy if not included in the host system
+RUN mkdir -p .aws
+RUN mkdir -p .pem
+
+WORKDIR /root/.aws
+
+RUN --mount=type=secret,id=ak \
+    --mount=type=secret,id=sak \
+    awk -v ak="$(cat /run/secrets/ak)" -v sak="$(cat /run/secrets/sak)" \
+    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "~/.aws/credentials"}'
+
+RUN awk -v region=region \
+    'BEGIN {print "[default]\nregion = " region > "~/.aws/config"}'
+
+WORKDIR /root/.pem
+
+RUN --mount=type=secret,id=PEM \
+    awk -v pem="$(cat /run/secrets/PEM)" \
+    'BEGIN {print pem > "~/.pem/private-key.pem"}' 
+
+RUN chmod 400 ~/.pem/private-key.pem
+
+WORKDIR /root
+# Create and set up the application directory
+RUN mkdir valhub
+WORKDIR /root/valhub
+
+# Copy your application code
+COPY . .
+
+# Set Django admin username, password, and other environment variables
+ARG admin_username
+ARG admin_password
+ARG admin_email
+ARG djangosk
+
+ENV DJANGO_SUPERUSER_USERNAME=${admin_username}
+ENV DJANGO_SUPERUSER_PASSWORD=${admin_password}
+ENV DJANGO_SUPERUSER_EMAIL=${admin_email}
+ENV DJANGO_SECRET_KEY=${djangosk}
+ENV PORT 8005
+
+# Install required system dependencies including Nginx
+RUN apt-get update -qq && \
+    apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client supervisor
+
+# Install Python dependencies
+RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install -r requirements.txt
+
+# Create Django database migrations
+RUN python3 manage.py makemigrations
+RUN python3 manage.py collectstatic
+
+# Expose ports for incoming HTTP traffic
+EXPOSE 80 443 22 8005
+
+# Start Nginx and Supervisor
+CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.prod.conf"]
