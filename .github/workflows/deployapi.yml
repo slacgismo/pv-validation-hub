@@ -1,4 +1,4 @@
-name: Deploy Production to Amazon ECS/ECR
+name: Deploy API to Amazon ECS/ECR
 
 on:
   workflow_dispatch:
