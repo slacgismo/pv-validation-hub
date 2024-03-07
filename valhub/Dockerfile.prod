@@ -3,13 +3,33 @@ FROM python:3.10-slim
 
 WORKDIR /root
 
+RUN apt-get update && apt-get install -y gawk
+
+ARG region=us-west-2
 # Copy AWS and PEM configuration if needed
 # Manually add the files to copy if not included in the host system
 RUN mkdir -p .aws
 RUN mkdir -p .pem
-COPY .aws /root/.aws
-COPY .pem /root/.pem
 
+WORKDIR /root/.aws
+
+RUN --mount=type=secret,id=ak \
+    --mount=type=secret,id=sak \
+    awk -v ak="$(cat /run/secrets/ak)" -v sak="$(cat /run/secrets/sak)" \
+    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "~/.aws/credentials"}'
+
+RUN awk -v region=region \
+    'BEGIN {print "[default]\nregion = " region > "~/.aws/config"}'
+
+WORKDIR /root/.pem
+
+RUN --mount=type=secret,id=PEM \
+    awk -v pem="$(cat /run/secrets/PEM)" \
+    'BEGIN {print pem > "~/.pem/private-key.pem"}' 
+
+RUN chmod 400 ~/.pem/private-key.pem
+
+WORKDIR /root
 # Create and set up the application directory
 RUN mkdir valhub
 WORKDIR /root/valhub
