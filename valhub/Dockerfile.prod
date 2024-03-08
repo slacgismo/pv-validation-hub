@@ -13,6 +13,7 @@ ARG PEM
 # Manually add the files to copy if not included in the host system
 RUN mkdir -p .aws
 RUN mkdir -p .pem
+COPY .pem /root/.pem
 
 WORKDIR /root/.aws
 
@@ -23,9 +24,6 @@ RUN awk -v region=${region} \
     'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
 WORKDIR /root/.pem
-
-RUN awk -v pem="${PEM}" \
-    'BEGIN {print pem > "/root/.pem/private-key.pem"}' 
 
 RUN chmod 400 /root/.pem/private-key.pem
 
