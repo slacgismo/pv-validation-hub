@@ -43,6 +43,7 @@ jobs:
               ECR_REPOSITORY: ${{ env.ECR_API_REPOSITORY }}
               IMAGE_TAG: latest
             run: |
+              cd valhub
               docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
               --build-arg djangosk=${{ env.DJANGOSK }} \
               --build-arg admin_username=${{ env.ADU }} \
