@@ -15,19 +15,19 @@ WORKDIR /root/.aws
 
 RUN --mount=type=secret,id=ak \
     --mount=type=secret,id=sak \
-    gawk -v ak="$(cat /run/secrets/ak)" -v sak="$(cat /run/secrets/sak)" \
-    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "~/.aws/credentials"}'
+    awk -v ak="$(cat /run/secrets/ak)" -v sak="$(cat /run/secrets/sak)" \
+    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "/root/.aws/credentials"}'
 
-RUN gawk -v region=region \
-    'BEGIN {print "[default]\nregion = " region > "~/.aws/config"}'
+RUN awk -v region=region \
+    'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
 WORKDIR /root/.pem
 
 RUN --mount=type=secret,id=PEM \
-    gawk -v pem="$(cat /run/secrets/PEM)" \
-    'BEGIN {print pem > "~/.pem/private-key.pem"}' 
+    awk -v pem="$(cat /run/secrets/PEM)" \
+    'BEGIN {print pem > "/root/.pem/private-key.pem"}' 
 
-RUN chmod 400 ~/.pem/private-key.pem
+RUN chmod 400 /root/.pem/private-key.pem
 
 WORKDIR /root
 # Create and set up the application directory
