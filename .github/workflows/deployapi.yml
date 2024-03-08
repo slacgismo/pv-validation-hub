@@ -21,8 +21,6 @@ jobs:
         name: Deploy API
         runs-on: ubuntu-latest
         environment: production
-        outputs:
-          image: ${{ steps.build-image-api.outputs.image }}
         steps:
           - name: Checkout
             uses: actions/checkout@v3
@@ -56,7 +54,7 @@ jobs:
               --secret id=sak,env=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
                -f Dockerfile.prod .
               docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-              echo "{image}={$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG}" >> $GITHUB_OUTPUT
+              echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
     
           - name: Fill in the new image ID in the Amazon ECS task definition
             id: task-def
@@ -64,7 +62,7 @@ jobs:
             with:
               task-definition: task-definition.json
               container-name: ${{ env.API_CONTAINER_NAME }}
-              image: ${{ steps.build-image-api.outputs.image }}
+              image: ${{ env.IMAGE }}
     
           - name: Deploy Amazon ECS task definition
             uses: aws-actions/amazon-ecs-deploy-task-definition@v1
