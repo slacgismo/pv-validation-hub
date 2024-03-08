@@ -12,8 +12,6 @@ env:
   ECS_API_CLUSTER: pv-validation-hub-api-cluster               
   API_CONTAINER_NAME: pv-validation-hub-api-task
   DJANGOSK: ${{ secrets.DJANGOSK }}
-  PGP: ${{ secrets.PGP }}
-  PGU: ${{ secrets.PGU }}
   ADU: ${{ secrets.ADU }}
   ADP: ${{ secrets.ADP }}
   ADE: ${{ secrets.ADE }}
@@ -46,12 +44,10 @@ jobs:
               IMAGE_TAG: latest
             run: |
               docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-              --build-arg ${{ env.DJANGOSK }} \
-              --build-arg ${{ env.PGP }} \
-              --build-arg ${{ env.PGU }} \
-              --build-arg ${{ env.ADU }} \
-              --build-arg ${{ env.ADP }} \
-              --build-arg ${{ env.ADE }} \
+              --build-arg djangosk=${{ env.DJANGOSK }} \
+              --build-arg admin_username=${{ env.ADU }} \
+              --build-arg admin_password=${{ env.ADP }} \
+              --build-arg admin_email=${{ env.ADE }} \
               --build-arg region=${{ env.AWS_REGION }} \
               --secret id=ak,${{ secrets.AWS_ACCESS_KEY }} \
               --secret id=sak,${{ secrets.AWS_SECRET_ACCESS_KEY }} \
