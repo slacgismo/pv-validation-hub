@@ -56,6 +56,12 @@ jobs:
               docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
               echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
     
+          # needed for the task-definition.json file, update task family here
+          # can also use the CLI to manually generate the task, new def forces new deployment of containers 
+          - name: Download task definition
+            run: |
+              aws ecs describe-task-definition --task-definition ${{ env.API_CONTAINER_NAME }} --query taskDefinition > task-definition.json
+
           - name: Fill in the new image ID in the Amazon ECS task definition
             id: task-def
             uses: aws-actions/amazon-ecs-render-task-definition@v1
