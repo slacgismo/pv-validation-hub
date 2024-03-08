@@ -69,7 +69,7 @@ jobs:
           path: /tmp/workspace
 
       - name: Deploy to S3
-        run: aws s3 sync /tmp/workspace/build/ s3://${{ secrets.FE_S3_URL }} --acl public-read
+        run: aws s3 sync /tmp/workspace/build/ s3://pv-validation-hub-website --acl public-read
 
       - name: Run CF invalidation
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.FE_CF_ID }} --paths '/*'

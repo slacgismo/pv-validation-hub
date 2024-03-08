@@ -49,8 +49,8 @@ jobs:
               --build-arg admin_password=${{ env.ADP }} \
               --build-arg admin_email=${{ env.ADE }} \
               --build-arg region=${{ env.AWS_REGION }} \
-              --secret id=ak,${{ secrets.AWS_ACCESS_KEY }} \
-              --secret id=sak,${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+              --secret id=ak,env=${{ secrets.AWS_ACCESS_KEY }} \
+              --secret id=sak,env=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
                -f Dockerfile.prod .
               docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
               echo "{image}={$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG}" >> $GITHUB_OUTPUT
