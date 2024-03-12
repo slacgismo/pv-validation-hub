@@ -41,6 +41,7 @@ jobs:
               ECR_REPOSITORY: ${{ env.ECR_WORKER_REPOSITORY }}
               IMAGE_TAG: latest
             run: |
+              cd workers
               docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
               --build-arg region=${{ env.AWS_REGION }} \
               --build-arg ak=${{ env.AK }} \
