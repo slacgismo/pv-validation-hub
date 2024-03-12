@@ -11,6 +11,8 @@ env:
   ECS_WORKER_SERVICE: valhub-worker-service
   ECS_WORKER_CLUSTER: pv-validation-hub-worker-cluster      
   WORKER_CONTAINER_NAME: pv-validation-hub-worker-task
+  AK: ${{ secrets.API_AK }}
+  SAK: ${{ secrets.API_SAK }}
 
 jobs:
     deploy_worker:
@@ -39,17 +41,27 @@ jobs:
               ECR_REPOSITORY: ${{ env.ECR_WORKER_REPOSITORY }}
               IMAGE_TAG: latest
             run: |
-              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+              --build-arg region=${{ env.AWS_REGION }} \
+              --build-arg ak=${{ env.AK }} \
+              --build-arg sak=${{ env.SAK }} \
+               -f Dockerfile.prod .
               docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-              echo "{image}={$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG}" >> $GITHUB_OUTPUT
-    
+              echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+          # needed for the task-definition.json file, update task family here
+          # can also use the CLI to manually generate the task, new def forces new deployment of containers 
+          - name: Download task definition
+            run: |
+              aws ecs describe-task-definition --task-definition ${{ env.WORKER_CONTAINER_NAME }} --query taskDefinition > task-definition.json
+
           - name: Fill in the new image ID in the Amazon ECS task definition
             id: task-def
             uses: aws-actions/amazon-ecs-render-task-definition@v1
             with:
               task-definition: task-definition.json
               container-name: ${{ env.WORKER_CONTAINER_NAME }}
-              image: ${{ steps.build-image-worker.outputs.image }}
+              image: ${{ env.IMAGE }}
     
           - name: Deploy Amazon ECS task definition
             uses: aws-actions/amazon-ecs-deploy-task-definition@v1

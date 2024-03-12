@@ -3,11 +3,23 @@ FROM python:3.10-slim as base
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
 
+RUN apt-get update && apt-get install -y gawk
+
+ARG region=us-west-2
+ARG ak
+ARG sak
 # Copy AWS configuration if needed
 RUN mkdir -p .aws
-COPY .aws /root/.aws
-
 RUN mkdir worker
+
+WORKDIR /root/.aws
+
+RUN awk -v ak="${ak}" -v sak="${sak}" \
+    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "/root/.aws/credentials"}'
+
+RUN awk -v region=${region} \
+    'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
+
 WORKDIR /root/worker
 COPY . .
 
