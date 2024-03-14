@@ -16,6 +16,6 @@ RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client
 RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake git
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -r requirements.txt
-RUN git clone https://github.com/kperrynrel/time-shift-validation-hub.git
+# RUN git clone https://github.com/kperrynrel/time-shift-validation-hub.git
 
 ENTRYPOINT ["tail", "-f", "/dev/null"]

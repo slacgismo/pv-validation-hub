@@ -149,3 +149,16 @@ ec2/test_analysis
 
 **/.vscode
 **/.venv
+
+s3Emulator/pv-validation-hub-bucket/data_files/analytical/*
+s3Emulator/pv-validation-hub-bucket/data_files/ground_truth/*
+s3Emulator/pv-validation-hub-bucket/submission_files/*
+
+valhub/staticfiles
+valhub/media
+
+workers/tmp/*
+workers/current_evaluation/*
+
+
+*.pid

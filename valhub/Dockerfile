@@ -6,7 +6,11 @@ WORKDIR /root
 # COPY .aws /root/.aws
 RUN mkdir valhub
 WORKDIR /root/valhub
+
+VOLUME /root/valhub
+
 COPY . .
+
 
 # Set Django admin username, password, and other environment variables
 ARG admin_username
@@ -29,7 +33,7 @@ RUN python3 -m pip install --upgrade pip
 WORKDIR /root/valhub
 RUN python3 -m pip install -r requirements.txt
 
-RUN cd ./valhub
+# RUN cd ./valhub
 RUN python3 manage.py makemigrations
-RUN python3 manage.py collectstatic
+RUN python3 manage.py collectstatic --noinput
 CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]
