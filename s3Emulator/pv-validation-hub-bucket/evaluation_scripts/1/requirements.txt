@@ -1,8 +1,0 @@
-matplotlib
-numpy
-pandas
-pvanalytics
-pvlib
-ruptures
-seaborn
-solar_data_tools
