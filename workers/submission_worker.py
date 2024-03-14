@@ -1,5 +1,4 @@
 from importlib import import_module
-import subprocess
 import traceback
 import zipfile
 import requests
@@ -9,7 +8,7 @@ import tempfile
 import logging
 import shutil
 import boto3
-import botocore
+import botocore.exceptions
 import signal
 import json
 import time
@@ -56,7 +55,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 
-def pull_from_s3(s3_file_path):
+def pull_from_s3(s3_file_path: str):
     logger.info(f"pull file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
@@ -84,7 +83,7 @@ def pull_from_s3(s3_file_path):
         try:
             s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
         except:
-            return None
+            raise FileNotFoundError(f"File {target_file_path} not found in s3 bucket.")
 
     return target_file_path
 
@@ -147,7 +146,8 @@ def list_s3_bucket(s3_dir):
         for page in pages:
             if page["KeyCount"] > 0:
                 for entry in page["Contents"]:
-                    all_files.append(entry["Key"])
+                    if "Key" in entry:
+                        all_files.append(entry["Key"])
 
         # remove the first entry if it is the same as s3_dir
         if len(all_files) > 0 and all_files[0] == s3_dir:
@@ -177,38 +177,6 @@ def update_submission_result(analysis_id, submission_id, result_json):
             f"error update submission result to {result_json}, status code {r.status_code} {r.content}",
             file=sys.stderr,
         )
-
-
-def convert_compressed_file_path_to_directory(compressed_file_path):
-    path_components = compressed_file_path.split("/")
-    path_components[-1] = path_components[-1].split(".")[0]
-    path_components = "/".join(path_components)
-    return path_components
-
-
-def get_file_extension(path):
-    return path.split("/")[-1].split(".")[-1]
-
-
-def decompress_file(path):
-    if get_file_extension(path) == "gz":
-        with tarfile.open(path, "r:gz") as tar:
-            tar.extractall(convert_compressed_file_path_to_directory(path))
-    else:
-        with zipfile.ZipFile(path, "r") as zip_ref:
-            zip_ref.extractall(convert_compressed_file_path_to_directory(path))
-    return convert_compressed_file_path_to_directory(path)
-
-
-def get_module_file_name(module_dir):
-    for root, _, files in os.walk(module_dir, topdown=True):
-        for name in files:
-            if name.endswith(".py"):
-                return name.split("/")[-1]
-
-
-def get_module_name(module_dir):
-    return get_module_file_name(module_dir)[:-3]
 
 
 SUBMITTING = "submitting"
@@ -421,31 +389,13 @@ def load_analysis(analysis_id, current_evaluation_dir):
 
     logger.info("pull and extract analysis")
     extract_analysis_data(analysis_id, current_evaluation_dir)
-    logger.info("install analysis dependency")
-    try:
-        subprocess.check_call(
-            [
-                "python",
-                "-m",
-                "pip",
-                "install",
-                "-r",
-                os.path.join(current_evaluation_dir, "requirements.txt"),
-            ]
-        )
-        logger.info("analysis dependencies installed successfully.")
-    except subprocess.CalledProcessError as e:
-        logger.error("error installing analysis dependencies:", e)
-    # Copy the validation runner and insert-analysis class into the current
-    # evaluation directory
+
+    # Copy the validation runner into the current evaluation directory
     shutil.copy(
         os.path.join("/root/worker", "pvinsight-validation-runner.py"),
         os.path.join(current_evaluation_dir, "pvinsight-validation-runner.py"),
     )
-    shutil.copy(
-        os.path.join("/root/worker", "insert-analysis.py"),
-        os.path.join(current_evaluation_dir, "insert-analysis.py"),
-    )
+
     # import analysis runner as a module
     sys.path.insert(0, current_evaluation_dir)
     runner_module_name = "pvinsight-validation-runner"
@@ -460,123 +410,6 @@ def load_analysis(analysis_id, current_evaluation_dir):
 
 
 ############ submission functions #############
-def extract_submission_data(submission_id):
-    """
-    * Expects submission id and extracts input file for it.
-    """
-
-    try:
-        submission = Submission.objects.get(submission_id=submission_id)
-        # submission = Submission()
-        # submission.submission_id = submission_id
-    except Submission.DoesNotExist:
-        logger.critical(
-            "{} Submission {} does not exist".format(
-                SUBMISSION_LOGS_PREFIX, submission_id
-            )
-        )
-        traceback.print_exc()
-        # return from here so that the message can be acked
-        # This also indicates that we don't want to take action
-        # for message corresponding to which submission entry
-        # does not exist
-        return None
-    # Ignore submissions with status cancelled
-    # if submission.status == Submission.CANCELLED:
-    #     logger.info(
-    #         "{} Submission {} was cancelled by the user".format(
-    #             SUBMISSION_LOGS_PREFIX, submission_id
-    #         )
-    #     )
-    #     return None
-
-    submission_data_directory = SUBMISSION_DATA_DIR.format(submission_id=submission_id)
-    # create submission directory
-    create_dir_as_python_package(submission_data_directory)
-
-    # download and extract submission with algorithm (predict function)
-    # "https://github.com/slacgismo/pv-validation-hub/raw/mengdiz/examples/submission_1.zip"
-    submission_algorithm_url = submission.algorithm  # .url
-    submission_zip_file = os.path.join(
-        submission_data_directory, "submission_{}.zip".format(submission_id)
-    )
-    download_and_extract_zip_file(
-        "submission_files/submission_{}.zip".format(submission_id),
-        submission_zip_file,
-        submission_data_directory,
-        "",
-    )
-
-    # import as module
-    importlib.invalidate_caches()
-    submission_module = importlib.import_module(
-        SUBMISSION_IMPORT_STRING.format(submission_id=submission_id)
-    )
-    SUBMISSION_ALGORITHMS[submission_id] = submission_module
-
-    return submission
-
-
-def run_submission(analysis_id, submission):
-    """
-    * receives a analysis id and submission object
-    * calls evaluation script
-    """
-    # get test data path
-    submission_id = submission.submission_id
-    analysis_data_file_path = ANALYSIS_DATA_FILE_PATH.format(
-        analysis_id=analysis_id, data_file="test_data"
-    )
-
-    # update status as running
-    submission.status = Submission.RUNNING
-    submission.save()
-
-    # ANNOTATION_FILE_NAME_MAP[analysis_id]
-    annotation_file_name = "test_annotation.txt"
-    annotation_file_path = ANALYSIS_ANNOTATION_FILE_PATH.format(
-        analysis_id=analysis_id,
-        annotation_file=annotation_file_name,
-    )
-    try:
-        # importlib.invalidate_caches()
-        # analysis_module = importlib.import_module(
-        #     ANALYSIS_IMPORT_STRING.format(analysis_id=analysis_id)
-        # )
-        # EVALUATION_SCRIPTS[analysis_id] = analysis_module
-
-        submission_output = EVALUATION_SCRIPTS[analysis_id].evaluate(
-            analysis_data_file_path,
-            annotation_file_path,
-            SUBMISSION_ALGORITHMS[submission_id].predict,
-            # submission_metadata=submission_serializer.data,
-        )
-        """
-        A submission will be marked successful only if it is of the format
-            {
-               "result":[
-                  {
-                     "split_test":{
-                        "metric1":30,
-                        "metric2":50,
-                     }
-                  }
-               ],
-               "submission_metadata": {'foo': 'bar'},
-               "submission_result": ['foo', 'bar'],
-            }
-        """
-        # submission_output["execution_time"] = 30
-        print(submission_output)
-        submission_output = json.dumps(submission_output)
-        # Submission.objects.filter(submission_id=submission_id).update(
-        #     result=submission_output)
-        submission.result = submission_output
-        submission.status = Submission.FINISHED
-        submission.save()
-    except Exception as e:
-        print(e)
-        submission.status = Submission.FAILED
 
 
 def process_submission_message(message):
@@ -687,7 +520,10 @@ def get_or_create_sqs_queue(queue_name):
     try:
         queue = sqs.get_queue_by_name(QueueName=queue_name)
     except botocore.exceptions.ClientError as ex:
-        if ex.response["Error"]["Code"] != "AWS.SimpleQueueService.NonExistentQueue":
+        if (
+            ex.response.get("Error", {}).get("Code")
+            != "AWS.SimpleQueueService.NonExistentQueue"
+        ):
             logger.exception("Cannot get queue: {}".format(queue_name))
         queue = sqs.create_queue(QueueName=queue_name, Attributes={"FifoQueue": "true"})
     return queue
@@ -749,8 +585,10 @@ def main():
             print(message.body)
 
             # start a thread to refresh the timeout
+            stop_event = threading.Event()
             t = threading.Thread(
-                target=update_visibility_timeout, args=(queue, message, 43200)
+                target=update_visibility_timeout,
+                args=(queue, message, 43200, stop_event),
             )
             t.start()
 
@@ -761,7 +599,7 @@ def main():
             logger.info("{} Message processed successfully".format(WORKER_LOGS_PREFIX))
 
             # stop the thread
-            t.do_run = False
+            stop_event.set()
             t.join()
             break
 
