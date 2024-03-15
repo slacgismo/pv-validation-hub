@@ -15,7 +15,7 @@ services:
   api:
     build:
       context: ./valhub
-      dockerfile: Dockerfile
+      dockerfile: prod.Dockerfile
       args:
         djangosk: ${djangosk}
     env_file:
@@ -34,15 +34,11 @@ services:
     depends_on:
       - db
       - sqs
-    volumes:
-      - type: bind
-        source: ./valhub
-        target: /root/valhub
 
   s3:
     build:
       context: ./s3Emulator
-      dockerfile: Dockerfile
+      dockerfile: prod.Dockerfile
     env_file:
       - .env
     environment:
@@ -51,15 +47,11 @@ services:
       - "5000:5000"
     depends_on:
       - api
-    volumes:
-      - type: bind
-        source: ./s3Emulator/pv-validation-hub-bucket
-        target: /pv-validation-hub-bucket
 
   ec2:
     build:
       context: ./ec2
-      dockerfile: Dockerfile
+      dockerfile: prod.Dockerfile
     env_file:
       - .env
     environment:
@@ -68,29 +60,21 @@ services:
       - "7000:7000"
     depends_on:
       - api
-    volumes:
-      - type: bind
-        source: ./ec2
-        target: /root/admin
 
   react-client:
     stdin_open: true
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: prod.Dockerfile
     environment:
       HOST: 0.0.0.0
-    env_file:
-      - ./frontend/.env
+    volumes:
+      - ./frontend:/opt/app:delegated
     ports:
       - "3000:3000"
     depends_on:
       - api
       - s3
-    volumes:
-      - type: bind
-        source: ./frontend
-        target: /app
 
   sqs:
     image: softwaremill/elasticmq:latest
@@ -105,6 +89,7 @@ services:
   worker:
     build:
       context: ./workers
+      dockerfile: prod.Dockerfile
     env_file:
       - .env
     ports:
@@ -113,9 +98,6 @@ services:
       - api
       - s3
       - sqs
-    volumes:
-      - ./workers:/root/worker
-      - ./workers/tmp:/tmp
 
 volumes:
   valhub:

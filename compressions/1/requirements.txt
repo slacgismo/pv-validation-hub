@@ -1,2 +1,2 @@
-solardatatools
 numpy
+solar-data-tools

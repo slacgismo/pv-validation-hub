@@ -19,6 +19,6 @@ WORKDIR /root
 WORKDIR /root/worker
 RUN python3 -m pip install --upgrade pip
 WORKDIR /root/worker
-RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip install -r requirements.txt --timeout=1000
 
 CMD ["/bin/sh", "/root/worker/docker-entrypoint.sh"]
