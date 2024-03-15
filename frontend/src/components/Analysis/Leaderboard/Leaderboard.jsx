@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Box, CircularProgress, Link } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import DownloadIcon from '@mui/icons-material/Download';
 import DashboardService from '../../../services/dashboard_service.js';
 
-export default function Leaderboard(props) {
+export default function Leaderboard({ analysisId }) {
   const columns = [
     {
       field: 'created_by',
@@ -15,6 +15,7 @@ export default function Leaderboard(props) {
       sortable: false,
       groupable: false,
       renderCell: (params) => {
+        // eslint-disable-next-line no-unused-vars
         const { value } = params;
         return params.row.developer_group; /* value !== null || value !== undefined ?
                     <Link href={`/profile/${value.id}`} underline="hover" > {value.username}</Link>
@@ -75,7 +76,8 @@ export default function Leaderboard(props) {
       width: 360,
     },
   ];
-  const url = `/analysis/${props.analysis_id}/leaderboard`;
+  const url = `/analysis/${analysisId}/leaderboard`;
+  // eslint-disable-next-line no-unused-vars
   const [isLoading, error, rows] = DashboardService.useGetLeaderBoard(url);
   return (
     isLoading || rows === undefined ? <CircularProgress />
@@ -93,6 +95,9 @@ export default function Leaderboard(props) {
   );
 }
 
-Leaderboard.props = {
-  analysis_id: PropTypes.string,
+Leaderboard.propTypes = {
+  analysisId: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+  ]).isRequired,
 };

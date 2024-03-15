@@ -14,7 +14,7 @@ import {
 } from 'react-share';
 
 function Footer() {
-  const shareUrl = 'http://localhost:3000';
+  const shareUrl = 'https://pv-validation-hub.org';
   const title = 'PV Validation Hub';
   return (
     <Box sx={{

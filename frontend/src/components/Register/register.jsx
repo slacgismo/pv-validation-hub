@@ -1,7 +1,6 @@
 import {
   Box, Button, TextField, Grid,
 } from '@mui/material';
-import { Container } from '@mui/system';
 import React, { useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
@@ -9,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import Validation from '../../services/validation_service.js';
 import UserService from '../../services/user_service.js';
 
-export default function Register(props) {
+export default function Register() {
   const [registerStates, setRegisterStates] = useState({
     first_name: '',
     last_name: '',
@@ -73,13 +72,17 @@ export default function Register(props) {
     return '';
   }
 
+  // eslint-disable-next-line no-unused-vars
   const submitHandler = (e) => {
     const firstNameError = registerStates.first_name !== '' ? '' : 'First Name Required';
     const lastNameError = registerStates.last_name !== '' ? '' : 'Last Name Required';
     const emailError = isValidEmail(registerStates.email);
     const userNameError = validateUsername(registerStates.username);
     const passwordError = passwordValidation(registerStates.password);
-    const confirmPasswordError = confirmPasswordValidation(registerStates.confirmPassword, registerStates.password);
+    const confirmPasswordError = confirmPasswordValidation(
+      registerStates.confirmPassword,
+      registerStates.password,
+    );
 
     if (firstNameError !== '' || lastNameError !== ''
             || emailError !== '' || userNameError !== ''
@@ -101,6 +104,7 @@ export default function Register(props) {
       });
       console.log('here is the registration error: ', registrationErrors);
     } else {
+      // eslint-disable-next-line no-unused-vars
       setRegistrationErrors((prevState) => ({
         [registrationErrors.first_name]: '',
         [registrationErrors.last_name]: '',

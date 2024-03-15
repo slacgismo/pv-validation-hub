@@ -24,8 +24,10 @@ export default function Homepage() {
     document.body.removeChild(a);
   };
 
-  const highlight_data = HomepageService.getHighlights();
-  const hub_gist = HomepageService.getValidationHubGist();
+  // eslint-disable-next-line no-unused-vars
+  const highlightData = HomepageService.getHighlights();
+  // eslint-disable-next-line no-unused-vars
+  const hubGist = HomepageService.getValidationHubGist();
   return (
     <Box>
       <Grid container spacing={2} alignItems="center">
@@ -35,9 +37,10 @@ export default function Homepage() {
               PV Validation HUB
             </Typography>
             <Typography variant="body1" gutterBottom>
-              The Validation Hub is intended to be a clearinghouse for the transfer of novel algorithms and software from the
-              research community to industry. The primary function of the Hub will be for developers to submit executable code which
-              will run on hosted data sets.
+              The Validation Hub is intended to be a clearinghouse for the transfer of novel
+              algorithms and software from the research community to industry. The primary
+              function of the Hub will be for developers to submit executable code which will
+              run on hosted data sets.
             </Typography>
           </Box>
           <Box sx={{ marginTop: 17, marginLeft: 20 }}>
@@ -68,9 +71,9 @@ export default function Homepage() {
             </Typography>
             <Typography sx={{ marginTop: 1 }} variant="body1">
               SLAC research explores nature on all scales, from the unseen realms of fundamental
-              particles and unbelievably fast processes to astrophysical phenomena of cosmic dimensions.
-              Our research opens new windows to the natural world and builds a brighter future through
-              scientific discovery.
+              particles and unbelievably fast processes to astrophysical phenomena of cosmic
+              dimensions. Our research opens new windows to the natural world and builds a
+              brighter future through scientific discovery.
             </Typography>
             <Button
               sx={{ marginTop: 5 }}
@@ -107,8 +110,9 @@ export default function Homepage() {
               News & Events
             </Typography>
             <Typography sx={{ marginTop: 1 }} variant="body1">
-              Get the latest news about the lab, our science and discoveries. Explore SLAC events and learn how to participate.
-              Stay up to date on our latest scientific advances and research tools.
+              Get the latest news about the lab, our science and discoveries. Explore SLAC events
+              and learn how to participate. Stay up to date on our latest scientific advances and
+              research tools.
             </Typography>
             <Button
               sx={{ marginTop: 5 }}
@@ -151,8 +155,9 @@ export default function Homepage() {
               Our goal is to develop an open-source toolkit written in Python, which automates
               the analysis of performance and reliability for fleets of photovoltaic (PV) systems.
               All our algorithms use unlabled PV system production data, that is, measurements of
-              real power production over time without reference meteorological data or system configuration
-              information, which allows for the algorithms to work with the minimal possible data requirements.
+              real power production over time without reference meteorological data or system
+              configuration information, which allows for the algorithms to work with the
+              minimal possible data requirements.
             </Typography>
           </Grid>
           <Grid item xs={5}>

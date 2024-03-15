@@ -2,6 +2,7 @@ import {
   Card, CardContent, Typography, Divider,
 } from '@mui/material';
 import React from 'react';
+import PropTypes from 'prop-types';
 
 function CardSummary({ title, value, footer }) {
   return (
@@ -23,5 +24,11 @@ function CardSummary({ title, value, footer }) {
     </Card>
   );
 }
+
+CardSummary.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.number.isRequired,
+  footer: PropTypes.element.isRequired,
+};
 
 export default CardSummary;

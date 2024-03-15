@@ -4,13 +4,14 @@ import {
 import React, { useContext, useState } from 'react';
 import ReplyIcon from '@mui/icons-material/Reply';
 import Cookies from 'universal-cookie';
+import PropTypes from 'prop-types';
 import CommentContext from './CommentContext.js';
 import AddReply from './AddReply.jsx';
 import OwnReply from './OwnReply.jsx';
 
 function RepliesSection({ onReplies, onClicked, onTar }) {
   const cookies = new Cookies();
-  const comment_user = cookies.get('user');
+  const commentUser = cookies.get('user');
   const { IMGOBJ } = useContext(CommentContext);
   const [repliess, setReplies] = useState(onReplies);
 
@@ -24,7 +25,7 @@ function RepliesSection({ onReplies, onClicked, onTar }) {
         score: 0,
         replyingTo: `${onTar}`,
         replies: [],
-        user: { username: comment_user.username },
+        user: { username: commentUser.username },
       },
     ]);
   };
@@ -36,7 +37,7 @@ function RepliesSection({ onReplies, onClicked, onTar }) {
         } = rep;
         const userName = user.username;
         const ava = IMGOBJ[`${userName}`];
-        return userName === comment_user.username ? (
+        return userName === commentUser.username ? (
           <OwnReply
             key={rep.id}
             comId={rep.id}
@@ -107,5 +108,11 @@ function RepliesSection({ onReplies, onClicked, onTar }) {
     </Stack>
   );
 }
+
+RepliesSection.propTypes = {
+  onReplies: PropTypes.arrayOf([]).isRequired,
+  onClicked: PropTypes.bool.isRequired,
+  onTar: PropTypes.string.isRequired,
+};
 
 export default RepliesSection;

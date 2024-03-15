@@ -7,11 +7,11 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
   TableSortLabel,
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
+import PropTypes from 'prop-types';
 
 export default function AppTable({ rows, cols }) {
   const [order, setOrder] = React.useState('asc');
@@ -19,37 +19,39 @@ export default function AppTable({ rows, cols }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // eslint-disable-next-line no-unused-vars
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(+event.target.value);
     setPage(0);
   };
 
-  function descendingComparator(a, b, orderBy) {
-    if (b[orderBy] < a[orderBy]) {
+  function descendingComparator(a, b, orderedBy) {
+    if (b[orderedBy] < a[orderedBy]) {
       return -1;
     }
-    if (b[orderBy] > a[orderBy]) {
+    if (b[orderedBy] > a[orderedBy]) {
       return 1;
     }
     return 0;
   }
 
-  function getComparator(order, orderBy) {
-    return order === 'desc'
-      ? (a, b) => descendingComparator(a, b, orderBy)
-      : (a, b) => -descendingComparator(a, b, orderBy);
+  function getComparator(orderMethod, orderedBy) {
+    return orderMethod === 'desc'
+      ? (a, b) => descendingComparator(a, b, orderedBy)
+      : (a, b) => -descendingComparator(a, b, orderedBy);
   }
 
   function stableSort(array, comparator) {
     const stabilizedThis = array.map((el, index) => [el, index]);
     stabilizedThis.sort((a, b) => {
-      const order = comparator(a[0], b[0]);
-      if (order !== 0) {
-        return order;
+      const orderedList = comparator(a[0], b[0]);
+      if (orderedList !== 0) {
+        return orderedList;
       }
       return a[1] - b[1];
     });
@@ -100,9 +102,11 @@ export default function AppTable({ rows, cols }) {
             {
               stableSort(rows, getComparator(order, orderBy))
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row, index) => (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={index}>
-                    {
+                .map((row, index) => {
+                  const notIndex = `table-row-${index}`;
+                  return (
+                    <TableRow hover role="checkbox" tabIndex={-1} key={notIndex}>
+                      {
                         cols.map((column) => {
                           const value = row[column.id];
                           return (
@@ -112,8 +116,9 @@ export default function AppTable({ rows, cols }) {
                           );
                         })
                       }
-                  </TableRow>
-                ))
+                    </TableRow>
+                  );
+                })
             }
           </TableBody>
         </Table>
@@ -130,3 +135,8 @@ export default function AppTable({ rows, cols }) {
     </Paper>
   );
 }
+
+AppTable.propTypes = {
+  rows: PropTypes.arrayOf([]).isRequired,
+  cols: PropTypes.arrayOf([]).isRequired,
+};

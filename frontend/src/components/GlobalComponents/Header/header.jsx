@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'universal-cookie';
 import { faker } from '@faker-js/faker';
 import Divider from '@mui/material/Divider';
+import PropTypes from 'prop-types';
 
 export default function Header() {
   const cookies = new Cookies();
@@ -186,3 +187,26 @@ function UserInfoMenu({
     </Box>
   );
 }
+
+Logo.propTypes = {
+  redirect: PropTypes.string.isRequired,
+};
+
+NavMenu.propTypes = {
+  pages: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onClose: PropTypes.func.isRequired,
+};
+
+UserLoggedInMenu.propTypes = {
+  onClick: PropTypes.func.isRequired,
+};
+
+UserInfoMenu.propTypes = {
+  userInfoMenu: PropTypes.arrayOf([]).isRequired,
+  anchorElUser: PropTypes.oneOfType([
+    PropTypes.instanceOf(Node),
+    PropTypes.instanceOf(null),
+  ]).isRequired,
+  onClickUserInfoMenu: PropTypes.func.isRequired,
+  onCloseUserMenu: PropTypes.func.isRequired,
+};

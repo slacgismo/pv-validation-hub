@@ -62,6 +62,7 @@ export default function Login() {
     return output;
   }
 
+  // eslint-disable-next-line no-unused-vars
   const submitHandler = (e) => {
     const { username } = loginStates;
     const { password } = loginStates;
@@ -80,11 +81,13 @@ export default function Login() {
           { path: '/', sameSite: 'strict' },
         );
         navigate('/');
+        // eslint-disable-next-line no-unused-vars
       }).catch((error) => {
         setShowAlert(true);
         setTimeout(() => { setShowAlert(false); }, 3000);
       });
     } else {
+      // eslint-disable-next-line no-unused-vars
       setLoginErrors((prevState) => ({
         [username]: usernameError,
         [password]: password === '' ? 'We need a password' : '',

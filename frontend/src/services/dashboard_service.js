@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  create_fake_image_array_list,
-  fake_discussion_output,
+  createFakeImageArrayList,
+  fakeDiscussionOutput,
 } from './fake_data_service.js';
 import client from './api_service.js';
 
@@ -100,11 +100,12 @@ const DashboardService = {
     }, [submissionUrl]);
     return [isSubmissionLoading, submissionError, submissionData];
   },
-  getImageObjects(analysis_id) {
-    return create_fake_image_array_list(4);
+  // eslint-disable-next-line no-unused-vars
+  getImageObjects(analysisId) {
+    return createFakeImageArrayList(4);
   },
-  getDiscussionComments(analysis_id, user_id) {
-    return fake_discussion_output(analysis_id, user_id, 10);
+  getDiscussionComments(analysisId, userId) {
+    return fakeDiscussionOutput(analysisId, userId, 10);
   },
 };
 

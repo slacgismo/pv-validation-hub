@@ -4,21 +4,21 @@ import client from './api_service.js';
 
 const AnalysisService = {
   useGetCardDetails() {
-    const { analysis_id } = useParams();
+    const { analysisId } = useParams();
     const [analysisDetails, setAnalysisDetails] = useState({});
     const [isAnalysisLoading, setAnalysisIsLoading] = useState(true);
     const [analysiserror, setAnalysisError] = useState(null);
     useEffect(() => {
-      client.get(`analysis/${analysis_id}`)
+      client.get(`analysis/${analysisId}`)
         .then((response) => {
           setAnalysisIsLoading(false);
           console.log(response.data);
           setAnalysisDetails(response.data);
         })
         .catch((error) => {
-          if (window.location.hostname.includes('localhost') && (analysis_id === 'development')) {
+          if (window.location.hostname.includes('localhost') && (analysisId === 'development')) {
             setAnalysisDetails({
-              analysis_id: 'development',
+              analysisId: 'development',
               analysis_name: 'Dev Analysis',
             });
             setAnalysisIsLoading(false);
@@ -28,20 +28,21 @@ const AnalysisService = {
             setAnalysisIsLoading(false);
           }
         });
-    }, [analysis_id]);
-    return [isAnalysisLoading, analysiserror, analysisDetails, analysis_id];
+    }, [analysisId]);
+    return [isAnalysisLoading, analysiserror, analysisDetails, analysisId];
   },
-  uploadAlgorithm(analysis_id, token, file) {
-    if (analysis_id !== null && analysis_id !== undefined
+  uploadAlgorithm(analysisId, token, file) {
+    if (analysisId !== null && analysisId !== undefined
             && file !== null && file !== undefined) {
-      const url = `/submissions/analysis/${analysis_id}/submission`;
+      const url = `/submissions/analysis/${analysisId}/submission`;
       const formData = new FormData();
 
       // set authorization token
       client.defaults.headers.common.Authorization = `Token ${token}`;
 
+      // analysis_id is the expected format on the backend
       formData.append('algorithm', file);
-      formData.append('analysis_id', analysis_id);
+      formData.append('analysis_id', analysisId);
 
       client.post(url, formData, {
         Accept: '*/*',

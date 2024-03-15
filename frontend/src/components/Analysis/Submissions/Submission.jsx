@@ -12,7 +12,8 @@ import Cookies from 'universal-cookie';
 import AppTable from '../../GlobalComponents/AppTable/AppTable.js';
 import DashboardService from '../../../services/dashboard_service.js';
 
-export default function Submission(props) {
+// eslint-disable-next-line no-unused-vars
+export default function Submission({ analysisId, userId }) {
   const statusToIcon = {
     submitted: <Tooltip title="Submitted"><PublishedWithChangesIcon /></Tooltip>,
     submitting: <Tooltip title="Submitting"><AccessTimeIcon /></Tooltip>,
@@ -21,22 +22,22 @@ export default function Submission(props) {
     finished: <Tooltip title="Finished"><CloudDoneIcon /></Tooltip>,
   };
 
-  // const get_score_from_result = (result) => {
-  //     if (result == null && result == undefined) return null;
-  //     let final_score = 0;
-  //     let count = 1;
-  //     for (var split of result) {
-  //         final_score += split["split" + count]["score"]
-  //         console.log(final_score);
-  //         count += 1;
-  //     }
-  //     return final_score;
-  // }
-
   const getEvaluationTime = (time) => {
     if (time === null && time === undefined) return null;
     return time;
   };
+
+  const downloadLink = (value) => (
+    <a href={value} download aria-label="Download">
+      <DownloadIcon />
+    </a>
+  );
+
+  const linkIcon = (value) => (
+    <a href={`/submission/${value}`} aria-label="More Information">
+      <LinkIcon />
+    </a>
+  );
 
   const columns = [
     {
@@ -46,15 +47,6 @@ export default function Submission(props) {
       align: 'center',
       format: (value) => (value !== null ? value.analysis_id : null),
     },
-    // {
-    //     id: 'result',
-    //     label: 'Score',
-    //     minWidth: 50,
-    //     align: 'left',
-    //     format: (value) => {
-    //         return get_score_from_result(value)
-    //     },
-    // },
     {
       id: 'submitted_at',
       label: 'Submitted Date',
@@ -82,23 +74,20 @@ export default function Submission(props) {
       label: 'Algorithm',
       minWidth: 50,
       align: 'center',
-      format: (value) =>
-      // value = value.replace("/media/", "//");
-        (<a href={value} download><DownloadIcon /></a>),
-
+      format: (value) => downloadLink(value),
     },
     {
       id: 'submission_id',
       label: 'More Information',
       minWidth: 50,
       align: 'center',
-      format: (value) => (<a href={`/submission/${value}`}><LinkIcon /></a>),
+      format: (value) => linkIcon(value),
     },
   ];
 
   const cookies = new Cookies();
   const user = cookies.get('user');
-  const url = `submissions/analysis/${props.analysis_id}/user_submission`;
+  const url = `submissions/analysis/${analysisId}/user_submission`;
   const [isLoading, error, rows] = DashboardService.useGetSubmissions(url, user.token);
 
   console.log('isLoading before appTable: ', isLoading);
@@ -116,7 +105,10 @@ export default function Submission(props) {
   );
 }
 
-Submission.props = {
-  analysis_id: PropTypes.string,
-  user_id: PropTypes.string,
+Submission.propTypes = {
+  analysisId: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+  ]).isRequired,
+  userId: PropTypes.number.isRequired,
 };

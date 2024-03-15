@@ -49,9 +49,11 @@ function AddComment() {
                 },
               }}
               onClick={(e) => {
-                !commentTxt.trim()
-                  ? e.preventDefault()
-                  : addComment(commentTxt.trim());
+                if (!commentTxt.trim()) {
+                  e.preventDefault();
+                } else {
+                  addComment(commentTxt.trim());
+                }
                 setCommentTxt('');
               }}
             >

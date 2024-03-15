@@ -4,9 +4,8 @@ import {
 } from '@mui/material';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
-import DashboardService from '../../../services/dashboard_service.js';
 
-export default function Data(props) {
+export default function Data({dataDescription, downloadableLink}) {
   const handleDownloadClick = (url) => {
     const a = document.createElement('a');
     a.href = url;
@@ -25,7 +24,7 @@ export default function Data(props) {
           </Typography>
           <Typography variant="body2">
             { /* eslint-disable-next-line */ }
-            <ReactMarkdown children={props.data_description} />
+            <ReactMarkdown children={dataDescription} />
           </Typography>
         </Box>
       </Grid>
@@ -45,8 +44,9 @@ export default function Data(props) {
           </Typography>
           <Button
             align="right"
-            onClick={() => { handleDownloadClick(props.downloadable_link); }}
+            onClick={() => { handleDownloadClick(downloadableLink); }}
             variant="contained"
+            disabled={(downloadableLink === undefined) || (downloadableLink === null)}
             sx={{
               backgroundColor: 'black', width: '100%', height: '75%', fontSize: 'small', marginTop: 3,
             }}
@@ -59,6 +59,11 @@ export default function Data(props) {
   );
 }
 
-Data.props = {
-  analysis_id: PropTypes.string,
+Data.propTypes = {
+  dataDescription: PropTypes.string.isRequired,
+  downloadableLink: PropTypes.string,
+};
+
+Data.defaultProps = {
+  downloadableLink: null,
 };

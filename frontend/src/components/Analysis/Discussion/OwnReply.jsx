@@ -10,12 +10,14 @@ import {
   TextField,
 } from '@mui/material';
 import Cookies from 'universal-cookie';
+import PropTypes from 'prop-types';
 import YouTag from './YouTag.jsx';
 import CommentContext from './CommentContext.js';
 
 function OwnReply({
   onContent, onCount, onTar, onDel, comId,
 }) {
+  console.log('OwnReply', onContent, onCount, onTar, onDel, comId);
   const cookies = new Cookies();
   const commentUser = cookies.get('user');
   const { IMGOBJ } = useContext(CommentContext);
@@ -93,9 +95,11 @@ function OwnReply({
                     },
                   }}
                   onClick={() => {
-                    !repText.trim()
-                      ? alert('Read the placeholder.')
-                      : setEditingRep(!editingRep);
+                    if (!repText.trim()) {
+                      console.log('Read the placeholder.');
+                      return;
+                    }
+                    setEditingRep(!editingRep);
                     setClicked(!clicked);
                   }}
                 >
@@ -127,5 +131,13 @@ function OwnReply({
     </Card>
   );
 }
+
+OwnReply.propTypes = {
+  onContent: PropTypes.string.isRequired,
+  onCount: PropTypes.number.isRequired,
+  onTar: PropTypes.string.isRequired,
+  onDel: PropTypes.func.isRequired,
+  comId: PropTypes.number.isRequired,
+};
 
 export default OwnReply;

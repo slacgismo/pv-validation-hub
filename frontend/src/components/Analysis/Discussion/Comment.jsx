@@ -12,6 +12,7 @@ import Cookies from 'universal-cookie';
 import { Box } from '@mui/system';
 import { Edit } from '@mui/icons-material';
 import ReplyIcon from '@mui/icons-material/Reply';
+import PropTypes from 'prop-types';
 import CommentContext from './CommentContext.js';
 import theme from './styles.jsx';
 import RepliesSection from './RepliesSection.jsx';
@@ -20,8 +21,9 @@ import YouTag from './YouTag.jsx';
 function Comment({ onPass }) {
   const cookies = new Cookies();
   const commentingUser = cookies.get('user');
+  // stash id/score until we have a backend for this id, score
   const {
-    id, content, createdAt, score, replies, user,
+    content, createdAt, replies, user,
   } = onPass;
   const { IMGOBJ } = useContext(CommentContext);
   const userName = user.username;
@@ -114,11 +116,11 @@ function Comment({ onPass }) {
                       },
                     }}
                     onClick={() => {
-                      !commentText.trim()
-                        ? alert(
-                          'If  you want to remove the comment text, just delete the comment.',
-                        )
-                        : setEditingComm(!editingComm);
+                      if (!commentText.trim()) {
+                        console.log('If you want to remove the comment text, just delete the comment.');
+                      } else {
+                        setEditingComm(!editingComm);
+                      }
                     }}
                   >
                     Update
@@ -143,4 +145,16 @@ function Comment({ onPass }) {
     </ThemeProvider>
   );
 }
+
+Comment.propTypes = {
+  onPass: PropTypes.shape({
+    content: PropTypes.string.isRequired,
+    createdAt: PropTypes.string.isRequired,
+    replies: PropTypes.arrayOf(PropTypes.shape([])).isRequired,
+    user: PropTypes.shape({
+      username: PropTypes.string.isRequired,
+    }).isRequired,
+  }).isRequired,
+};
+
 export default Comment;

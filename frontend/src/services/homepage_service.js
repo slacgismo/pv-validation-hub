@@ -1,12 +1,12 @@
-import { fake_homepage_note, fake_homepage_validation_gist } from './fake_data_service.js';
+import { fakeHomepageNote, fakeHomepageValidationGist } from './fake_data_service.js';
 
 const HomepageService = {
   getHighlights() {
-    return fake_homepage_note();
+    return fakeHomepageNote();
   },
 
   getValidationHubGist() {
-    return fake_homepage_validation_gist();
+    return fakeHomepageValidationGist();
   },
 };
 

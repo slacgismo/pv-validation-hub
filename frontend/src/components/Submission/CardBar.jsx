@@ -4,6 +4,7 @@ import {
   Typography,
   Divider,
 } from '@mui/material';
+import PropTypes from 'prop-types';
 
 import React from 'react';
 
@@ -20,5 +21,10 @@ function CardBar({ title, chart }) {
     </Card>
   );
 }
+
+CardBar.propTypes = {
+  title: PropTypes.string.isRequired,
+  chart: PropTypes.element.isRequired,
+};
 
 export default CardBar;

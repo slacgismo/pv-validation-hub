@@ -18,8 +18,8 @@ const UserService = {
           setUserDetails(response.data);
           setIsLoading(false);
         })
-        .catch((error) => {
-          setError(error);
+        .catch((responseError) => {
+          setError(responseError);
           setUserDetails({});
           setIsLoading(false);
         });
@@ -33,15 +33,15 @@ const UserService = {
 
     return client.put(url, updatedProfile).data;
   },
-  register(username, email, password, first_name, last_name) {
+  register(username, email, password, firstName, lastName) {
     const url = '/register';
     client.post(url, {
       username,
       email,
       password,
-      firstName: first_name,
-      lastName: last_name,
-    }).then((response) => response).catch((error) => null);
+      firstName,
+      lastName,
+    }).then((response) => response).catch((error) => console.error(error));
   },
   getUserId(token) {
     // Set the authorization token

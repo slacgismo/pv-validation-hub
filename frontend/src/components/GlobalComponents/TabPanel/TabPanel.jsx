@@ -2,9 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Box from '@mui/material/Box';
 
+// removed prop spreading "...other", as we should know and handle props explicitly
+
 export default function TabPanel(props) {
   const {
-    children, value, index, ...other
+    children, value, index,
   } = props;
 
   return (
@@ -13,7 +15,6 @@ export default function TabPanel(props) {
       hidden={value !== index}
       id={`tabpanel-${index}`}
       aria-labelledby={`tab-${index}`}
-      {...other}
     >
       {value === index && (
         <Box sx={{ p: 3 }}>
@@ -25,7 +26,7 @@ export default function TabPanel(props) {
 }
 
 TabPanel.propTypes = {
-  children: PropTypes.node,
+  children: PropTypes.node.isRequired,
   index: PropTypes.number.isRequired,
   value: PropTypes.number.isRequired,
 };

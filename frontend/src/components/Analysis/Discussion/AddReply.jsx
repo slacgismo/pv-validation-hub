@@ -9,6 +9,7 @@ import {
 import { Box } from '@mui/system';
 import Cookies from 'universal-cookie';
 import React, { useContext, useState } from 'react';
+import PropTypes from 'prop-types';
 import CommentContext from './CommentContext.js';
 import theme from './styles.jsx';
 
@@ -49,7 +50,11 @@ function AddReply({ onAdd }) {
                 },
               }}
               onClick={(e) => {
-                !replyText.trim() ? e.preventDefault() : onAdd(replyText);
+                if (!replyText.trim()) {
+                  e.preventDefault();
+                } else {
+                  onAdd(replyText);
+                }
                 setReplyText('');
               }}
             >
@@ -61,5 +66,9 @@ function AddReply({ onAdd }) {
     </ThemeProvider>
   );
 }
+
+AddReply.propTypes = {
+  onAdd: PropTypes.func.isRequired,
+};
 
 export default AddReply;

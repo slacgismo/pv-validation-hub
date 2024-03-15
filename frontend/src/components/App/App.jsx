@@ -24,8 +24,10 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/analyses" element={<Analyses />} />
-            <Route path="/analysis/:analysis_id" element={<Analysis />} />
-            <Route path="/submission/:submission_id" element={<Submission />} />
+            <Route path="/analysis/:analysisId" element={<Analysis />} />
+            {/*
+              <Route path="/submission/:submissionId" element={<Submission />} />
+            */}
             <Route path="/profile" element={<Profile />} />
             <Route path="/developer" element={<DeveloperHome />} />
             <Route path="/" element={<Homepage />} />

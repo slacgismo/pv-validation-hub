@@ -8,7 +8,7 @@ import ReactModal from 'react-modal';
 import Cookies from 'universal-cookie';
 import { FileUploader } from 'react-drag-drop-files';
 import { useNavigate } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
+import PropTypes from 'prop-types';
 import TabPanel from '../GlobalComponents/TabPanel/TabPanel.jsx';
 import Data from './Data/Data.jsx';
 import { CommentProvider } from './Discussion/CommentContext.js';
@@ -30,46 +30,44 @@ export default function Analysis() {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const [isLoading, error, card, analysis_id] = AnalysisService.useGetCardDetails();
+  // disable eslint for the next line because the array is destructured
+  // eslint-disable-next-line no-unused-vars
+  const [isLoading, error, card, analysisId] = AnalysisService.useGetCardDetails();
 
   // Set the md descriptions
 
   const [datasetDescription, setDatasetDescription] = useState('');
   const [longDescription, setLongDescription] = useState('');
-  const [shortDescription, setShortDescription] = useState('');
   const [rulesetDescription, setRulesetDescription] = useState('');
   const [coverImageDir, setCoverImageDir] = useState('');
 
   useEffect(() => {
-    console.log('analysis', analysis_id, typeof analysis_id);
-    if (analysis_id !== undefined && analysis_id !== null
-            && (analysis_id > 0 || analysis_id === 'development')) {
-      setCoverImageDir(`${process.env.PUBLIC_URL}/assets/${analysis_id}/banner.png`);
+    console.log('analysis', analysisId, typeof analysisId);
+    if (analysisId !== undefined && analysisId !== null
+            && (analysisId > 0 || analysisId === 'development')) {
+      setCoverImageDir(`${process.env.PUBLIC_URL}/assets/${analysisId}/banner.png`);
       console.log(coverImageDir);
 
-      fetch(`${process.env.PUBLIC_URL}/assets/${analysis_id}/dataset.md`)
+      fetch(`${process.env.PUBLIC_URL}/assets/${analysisId}/dataset.md`)
         .then((res) => res.text())
         .then((text) => setDatasetDescription(text))
         .catch((err) => console.log(err));
 
-      fetch(`${process.env.PUBLIC_URL}/assets/${analysis_id}/description.md`)
+      fetch(`${process.env.PUBLIC_URL}/assets/${analysisId}/description.md`)
         .then((res) => res.text())
-        .then((text) => replaceImagePaths(text, analysis_id))
+        .then((text) => replaceImagePaths(text, analysisId))
         .then((text) => setLongDescription(text))
         .catch((err) => console.log(err));
 
-      fetch(`${process.env.PUBLIC_URL}/assets/${analysis_id}/shortdesc.md`)
+      fetch(`${process.env.PUBLIC_URL}/assets/${analysisId}/SubmissionInstructions.md`)
         .then((res) => res.text())
-        .then((text) => setShortDescription(text))
-        .catch((err) => console.log(err));
-
-      fetch(`${process.env.PUBLIC_URL}/assets/${analysis_id}/SubmissionInstructions.md`)
-        .then((res) => res.text())
-        .then((text) => replaceImagePaths(text, analysis_id))
+        .then((text) => replaceImagePaths(text, analysisId))
         .then((text) => setRulesetDescription(text))
         .catch((err) => console.log(err));
+    } else {
+      console.error('Analysis ID not found');
     }
-  }, [analysis_id]);
+  }, [analysisId]);
 
   const closeModal = () => {
     setIsOpen(false);
@@ -79,16 +77,18 @@ export default function Analysis() {
     setIsOpen(true);
   };
 
-  const fileTypes = ['ZIP', 'IPYNB'];
+  const fileTypes = ['ZIP', 'tar.gz'];
 
   const [file, setFile] = useState(null);
 
-  const uploadFile = (file) => {
-    setFile(file);
+  const uploadFile = (fileObject) => {
+    setFile(fileObject);
   };
 
   const handleUpload = () => {
-    const response = AnalysisService.uploadAlgorithm(analysis_id, user.token, file);
+    // Used for side effect of uploading file
+    // eslint-disable-next-line no-unused-vars
+    const response = AnalysisService.uploadAlgorithm(analysisId, user.token, file);
     closeModal();
   };
 
@@ -161,11 +161,11 @@ export default function Analysis() {
 
             <TabPanel value={value} index={1}>
               {
-                            user === undefined || user == null
+                            user === undefined || user === null
                               ? <BlurryPage />
                               : (
                                 <Data
-                                  data_description={datasetDescription}
+                                  dataDescription={datasetDescription}
                                 />
                               )
                         }
@@ -173,7 +173,7 @@ export default function Analysis() {
 
             <TabPanel value={value} index={2}>
               <Leaderboard
-                analysis_id={analysis_id}
+                analysisId={analysisId}
               />
             </TabPanel>
 
@@ -190,8 +190,8 @@ export default function Analysis() {
                               ? <BlurryPage />
                               : (
                                 <Submission
-                                  analysis_id={analysis_id}
-                                  user_id={user !== null || user !== undefined ? user.id : user}
+                                  analysisId={analysisId}
+                                  userId={user !== null || user !== undefined ? user.id : user}
                                 />
                               )
                         }
@@ -259,3 +259,18 @@ export default function Analysis() {
       )
   );
 }
+
+// Validate Props
+Analysis.propTypes = {
+  card: PropTypes.shape({
+    analysis_id: PropTypes.number,
+    analysis_name: PropTypes.string,
+  }),
+};
+
+Analysis.defaultProps = {
+  card: {
+    analysis_id: null,
+    analysis_name: '',
+  },
+};

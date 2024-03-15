@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Grid, Typography, Button,
+  Box, Grid, Typography,
 } from '@mui/material';
 import { Container } from '@mui/system';
 import Card from '@mui/material/Card';
@@ -11,21 +11,22 @@ import Avatar from '@mui/material/Avatar';
 import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import ReactMarkdown from 'react-markdown';
+import PropTypes from 'prop-types';
 import DashboardService from '../../services/dashboard_service.js';
 import { isDevelopment } from '../../config/environment.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [analysis_id, setanalysis_id] = useState();
+  const [analysisId, setAnalysisId] = useState();
 
   useEffect(() => {
-    if (analysis_id !== null && analysis_id !== undefined) {
-      navigate(`/analysis/${analysis_id}`);
+    if (analysisId !== null && analysisId !== undefined) {
+      navigate(`/analysis/${analysisId}`);
     }
-  }, [analysis_id, navigate]);
+  }, [analysisId, navigate]);
 
   const handleCardClick = (cardId, cardTitle) => {
-    setanalysis_id(cardId);
+    setAnalysisId(cardId);
   };
 
   const [isLoading, isError, cardDetails] = DashboardService.useGetAnalysisSet('/analysis/home');
@@ -93,7 +94,9 @@ export default function Dashboard() {
   );
 }
 
-function CustomizedCard({ index, card, onClick, testId }) {
+function CustomizedCard({
+  index, card, onClick, testId,
+}) {
   const [shortDescription, setShortDescription] = useState('');
   const [cardDir, setCardDir] = useState('');
 
@@ -139,3 +142,24 @@ function CustomizedCard({ index, card, onClick, testId }) {
     </Grid>
   );
 }
+
+// Proptypes validation
+CustomizedCard.propTypes = {
+  index: PropTypes.number.isRequired,
+  card: PropTypes.shape({
+    analysis_id: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number,
+    ]).isRequired,
+    analysis_name: PropTypes.string.isRequired,
+  }),
+  onClick: PropTypes.func.isRequired,
+  testId: PropTypes.string.isRequired,
+};
+
+CustomizedCard.defaultProps = {
+  card: {
+    analysis_id: '',
+    analysis_name: '',
+  },
+};

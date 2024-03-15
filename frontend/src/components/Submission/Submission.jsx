@@ -12,8 +12,8 @@ import BlurryPage from '../GlobalComponents/BlurryPage/blurryPage.jsx';
 export default function Submission() {
   const cookies = new Cookies();
   const user = cookies.get('user');
-  const { submission_id } = useParams();
-  const submissionData = SubmissionService.getSubmissionDetails(user, submission_id);
+  const { submissionId } = useParams();
+  const submissionData = SubmissionService.getSubmissionDetails(user, submissionId);
   return (
     <Box sx={{ marginTop: 5, marginLeft: 4, marginRight: 4 }}>
       {
@@ -86,7 +86,7 @@ export default function Submission() {
                 />
               </Grid>
               <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
-                <CardBar title="Activity" chart={<BarChart user_id={user} />} />
+                <CardBar title="Activity" chart={<BarChart userId={user} />} />
               </Grid>
             </Grid>
           )

@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import Chart from 'react-apexcharts';
+import PropTypes from 'prop-types';
 import SubmissionService from '../../services/submission_service.js';
 
 export default class BarChart extends Component {
-  constructor(props) {
-    super(props);
+  constructor({ userId }) {
+    super({ userId });
 
     this.state = {
       options: {
@@ -12,26 +13,28 @@ export default class BarChart extends Component {
           id: 'submission-bar',
         },
         xaxis: {
-          categories: SubmissionService.getSubmissionDateRangeSet(props.user_id),
+          categories: SubmissionService.getSubmissionDateRangeSet(userId),
         },
       },
       series: [
         {
           name: 'submissions',
-          data: SubmissionService.getSubmissionsSet(props.user_id),
+          data: SubmissionService.getSubmissionsSet(userId),
         },
       ],
     };
   }
 
   render() {
+    const { options, series } = this.state;
+
     return (
       <div className="app">
         <div className="row">
           <div className="mixed-chart">
             <Chart
-              options={this.state.options}
-              series={this.state.series}
+              options={options}
+              series={series}
               type="bar"
             />
           </div>
@@ -40,3 +43,7 @@ export default class BarChart extends Component {
     );
   }
 }
+
+BarChart.propTypes = {
+  userId: PropTypes.string.isRequired,
+};
