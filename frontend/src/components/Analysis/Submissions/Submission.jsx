@@ -9,7 +9,7 @@ import SmsFailedIcon from '@mui/icons-material/SmsFailed';
 import CloudDoneIcon from '@mui/icons-material/CloudDone';
 import LinkIcon from '@mui/icons-material/Link';
 import Cookies from 'universal-cookie';
-import AppTable from '../../GlobalComponents/AppTable/AppTable.js';
+import AppTable from '../../GlobalComponents/AppTable/AppTable.jsx';
 import DashboardService from '../../../services/dashboard_service.js';
 
 // eslint-disable-next-line no-unused-vars

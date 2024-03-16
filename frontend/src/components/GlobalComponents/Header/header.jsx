@@ -12,6 +12,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'universal-cookie';
+// eslint-disable-next-line
 import { faker } from '@faker-js/faker';
 import Divider from '@mui/material/Divider';
 import PropTypes from 'prop-types';
@@ -55,10 +56,11 @@ export default function Header() {
   };
 
   const handleCloseNavMenu = (location) => {
-    if (location === 'Dashboard') {
-      location = 'Submission' + '/1';
+    let relocation = location;
+    if (relocation === 'Dashboard') {
+      relocation = 'Submission/1';
     }
-    navigate(`/${location}`);
+    navigate(`/${relocation}`);
   };
 
   const pages = ['Analyses', 'Datasets', 'Dashboard'];

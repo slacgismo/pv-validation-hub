@@ -29,6 +29,7 @@ export default function DeveloperHome() {
   // eslint-disable-next-line no-unused-vars
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+    return mobileOpen;
   };
 
   const [showComponent, setShowComponent] = useState({ name: 'home' });

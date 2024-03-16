@@ -1,4 +1,4 @@
-// This file contains the functionality for replacing specific markdown image paths 
+// This file contains the functionality for replacing specific markdown image paths
 // to work within the application.
 
 function replaceImagePaths(markdown, analysisId) {

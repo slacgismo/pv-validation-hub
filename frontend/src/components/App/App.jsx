@@ -10,7 +10,7 @@ import Header from '../GlobalComponents/Header/header.jsx';
 import Homepage from '../Homepage/homepage.jsx';
 import Analyses from '../Analyses/Analyses.jsx';
 import Analysis from '../Analysis/Analysis.jsx';
-import Submission from '../Submission/Submission.jsx';
+// import Submission from '../Submission/Submission.jsx';
 import Profile from '../Profile/profile.jsx';
 import DeveloperHome from '../Developer/Mainpage/mainpage.jsx';
 

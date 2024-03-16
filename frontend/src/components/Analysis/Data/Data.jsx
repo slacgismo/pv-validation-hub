@@ -5,7 +5,7 @@ import {
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 
-export default function Data({dataDescription, downloadableLink}) {
+export default function Data({ dataDescription, downloadableLink }) {
   const handleDownloadClick = (url) => {
     const a = document.createElement('a');
     a.href = url;

@@ -7,13 +7,11 @@ import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
-import Avatar from '@mui/material/Avatar';
 import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
 import ReactMarkdown from 'react-markdown';
 import PropTypes from 'prop-types';
 import DashboardService from '../../services/dashboard_service.js';
-import { isDevelopment } from '../../config/environment.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -25,10 +23,11 @@ export default function Dashboard() {
     }
   }, [analysisId, navigate]);
 
-  const handleCardClick = (cardId, cardTitle) => {
+  const handleCardClick = (cardId) => {
     setAnalysisId(cardId);
   };
 
+  // eslint-disable-next-line no-unused-vars
   const [isLoading, isError, cardDetails] = DashboardService.useGetAnalysisSet('/analysis/home');
 
   return (
