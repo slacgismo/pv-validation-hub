@@ -11,8 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import TabPanel from '../GlobalComponents/TabPanel/TabPanel.jsx';
 import Data from './Data/Data.jsx';
-import { CommentProvider } from './Discussion/CommentContext.js';
-import Discussion from './Discussion/Discussion.jsx';
+// import { CommentProvider } from './Discussion/CommentContext.js';
+// import Discussion from './Discussion/Discussion.jsx';
 import Leaderboard from './Leaderboard/Leaderboard.jsx';
 import Overview from './Overview/Overview.jsx';
 import Rules from './Rules/Rules.jsx';
@@ -123,7 +123,9 @@ export default function Analysis() {
                     <Tab label="Data" />
                     <Tab label="Leaderboard" />
                     <Tab label="Instructions" />
-                    <Tab label="Discussion" />
+                    {
+                      // <Tab label="Discussion" />
+                    }
                   </Tabs>
                 </Grid>
 
@@ -196,7 +198,7 @@ export default function Analysis() {
                               )
                         }
             </TabPanel>
-
+            {/*
             <TabPanel value={value} index={5}>
               {user === undefined || user == null
                 ? <BlurryPage />
@@ -207,6 +209,7 @@ export default function Analysis() {
                 )}
 
             </TabPanel>
+            */}
           </Box>
 
           <ReactModal

@@ -63,7 +63,8 @@ export default function Header() {
     navigate(`/${relocation}`);
   };
 
-  const pages = ['Analyses', 'Datasets', 'Dashboard'];
+  // disabled pages , 'Datasets', 'Dashboard'
+  const pages = ['Analyses'];
 
   const checkUserLoggedOut = () => cookies.get('user') === undefined || cookies.get('user') === null || cookies.get('user') === '';
 
