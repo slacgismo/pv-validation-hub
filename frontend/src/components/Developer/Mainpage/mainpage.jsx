@@ -41,11 +41,10 @@ export default function DeveloperHome() {
   };
 
   const renderComponent = () => {
-    if (showComponent.name === 'home') {
-      return <Home onClick={(submissionId) => handleNavClick('report', submissionId)} />;
-    } if (showComponent.name === 'report') {
+    if (showComponent.name === 'report') {
       return <SubmissionReport submissionId={showComponent.submissionId} />;
     }
+    return <Home onClick={(submissionId) => handleNavClick('report', submissionId)} />;
   };
 
   const navs = [
