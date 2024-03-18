@@ -67,6 +67,7 @@ export default function Analysis() {
     } else {
       console.error('Analysis ID not found');
     }
+    // eslint-disable-next-line
   }, [analysisId]);
 
   const closeModal = () => {

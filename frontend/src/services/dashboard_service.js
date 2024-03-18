@@ -55,6 +55,7 @@ const DashboardService = {
             setAnalysesIsLoading(false);
           }
         });
+      // eslint-disable-next-line
     }, [analysisUrl]);
     return [isAnalysesLoading, analysesError, analysesDetails];
   },

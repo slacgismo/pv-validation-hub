@@ -23,6 +23,7 @@ module.exports = {
   rules: {
     'linebreak-style': 0,
     'import/extensions': ['error', 'ignorePackages'],
+    'no-console': 'off',
     'react/jsx-filename-extension': [1, { extensions: ['.js', '.jsx'] }],
     'import/no-extraneous-dependencies': [
       'error',
