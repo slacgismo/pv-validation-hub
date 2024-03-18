@@ -127,9 +127,9 @@ class InsertAnalysis:
     def __init__(
         self,
         config_file_path: str,
-        file_data_path: str,
-        validation_data_path: str,
-        evaluation_scripts_path: str,
+        file_data_folder_path: str,
+        validation_data_folder_path: str,
+        evaluation_scripts_folder_path: str,
         sys_metadata_file_path: str,
         file_metadata_file_path: str,
         # validation_tests_file_path: str,
@@ -156,17 +156,17 @@ class InsertAnalysis:
         self.db_sys_metadata_df = db_sys_metadata_df
         self.db_file_metadata_df = db_file_metadata_df
         self.config_file_path = config_file_path
-        self.file_data_path = file_data_path
-        self.evaluation_scripts_path = evaluation_scripts_path
+        self.file_data_folder_path = file_data_folder_path
+        self.evaluation_scripts_folder_path = evaluation_scripts_folder_path
         # self.validation_tests_file_path = validation_tests_file_path
         self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(sys_metadata_file_path)
         self.new_file_metadata_df: pd.DataFrame = pd.read_csv(file_metadata_file_path)
-        self.validation_tests_df: pd.DataFrame = pd.read_csv(validation_tests_file_path)
+
         self.analysis_id = None
         self.system_id_mapping = dict()
         self.file_id_mapping = dict()
         self.s3_bucket_name = s3_bucket_name
-        self.validation_data_path = validation_data_path
+        self.validation_data_folder_path = validation_data_folder_path
 
         self.hasAllValidNewAnalysisData()
 
@@ -190,14 +190,14 @@ class InsertAnalysis:
         if sys_metadata_files.duplicated().any():
             raise ValueError("There are duplicate system names in the system metadata.")
 
-        file_data_files = os.listdir(self.file_data_path)
+        file_data_files = os.listdir(self.file_data_folder_path)
 
         if not all(file in file_data_files for file in file_metadata_files):
             raise ValueError(
                 "The file metadata contains files that are not in the file data folder."
             )
 
-        validation_data_files = os.listdir(self.validation_data_path)
+        validation_data_files = os.listdir(self.validation_data_folder_path)
 
         if not all(file in validation_data_files for file in file_metadata_files):
             raise ValueError(
@@ -221,16 +221,7 @@ class InsertAnalysis:
         List: List of all analyses.
         """
 
-        full_url = api_url + "/analysis/home"
-
-        r = requests.get(full_url)
-        if not r.ok:
-            raise ValueError(
-                f"Error getting the home page from the API. Status code: {r.status_code}"
-            )
-        data = r.json()
-
-        df = pd.DataFrame(data)
+        df = get_data_from_api_to_df(api_url, "/analysis/home")
 
         return df
 
@@ -241,12 +232,6 @@ class InsertAnalysis:
         """
         Create a new analysis in the API.
         """
-        url = f"{self.api_url}/analysis/create/"
-
-        body = {
-            "analysis_name": self.config["category_name"],
-            "max_concurrent_submission_evaluation": max_concurrent_submission_evaluation,
-        }
 
         # check if the analysis already exists
 
@@ -269,8 +254,14 @@ class InsertAnalysis:
             self.analysis_id = db_analysis_id
 
         else:
-            post_data_to_api_to_df(self.api_url, "/analysis/create/", body)
+            body = {
+                "analysis_name": self.config["category_name"],
+                "max_concurrent_submission_evaluation": max_concurrent_submission_evaluation,
+            }
+
+            res = post_data_to_api_to_df(self.api_url, "/analysis/create/", body)
             print("Analysis created")
+            self.analysis_id = res["analysis_id"].values[0]
 
     def createSystemMetadata(self, sys_metadata_df: pd.DataFrame):
         """
@@ -335,7 +326,7 @@ class InsertAnalysis:
                 self.api_url, "/file_metadata/filemetadata/", json_body
             )
 
-            local_path = os.path.join(self.file_data_path, metadata["file_name"])
+            local_path = os.path.join(self.file_data_folder_path, metadata["file_name"])
             upload_path = f'data_files/analytical/{metadata["file_name"]}'
 
             # upload metadata to s3
@@ -344,7 +335,9 @@ class InsertAnalysis:
             )
 
             # upload validation data to s3
-            local_path = os.path.join(self.validation_data_path, metadata["file_name"])
+            local_path = os.path.join(
+                self.validation_data_folder_path, metadata["file_name"]
+            )
             upload_path = f'data_files/ground_truth/{str(self.analysis_id)}/{metadata["file_name"]}'
             upload_to_s3_bucket(
                 self.s3_url, self.s3_bucket_name, local_path, upload_path, self.is_local
@@ -377,7 +370,7 @@ class InsertAnalysis:
         """
 
         evaluation_folder_path = os.path.join(
-            self.evaluation_scripts_path, f"{str(self.analysis_id)}/"
+            self.evaluation_scripts_folder_path, f"{str(self.analysis_id)}/"
         )
 
         # Upload the evaluation scripts to the S3 bucket
@@ -622,7 +615,7 @@ class InsertAnalysis:
         Drop the config JSON into the new evaluation folder.
         """
         evaluation_folder_path = os.path.join(
-            self.evaluation_scripts_path, str(self.analysis_id)
+            self.evaluation_scripts_folder_path, str(self.analysis_id)
         )
         if not os.path.exists(evaluation_folder_path):
             os.makedirs(evaluation_folder_path)
@@ -667,7 +660,7 @@ class InsertAnalysis:
         file_test_link.index.name = "test_id"
 
         local_file_path = os.path.join(
-            self.evaluation_scripts_path, str(self.analysis_id)
+            self.evaluation_scripts_folder_path, str(self.analysis_id)
         )
 
         if not os.path.exists(local_file_path):
@@ -687,17 +680,17 @@ class InsertAnalysis:
         db_analyses_df = self.getAllAnalyses(api_url)
         self.createAnalysis(db_analyses_df, 100)
 
+        if not self.analysis_id:
+            raise ValueError("Analysis ID not found or created.")
+
         # exit()
         new_sys_metadata_df = self.buildSystemMetadata()
         self.createSystemMetadata(new_sys_metadata_df)
         self.updateSystemMetadataIDs()
 
         new_file_metadata_df = self.buildFileMetadata()
-
         self.createFileMetadata(new_file_metadata_df)
         self.updateFileMetadataIDs()
-        # validation_tests_df = self.buildValidationTests()
-        # self.createValidationData()
 
         self.prepareFileTestLinker()
         self.prepareConfig()
@@ -708,28 +701,27 @@ if __name__ == "__main__":
     with open("routes.json", "r") as file:
         config = json.load(file)
 
-        is_local = True
+        is_local = False
 
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
 
         config_file_path = config["config_file_path"]
-        file_data_path = config["file_data_path"]
-        evaluation_scripts_path = config["evaluation_scripts_path"]
-        validation_data_path = config["validation_data_path"]
+        file_data_folder_path = config["file_data_folder_path"]
+        evaluation_scripts_folder_path = config["evaluation_scripts_folder_path"]
         sys_metadata_file_path = config["sys_metadata_file_path"]
         file_metadata_file_path = config["file_metadata_file_path"]
-        validation_tests_file_path = config["validation_tests_file_path"]
+        validation_data_folder_path = config["validation_data_folder_path"]
 
         r = InsertAnalysis(
             api_url=api_url,
             config_file_path=config_file_path,
-            file_data_path=file_data_path,
+            file_data_folder_path=file_data_folder_path,
             sys_metadata_file_path=sys_metadata_file_path,
             file_metadata_file_path=file_metadata_file_path,
-            validation_data_path=validation_data_path,
-            evaluation_scripts_path=evaluation_scripts_path,
-            s3_bucket_name="pv-vallidation-hub-bucket",
+            validation_data_folder_path=validation_data_folder_path,
+            evaluation_scripts_folder_path=evaluation_scripts_folder_path,
+            s3_bucket_name="pv-validation-hub-bucket",
             s3_url=s3_url,
             is_local=is_local,
         )
