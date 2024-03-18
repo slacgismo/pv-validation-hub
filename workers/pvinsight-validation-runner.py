@@ -16,6 +16,7 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
+from typing import cast
 import pandas as pd
 import os
 from importlib import import_module
@@ -131,106 +132,108 @@ def extract_zip(zip_path: str, extract_path: str):
     if not os.path.exists(extract_path):
         os.makedirs(extract_path)
 
+    def remove_unallowed_starting_characters(file_name: str) -> str | None:
+        unallowed_starting_characters = ("_", ".")
+
+        parts = file_name.split("/")
+        for part in parts:
+            if part.startswith(unallowed_starting_characters):
+                return None
+        return file_name
+
+    def extract_files(ref: zipfile.ZipFile | tarfile.TarFile, extract_path: str):
+
+        logger.info("Extracting files from: " + zip_path)
+
+        if ref.__class__ == zipfile.ZipFile:
+            ref = cast(zipfile.ZipFile, ref)
+            file_names = ref.namelist()
+        elif ref.__class__ == tarfile.TarFile:
+            ref = cast(tarfile.TarFile, ref)
+            file_names = ref.getnames()
+        else:
+            raise Exception("File is not a zip or tar file.")
+
+        # recursively remove files and folders that start with certain characters
+        file_names = [f for f in file_names if remove_unallowed_starting_characters(f)]
+        logger.info("File names:")
+        logger.info(file_names)
+        folders = [f for f in file_names if f.endswith("/")]
+        logger.info("Folders:")
+        logger.info(folders)
+
+        if len(folders) == 0:
+            logger.info("Extracting all files...")
+
+            for file in file_names:
+                if ref.__class__ == zipfile.ZipFile:
+                    ref = cast(zipfile.ZipFile, ref)
+                    ref.extract(file, path=extract_path)
+                elif ref.__class__ == tarfile.TarFile:
+                    ref = cast(tarfile.TarFile, ref)
+                    ref.extract(file, path=extract_path, filter="data")
+                else:
+                    raise Exception("File is not a zip or tar file.")
+
+        else:
+            # if all files have the same root any folder can be used to check since all will have the same root if true
+            do_all_files_have_same_root = all(
+                [f.startswith(folders[0]) for f in file_names]
+            )
+            logger.info(
+                "Do all files have the same root? " + str(do_all_files_have_same_root)
+            )
+
+            if do_all_files_have_same_root:
+                # extract all files within the folder with folder of the zipfile that has the same root
+                root_folder_name = folders[0]
+
+                logger.info("Extracting files...")
+                for file in file_names:
+                    if file.endswith("/") and file != root_folder_name:
+                        os.makedirs(
+                            os.path.join(
+                                extract_path, file.removeprefix(root_folder_name)
+                            )
+                        )
+                    if not file.endswith("/"):
+                        if ref.__class__ == zipfile.ZipFile:
+                            ref = cast(zipfile.ZipFile, ref)
+                            ref.extract(file, path=extract_path)
+                        elif ref.__class__ == tarfile.TarFile:
+                            ref = cast(tarfile.TarFile, ref)
+                            ref.extract(file, path=extract_path, filter="data")
+                        else:
+                            raise Exception("File is not a zip or tar file.")
+
+                        os.rename(
+                            os.path.join(extract_path, file),
+                            os.path.join(
+                                extract_path, file.removeprefix(root_folder_name)
+                            ),
+                        )
+
+                # remove the root folder and all other folders
+                shutil.rmtree(os.path.join(extract_path, root_folder_name))
+
+            else:
+                logger.info("Extracting all files...")
+                for file in file_names:
+                    if ref.__class__ == zipfile.ZipFile:
+                        ref = cast(zipfile.ZipFile, ref)
+                        ref.extract(file, path=extract_path)
+                    elif ref.__class__ == tarfile.TarFile:
+                        ref = cast(tarfile.TarFile, ref)
+                        ref.extract(file, path=extract_path, filter="data")
+                    else:
+                        raise Exception("File is not a zip or tar file.")
+
     if zipfile.is_zipfile(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            logger.info("Extracting files from: " + zip_path)
-            file_names = zip_ref.namelist()
-            logger.info("File names:")
-            logger.info(file_names)
-            folders = [f for f in file_names if f.endswith("/")]
-            logger.info("Folders:")
-            logger.info(folders)
-
-            if len(folders) == 0:
-                logger.info("Extracting all files...")
-                zip_ref.extractall(path=extract_path)
-            else:
-                # if all files have the same root any folder can be used to check since all will have the same root if true
-                do_all_files_have_same_root = all(
-                    [f.startswith(folders[0]) for f in file_names]
-                )
-                logger.info(
-                    "Do all files have the same root? "
-                    + str(do_all_files_have_same_root)
-                )
-
-                if do_all_files_have_same_root:
-                    # extract all files within the folder with folder of the zipfile that has the same root
-                    root_folder_name = folders[0]
-
-                    logger.info("Extracting files...")
-                    for file in file_names:
-                        if file.endswith("/") and file != root_folder_name:
-                            os.makedirs(
-                                os.path.join(
-                                    extract_path, file.removeprefix(root_folder_name)
-                                )
-                            )
-                        if not file.endswith("/"):
-                            zip_ref.extract(file, path=extract_path)
-                            os.rename(
-                                os.path.join(extract_path, file),
-                                os.path.join(
-                                    extract_path, file.removeprefix(root_folder_name)
-                                ),
-                            )
-
-                    # remove the root folder and all other folders
-                    shutil.rmtree(os.path.join(extract_path, root_folder_name))
-
-                else:
-                    logger.info("Extracting all files...")
-                    zip_ref.extractall(path=extract_path)
+            extract_files(zip_ref, extract_path)
     elif tarfile.is_tarfile(zip_path):
         with tarfile.open(zip_path, "r") as tar_ref:
-            logger.info("Extracting files from: " + zip_path)
-            file_names = tar_ref.getnames()
-            logger.info("File names:")
-            logger.info(file_names)
-            folders = [f for f in file_names if f.endswith("/")]
-            logger.info("Folders:")
-            logger.info(folders)
-
-            if len(folders) == 0:
-                logger.info("Extracting all files...")
-                tar_ref.extractall(path=extract_path, filter="data")
-            else:
-                # if all files have the same root any folder can be used to check since all will have the same root if true
-                do_all_files_have_same_root = all(
-                    [f.startswith(folders[0]) for f in file_names]
-                )
-                logger.info(
-                    "Do all files have the same root? "
-                    + str(do_all_files_have_same_root)
-                )
-
-                if do_all_files_have_same_root:
-                    # extract all files within the folder with folder of the tarfile that has the same root
-                    root_folder_name = folders[0]
-
-                    logger.info("Extracting files...")
-                    for file in file_names:
-                        if file.endswith("/") and file != root_folder_name:
-                            os.makedirs(
-                                os.path.join(
-                                    extract_path, file.removeprefix(root_folder_name)
-                                )
-                            )
-                        if not file.endswith("/"):
-                            tar_ref.extract(file, path=extract_path, filter="data")
-                            os.rename(
-                                os.path.join(extract_path, file),
-                                os.path.join(
-                                    extract_path, file.removeprefix(root_folder_name)
-                                ),
-                            )
-
-                    # remove the root folder and all other folders
-                    shutil.rmtree(os.path.join(extract_path, root_folder_name))
-
-                else:
-                    logger.info("Extracting all files...")
-                    tar_ref.extractall(path=extract_path, filter="data")
+            extract_files(tar_ref, extract_path)
     else:
         raise Exception("File is not a zip or tar file.")
 
@@ -450,11 +453,14 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
         kwargs = dict(
             (k, kwargs_dict[k]) for k in function_parameters if k in kwargs_dict
         )
+
         # Run the routine (timed)
+        logger.info(f"running function {function_name} with kwargs {kwargs}")
         start_time = time.time()
         data_outputs = function(time_series, **kwargs)
         end_time = time.time()
         function_run_time = end_time - start_time
+        logger.info(f"function {function_name} run time: {function_run_time}")
         # Convert the data outputs to a dictionary identical to the
         # ground truth dictionary
         output_dictionary = dict()
@@ -584,9 +590,10 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
 
 if __name__ == "__main__":
     run(
-        "pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/archive.tar.gz"
+        "submission_files/submission_user_1/submission_5/2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
+        "/root/worker/current_evaluation",
     )
-    push_to_s3(
-        "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
-        "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",
-    )
+    # push_to_s3(
+    #     "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
+    #     "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",
+    # )

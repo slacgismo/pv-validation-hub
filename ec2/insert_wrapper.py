@@ -22,18 +22,6 @@ def is_local():
     return "AWS_EXECUTION_ENV" not in os.environ
 
 
-# Fetch data from the remote API
-def fetch_data_from_api(endpoint):
-    response = requests.get(f"{api_url}{endpoint}")
-    if response.status_code == 200:
-        return pd.DataFrame(response.json())
-    else:
-        print(
-            f"Error fetching data from {endpoint}. Status code: {response.status_code}"
-        )
-        return pd.DataFrame()
-
-
 # Load default paths from routes.json
 with open("routes.json", "r") as file:
     config = json.load(file)
@@ -43,10 +31,6 @@ is_s3_emulation = is_local()
 s3_url = config["local"]["s3"] if is_s3_emulation else config["prod"]["s3"]
 
 api_url = config["local"]["api"] if is_s3_emulation else config["prod"]["api"]
-
-# Fetching the data
-db_metadata_df = fetch_data_from_api("/system_metadata/systemmetadata/")
-db_file_metadata_df = fetch_data_from_api("/file_metadata/filemetadata/")
 
 
 # Query user for paths or use defaults
@@ -73,8 +57,6 @@ validation_tests_file_path = get_input_or_default(
 )
 
 print(
-    f"db_metadata_df: {db_metadata_df}\n"
-    f"db_file_metadata_df: {db_file_metadata_df}\n"
     f"config_file_path: {config_file_path}\n"
     f"file_data_path: {file_data_path}\n"
     f"sys_metadata_file_path: {sys_metadata_file_path}\n"
@@ -87,8 +69,7 @@ print(
 
 
 r = InsertAnalysis(
-    db_metadata_df,
-    db_file_metadata_df,
+    api_url=api_url,
     config_file_path=config_file_path,
     file_data_path=file_data_path,
     sys_metadata_file_path=sys_metadata_file_path,
