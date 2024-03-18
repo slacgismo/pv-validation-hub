@@ -117,7 +117,7 @@ def push_to_s3(local_file_path, s3_file_path):
             return None
 
 
-def list_s3_bucket(s3_dir):
+def list_s3_bucket(s3_dir: str):
     logger.info(f"list s3 bucket {s3_dir}")
     if s3_dir.startswith("/"):
         s3_dir = s3_dir[1:]
@@ -364,7 +364,9 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     for analytical in analyticals:
         tmp_path = pull_from_s3(analytical)
         shutil.move(tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1]))
-    ground_truths = list_s3_bucket(f"pv-validation-hub-bucket/data_files/ground_truth/")
+    ground_truths = list_s3_bucket(
+        f"pv-validation-hub-bucket/data_files/ground_truth/{analysis_id}/"
+    )
     for ground_truth in ground_truths:
         tmp_path = pull_from_s3(ground_truth)
         shutil.move(
@@ -422,6 +424,8 @@ def process_submission_message(message):
     user_id = int(message.get("user_pk"))
     submission_filename = message.get("submission_filename")
 
+    print("message:", message)
+
     current_evaluation_dir = create_current_evaluation_dir()
 
     analysis_function, function_parameters = load_analysis(
@@ -436,6 +440,9 @@ def process_submission_message(message):
 
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
+
+    print("current_evaluation_dir:", current_evaluation_dir)
+
     ret = analysis_function(argument, current_evaluation_dir)
     logger.info(f"runner module function returns {ret}")
 
@@ -610,5 +617,13 @@ def main():
 
 if __name__ == "__main__":
 
+    # message = {
+    #     "analysis_pk": 1,
+    #     "submission_pk": 5,
+    #     "user_pk": 1,
+    #     "submission_filename": "2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
+    # }
+
+    # process_submission_message(message)
     main()
     logger.info("{} Quitting Submission Worker.".format(WORKER_LOGS_PREFIX))
