@@ -31,5 +31,5 @@ urlpatterns = [
     path("system_metadata/", include("system_metadata.urls")),
     path("validation_tests/", include("validation_tests.urls")),
     path("healthy/", include("healthcheck.urls")),
-    path("error/", include("graceful_error_report.urls")),
+    path("error/", include("error_report.urls")),
 ] + static(PATH, document_root=ROOT)

@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class GracefulErrorReportConfig(AppConfig):
+class ErrorReportConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "graceful_error_report"
+    name = "error_report"

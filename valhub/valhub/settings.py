@@ -122,6 +122,7 @@ INSTALLED_APPS = [
     "file_metadata.apps.FilemetadataConfig",
     "validation_tests.apps.ValidationTestsConfig",
     "backend.apps.BackendConfig",
+    "error_report.apps.ErrorReportConfig",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
