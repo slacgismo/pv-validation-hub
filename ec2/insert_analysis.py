@@ -111,15 +111,63 @@ def upload_to_s3_bucket(
         s3 = boto3.client("s3")
 
         try:
+            print(f"uploading {local_path} to {bucket_name}/{upload_path}")
             s3.upload_file(local_path, bucket_name, upload_path)
-        except:
-            return None
+            print(f"uploaded {local_path} to {bucket_name}/{upload_path}")
+        except Exception as e:
+            print(f"error uploading {local_path} to {bucket_name}/{upload_path}")
+            raise e
 
         bucket_location = boto3.client("s3").get_bucket_location(Bucket=bucket_name)
         object_url = "https://{}.s3.{}.amazonaws.com/{}".format(
             bucket_name, bucket_location["LocationConstraint"], upload_path
         )
+        print(
+            f"uploaded {local_path} to {bucket_name}/{upload_path} returns {object_url}"
+        )
         return object_url
+
+
+def list_s3_bucket(
+    is_s3_emulation: bool, s3_bucket_name: str, s3_dir: str
+) -> list[str]:
+    print(f"list s3 bucket {s3_dir}")
+    if s3_dir.startswith("/"):
+        s3_dir = s3_dir[1:]
+
+    if is_s3_emulation:
+        s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
+        # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
+    else:
+        s3_dir_full_path = "s3://" + s3_dir
+
+    all_files: list[str] = []
+    if is_s3_emulation:
+        r = requests.get(s3_dir_full_path)
+        ret = r.json()
+        for entry in ret["Contents"]:
+            all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
+    else:
+        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
+        # if so, remove it
+        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
+        print(f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}")
+
+        s3 = boto3.client("s3")
+        paginator = s3.get_paginator("list_objects_v2")
+        pages = paginator.paginate(Bucket=s3_bucket_name, Prefix=s3_dir)
+        for page in pages:
+            if page["KeyCount"] > 0:
+                for entry in page["Contents"]:
+                    if "Key" in entry:
+                        all_files.append(entry["Key"])
+
+        # remove the first entry if it is the same as s3_dir
+        if len(all_files) > 0 and all_files[0] == s3_dir:
+            all_files.pop(0)
+
+    print(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
+    return all_files
 
 
 class InsertAnalysis:
@@ -304,7 +352,7 @@ class InsertAnalysis:
         s3_path: String. S3 path that we want to write the files to.
         """
 
-        print("createFileMetadata")
+        # s3_data_files = list_s3_bucket(self.is_local, self.s3_bucket_name, "data_files/analytical/")
 
         body = file_metadata_df.to_json(orient="records")
         metadata_json_list = json.loads(body)
