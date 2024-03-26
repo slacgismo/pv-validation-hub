@@ -1,7 +1,4 @@
-import pandas as pd
-import os
 import json
-import requests
 
 from insert_analysis import InsertAnalysis
 
@@ -12,70 +9,56 @@ def get_input_or_default(prompt, default_value):
     return value if value else default_value
 
 
-def is_local():
-    """
-    Checks if the application is running locally or in an Amazon ECS environment.
+# def is_local():
+#     """
+#     Checks if the application is running locally or in an Amazon ECS environment.
 
-    Returns:
-        bool: True if the application is running locally, False otherwise.
-    """
-    return "AWS_EXECUTION_ENV" not in os.environ
-
-
-# Load default paths from routes.json
-with open("routes.json", "r") as file:
-    config = json.load(file)
-
-is_s3_emulation = is_local()
-
-s3_url = config["local"]["s3"] if is_s3_emulation else config["prod"]["s3"]
-
-api_url = config["local"]["api"] if is_s3_emulation else config["prod"]["api"]
+#     Returns:
+#         bool: True if the application is running locally, False otherwise.
+#     """
+#     return "AWS_EXECUTION_ENV" not in os.environ
 
 
-# Query user for paths or use defaults
-config_file_path = get_input_or_default(
-    "Enter path for config_file", config["config_file_path"]
-)
-file_data_path = get_input_or_default(
-    "Enter path for file_data", config["file_data_path"]
-)
-evaluation_scripts_path = get_input_or_default(
-    "Enter path for evaluation_scripts", config["evaluation_scripts_path"]
-)
-validation_data_path = get_input_or_default(
-    "Enter path for validation_data", config["validation_data_path"]
-)
-sys_metadata_file_path = get_input_or_default(
-    "Enter path for sys_metadata_file", config["sys_metadata_file_path"]
-)
-file_metadata_file_path = get_input_or_default(
-    "Enter path for file_metadata_file", config["file_metadata_file_path"]
-)
-validation_tests_file_path = get_input_or_default(
-    "Enter path for validation_tests", config["validation_tests_file_path"]
-)
+if __name__ == "__main__":
 
-print(
-    f"config_file_path: {config_file_path}\n"
-    f"file_data_path: {file_data_path}\n"
-    f"sys_metadata_file_path: {sys_metadata_file_path}\n"
-    f"file_metadata_file_path: {file_metadata_file_path}\n"
-    f"evaluation_scripts_path: {evaluation_scripts_path}\n"
-    f"validation_tests_file_path: {validation_tests_file_path}\n"
-)
+    # Load default paths from routes.json
+    with open("routes.json", "r") as file:
 
-# exit()
+        config = json.load(file)
 
+        is_local = True
 
-r = InsertAnalysis(
-    api_url=api_url,
-    config_file_path=config_file_path,
-    file_data_path=file_data_path,
-    sys_metadata_file_path=sys_metadata_file_path,
-    file_metadata_file_path=file_metadata_file_path,
-    validation_tests_file_path=validation_tests_file_path,
-    validation_data_path=validation_data_path,
-    evaluation_scripts_path=evaluation_scripts_path,
-)
-r.insertData(api_url)
+        api_url = config["local"]["api"] if is_local else config["prod"]["api"]
+        s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
+
+        config_file_path = config["config_file_path"]
+        file_data_folder_path = config["file_data_folder_path"]
+        evaluation_scripts_folder_path = config["evaluation_scripts_folder_path"]
+        sys_metadata_file_path = config["sys_metadata_file_path"]
+        file_metadata_file_path = config["file_metadata_file_path"]
+        validation_data_folder_path = config["validation_data_folder_path"]
+
+        print(f"api_url: {api_url}")
+        print(f"s3_url: {s3_url}")
+        print(f"config_file_path: {config_file_path}")
+        print(f"file_data_folder_path: {file_data_folder_path}")
+        print(f"evaluation_scripts_folder_path: {evaluation_scripts_folder_path}")
+        print(f"sys_metadata_file_path: {sys_metadata_file_path}")
+        print(f"file_metadata_file_path: {file_metadata_file_path}")
+        print(f"validation_data_folder_path: {validation_data_folder_path}")
+
+        # exit()
+
+        r = InsertAnalysis(
+            api_url=api_url,
+            config_file_path=config_file_path,
+            file_data_folder_path=file_data_folder_path,
+            sys_metadata_file_path=sys_metadata_file_path,
+            file_metadata_file_path=file_metadata_file_path,
+            validation_data_folder_path=validation_data_folder_path,
+            evaluation_scripts_folder_path=evaluation_scripts_folder_path,
+            s3_bucket_name="pv-validation-hub-bucket",
+            s3_url=s3_url,
+            is_local=is_local,
+        )
+        r.insertData(api_url)
