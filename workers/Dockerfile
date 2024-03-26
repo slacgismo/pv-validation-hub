@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base
+FROM python:3.11-slim as base
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root

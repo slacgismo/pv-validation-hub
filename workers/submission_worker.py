@@ -1,11 +1,13 @@
 from importlib import import_module
 import traceback
+from typing import Any
 import zipfile
 import requests
 import sys
 import os
 import tempfile
-import logging
+import logging.config
+import logging.handlers
 import shutil
 import boto3
 import botocore.exceptions
@@ -47,12 +49,29 @@ formatter = logging.Formatter(
     "[%(asctime)s] %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(formatter)
-
 logger = logging.getLogger(__name__)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+
+
+def setup_logging():
+    config_file_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "logging_config.json"
+    )
+
+    with open(config_file_path, "r") as f:
+        config: dict[str, Any] = json.load(f)
+
+    logging.config.dictConfig(config)
+
+
+setup_logging()
+
+
+class WorkerException(Exception):
+    pass
+
+
+class RunnerException(Exception):
+    pass
 
 
 def pull_from_s3(s3_file_path: str):
@@ -117,7 +136,7 @@ def push_to_s3(local_file_path, s3_file_path):
             return None
 
 
-def list_s3_bucket(s3_dir: str):
+def list_s3_bucket(s3_dir):
     logger.info(f"list s3 bucket {s3_dir}")
     if s3_dir.startswith("/"):
         s3_dir = s3_dir[1:]
@@ -364,9 +383,7 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     for analytical in analyticals:
         tmp_path = pull_from_s3(analytical)
         shutil.move(tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1]))
-    ground_truths = list_s3_bucket(
-        f"pv-validation-hub-bucket/data_files/ground_truth/{analysis_id}/"
-    )
+    ground_truths = list_s3_bucket(f"pv-validation-hub-bucket/data_files/ground_truth/")
     for ground_truth in ground_truths:
         tmp_path = pull_from_s3(ground_truth)
         shutil.move(
@@ -414,17 +431,23 @@ def load_analysis(analysis_id, current_evaluation_dir):
 ############ submission functions #############
 
 
-def process_submission_message(message):
+def process_submission_message(message: dict[str, Any]):
     """
     Extracts the submission related metadata from the message
     and send the submission object for evaluation
     """
-    analysis_id = int(message.get("analysis_pk"))
-    submission_id = int(message.get("submission_pk"))
-    user_id = int(message.get("user_pk"))
-    submission_filename = message.get("submission_filename")
+    analysis_id = int(message.get("analysis_pk", None))
+    submission_id = int(message.get("submission_pk", None))
+    user_id = int(message.get("user_pk", None))
+    submission_filename = message.get("submission_filename", None)
 
-    print("message:", message)
+    if not analysis_id or not submission_id or not user_id or not submission_filename:
+        logger.error(
+            "{} Missing required fields in submission message {}".format(
+                SUBMISSION_LOGS_PREFIX, message
+            )
+        )
+        return
 
     current_evaluation_dir = create_current_evaluation_dir()
 
@@ -440,9 +463,6 @@ def process_submission_message(message):
 
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
-
-    print("current_evaluation_dir:", current_evaluation_dir)
-
     ret = analysis_function(argument, current_evaluation_dir)
     logger.info(f"runner module function returns {ret}")
 
@@ -479,21 +499,14 @@ def process_submission_message(message):
     shutil.rmtree(current_evaluation_dir)
 
 
-def process_submission_callback(body):
-    try:
-        logger.info(
-            "{} [x] Received submission message {}".format(SUBMISSION_LOGS_PREFIX, body)
-        )
-        # body = yaml.safe_load(body)
-        # body = dict((k, int(v)) for k, v in body.items())
-        body = json.loads(body)
-        process_submission_message(body)
-    except Exception as e:
-        logger.exception(
-            "{} Exception while receiving message from submission queue with error {}".format(
-                SUBMISSION_LOGS_PREFIX, e
-            )
-        )
+def process_submission_callback(body: str):
+    logger.info(
+        "{} [x] Received submission message {}".format(SUBMISSION_LOGS_PREFIX, body)
+    )
+    # body = yaml.safe_load(body)
+    # body = dict((k, int(v)) for k, v in body.items())
+    json_message: dict[str, Any] = json.loads(body)
+    process_submission_message(json_message)
 
 
 ############ queue functions #############
@@ -533,6 +546,7 @@ def get_or_create_sqs_queue(queue_name):
         ):
             logger.exception("Cannot get queue: {}".format(queue_name))
         queue = sqs.create_queue(QueueName=queue_name, Attributes={"FifoQueue": "true"})
+
     return queue
 
 
@@ -556,19 +570,48 @@ def get_analysis_pk():
 
 
 # function to update visibility timeout, to prevent the error "ReceiptHandle is invalid. Reason: The receipt handle has expired."
-def update_visibility_timeout(queue, message, timeout):
+def update_visibility_timeout(queue, message, timeout, event: threading.Event):
+    # Use the Docker endpoint URL for local development
+    if is_s3_emulation:
+        sqs = boto3.client(
+            "sqs",
+            endpoint_url="http://sqs:9324",
+            region_name="elasticmq",
+            aws_secret_access_key="x",
+            aws_access_key_id="x",
+            use_ssl=False,
+        )
+    # Use the production AWS environment for other environments
+    else:
+        sqs = boto3.client(
+            "sqs",
+            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
+        )
+
     while True:
         # Update visibility timeout
-        queue.change_message_visibility(
+        sqs.change_message_visibility(
             QueueUrl=queue.url,
             ReceiptHandle=message.receipt_handle,
             VisibilityTimeout=timeout,
         )
         time.sleep(60)  # Adjust the sleep duration as needed
+        if event.is_set():
+            break
+
+
+def handle_error(message, error_code, error_message):
+    # update submission status to failed
+    body = json.loads(message.body)
+    analysis_id = int(body.get("analysis_pk"))
+    submission_id = int(body.get("submission_pk"))
+    update_submission_status(analysis_id, submission_id, FAILED)
+
+    # Send the error message to the submission
 
 
 def main():
-    killer = GracefulKiller()
+    # killer = GracefulKiller()
     logger.info(
         "{} Using {} as temp directory to store data".format(
             WORKER_LOGS_PREFIX, BASE_TEMP_DIR
@@ -577,8 +620,10 @@ def main():
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
     # print(queue)
 
+    is_finished = False
+
     # infinite loop to listen and process messages
-    while True:
+    while not is_finished:
         messages = queue.receive_messages(
             MaxNumberOfMessages=1, VisibilityTimeout=43200
         )
@@ -589,7 +634,7 @@ def main():
                     WORKER_LOGS_PREFIX, message.body
                 )
             )
-            print(message.body)
+            logger.info(f"Message body: {message.body}")
 
             # start a thread to refresh the timeout
             stop_event = threading.Event()
@@ -598,32 +643,55 @@ def main():
                 args=(queue, message, 43200, stop_event),
             )
             t.start()
+            try:
+                logger.info(f"Message body type: {type(message.body)}")
+                process_submission_callback(message.body)
+            except WorkerException as e:
+                error_code = e.args[0]
+                error_message = e.args[1]
+                logger.error(
+                    "{} WorkerException while processing message from submission queue with error code {} and message {}".format(
+                        WORKER_LOGS_PREFIX, error_code, error_message
+                    )
+                )
+            except RunnerException as e:
+                error_code = e.args[0]
+                error_message = e.args[1]
+                logger.error(
+                    "{} RunnerException while processing message from submission queue with error code {} and message {}".format(
+                        WORKER_LOGS_PREFIX, error_code, error_message
+                    )
+                )
 
-            process_submission_callback(message.body)
+            except Exception as e:
+                logger.exception(
+                    "{} Exception while processing message from submission queue with error {}".format(
+                        WORKER_LOGS_PREFIX, e
+                    )
+                )
+                # # update submission status to failed
+                # body = json.loads(message.body)
+                # analysis_id = int(body.get("analysis_pk"))
+                # submission_id = int(body.get("submission_pk"))
+                # update_submission_status(analysis_id, submission_id, FAILED)
+            finally:
+                message.delete()
+                # Let the queue know that the message is processed
+                logger.info(
+                    "{} Message processed successfully".format(WORKER_LOGS_PREFIX)
+                )
+                stop_event.set()
+                t.join()
 
-            # Let the queue know that the message is processed
-            message.delete()
-            logger.info("{} Message processed successfully".format(WORKER_LOGS_PREFIX))
-
-            # stop the thread
-            stop_event.set()
-            t.join()
+            is_finished = True
             break
 
-        if killer.kill_now:
-            break
+        # if killer.kill_now:
+        #     break
         time.sleep(0.1)
 
 
 if __name__ == "__main__":
-
-    # message = {
-    #     "analysis_pk": 1,
-    #     "submission_pk": 5,
-    #     "user_pk": 1,
-    #     "submission_filename": "2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
-    # }
-
-    # process_submission_message(message)
+    logger.info("{} Starting Submission Worker.".format(WORKER_LOGS_PREFIX))
     main()
     logger.info("{} Quitting Submission Worker.".format(WORKER_LOGS_PREFIX))
