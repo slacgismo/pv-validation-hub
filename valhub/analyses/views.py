@@ -18,6 +18,7 @@ from submissions.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
 from base.utils import upload_to_s3_bucket
 from accounts.models import Account
+from error_report.models import ErrorReport
 import logging
 
 # Create your views here.
@@ -62,6 +63,7 @@ def leaderboard(request, analysis_id):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     submission_list = Submission.objects.filter(analysis=_analysis)
+    # Replace above later, submission_list = Submission.objects.filter(analysis=_analysis).prefetch_related('error_report')
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 
     return Response(serializer.data, status=status.HTTP_200_OK)

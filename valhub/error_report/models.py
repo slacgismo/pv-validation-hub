@@ -10,3 +10,4 @@ class ErrorReport(models.Model):
     error_code = models.CharField(max_length=100)
     error_type = models.CharField(max_length=100)
     error_message = models.TextField()
+    error_rate = models.FloatField()

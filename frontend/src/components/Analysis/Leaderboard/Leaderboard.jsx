@@ -23,24 +23,15 @@ export default function Leaderboard({ analysisId }) {
       },
     },
     {
-      field: 'algorithm',
-      headerName: 'Submission File',
+      field: 'error_rate',
+      headerName: 'Error Rate',
       filterable: false,
       sortable: false,
       groupable: false,
       width: 100,
-      renderCell: (params) => {
-        let value = params.row.algorithm;
-        if (value !== undefined && value !== null) {
-          // for demo purpose
-          value = value.replace('http://s3', 'http://localhost');
-        }
-        return (
-          <a href={value} download>
-            {value}
-            <DownloadIcon />
-          </a>
-        );
+      valueGetter: (params) => {
+        const value = `${params.row.error_rate}%`;
+        return value !== null && value !== undefined ? value : null;
       },
     },
     {

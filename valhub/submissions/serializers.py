@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Submission
+from error_report.models import ErrorReport
+from error_report.serializers import ErrorReportLeaderboardSerializer
 import logging
 
 
@@ -37,6 +39,8 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     Serialize the details of Submission Model.
     """
 
+#    error_report = serializers.SerializerMethodField()
+
     class Meta:
         model = Submission
         fields = (
@@ -50,10 +54,15 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "data_requirements",
         )
 
+#    def get_error_report(self, obj):
+#        error_report = ErrorReport.objects.filter(submission=obj).first()
+#        return ErrorReportLeaderboardSerializer(error_report).data if error_report else None
+
     def to_representation(self, instance):
         data = super(SubmissionDetailSerializer, self).to_representation(instance)
         data["created_by"] = {
             "uuid": instance.created_by.uuid,
             "username": instance.created_by.username,
         }
+        data["error_rate"] = 12.31 # Placeholder value
         return data
