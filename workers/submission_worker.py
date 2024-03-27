@@ -1,7 +1,5 @@
 from importlib import import_module
-import traceback
 from typing import Any
-import zipfile
 import requests
 import sys
 import os
@@ -11,13 +9,22 @@ import logging.handlers
 import shutil
 import boto3
 import botocore.exceptions
-import signal
 import json
 import time
 import urllib.request
 import inspect
 import threading
 import time
+import pandas as pd
+from logger import setup_logging
+
+
+class WorkerException(Exception):
+    pass
+
+
+class RunnerException(Exception):
+    pass
 
 
 def is_local():
@@ -30,56 +37,12 @@ def is_local():
     return "PROD" not in os.environ
 
 
-is_s3_emulation = is_local()
-
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
-
-if is_s3_emulation:
-    api_base_url = "api:8005"
-else:
-    api_base_url = "api.pv-validation-hub.org"
-
-SUBMITTING = "submitting"
-SUBMITTED = "submitted"
-RUNNING = "running"
-FAILED = "failed"
-FINISHED = "finished"
-
-formatter = logging.Formatter(
-    "[%(asctime)s] %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-)
-
-logger = logging.getLogger(__name__)
-
-
-def setup_logging():
-    config_file_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "logging_config.json"
-    )
-
-    with open(config_file_path, "r") as f:
-        config: dict[str, Any] = json.load(f)
-
-    logging.config.dictConfig(config)
-
-
-setup_logging()
-
-
-class WorkerException(Exception):
-    pass
-
-
-class RunnerException(Exception):
-    pass
-
-
 def pull_from_s3(s3_file_path: str):
     logger.info(f"pull file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         s3_file_full_path = "http://s3:5000/get_object/" + s3_file_path
         # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
     else:
@@ -87,7 +50,7 @@ def pull_from_s3(s3_file_path: str):
 
     target_file_path = os.path.join("/tmp/", s3_file_full_path.split("/")[-1])
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         r = requests.get(s3_file_full_path, stream=True)
         if r.status_code != 200:
             print(
@@ -112,12 +75,12 @@ def push_to_s3(local_file_path, s3_file_path):
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         s3_file_full_path = "http://s3:5000/put_object/" + s3_file_path
     else:
         s3_file_full_path = "s3://" + s3_file_path
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         with open(local_file_path, "rb") as f:
             file_content = f.read()
             r = requests.put(s3_file_full_path, data=file_content)
@@ -136,19 +99,19 @@ def push_to_s3(local_file_path, s3_file_path):
             return None
 
 
-def list_s3_bucket(s3_dir):
+def list_s3_bucket(s3_dir: str):
     logger.info(f"list s3 bucket {s3_dir}")
     if s3_dir.startswith("/"):
         s3_dir = s3_dir[1:]
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
         # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
     else:
         s3_dir_full_path = "s3://" + s3_dir
 
-    all_files = []
-    if is_s3_emulation:
+    all_files: list[str] = []
+    if IS_LOCAL:
         r = requests.get(s3_dir_full_path)
         ret = r.json()
         for entry in ret["Contents"]:
@@ -178,7 +141,7 @@ def list_s3_bucket(s3_dir):
 
 def update_submission_status(analysis_id, submission_id, new_status):
     # route needs to be a string stored in a variable, cannot parse in deployed environment
-    api_route = f"http://{api_base_url}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
+    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
     r = requests.put(api_route, data={"status": new_status})
     if r.status_code != 200:
         print(
@@ -189,165 +152,13 @@ def update_submission_status(analysis_id, submission_id, new_status):
 
 def update_submission_result(analysis_id, submission_id, result_json):
     headers = {"Content-Type": "application/json"}
-    api_route = f"http://{api_base_url}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}"
+    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}"
     r = requests.put(api_route, json=result_json, headers=headers)
     if r.status_code != 200:
         print(
             f"error update submission result to {result_json}, status code {r.status_code} {r.content}",
             file=sys.stderr,
         )
-
-
-SUBMITTING = "submitting"
-SUBMITTED = "submitted"
-RUNNING = "running"
-FAILED = "failed"
-FINISHED = "finished"
-
-# base
-BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
-COMPUTE_DIRECTORY_PATH = os.path.join(BASE_TEMP_DIR, "compute")
-ANALYSIS_DATA_BASE_DIR = os.path.join(COMPUTE_DIRECTORY_PATH, "analysis_data")
-SUBMISSION_DATA_BASE_DIR = os.path.join(COMPUTE_DIRECTORY_PATH, "submission_files")
-
-# analysis
-ANALYSIS_DATA_DIR = os.path.join(ANALYSIS_DATA_BASE_DIR, "analysis_{analysis_id}")
-ANALYSIS_IMPORT_STRING = "analysis_data.analysis_{analysis_id}"
-ANALYSIS_ANNOTATION_FILE_PATH = os.path.join(ANALYSIS_DATA_DIR, "{annotation_file}")
-ANALYSIS_DATA_FILE_PATH = os.path.join(ANALYSIS_DATA_DIR, "{data_file}")
-
-# submission
-SUBMISSION_DATA_DIR = os.path.join(
-    SUBMISSION_DATA_BASE_DIR, "submission_{submission_id}"
-)
-SUBMISSION_IMPORT_STRING = "submission_files.submission_{submission_id}"
-SUBMISSION_INPUT_FILE_PATH = os.path.join(SUBMISSION_DATA_DIR, "{input_file}")
-
-# log
-WORKER_LOGS_PREFIX = "WORKER_LOG"
-SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
-
-# AWS
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
-
-EVALUATION_SCRIPTS = {}
-SUBMISSION_ALGORITHMS = {}
-ANNOTATION_FILE_NAME_MAP = {}
-
-
-class GracefulKiller:
-    kill_now = False
-
-    def __init__(self):
-        signal.signal(signal.SIGINT, self.exit_gracefully)
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
-
-    def exit_gracefully(self, signum, frame):
-        logger.info(f"Set signal to exit gracefully")
-        self.kill_now = True
-
-
-def create_dir(directory):
-    """
-    Creates a directory if it does not exists
-    """
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-
-def create_dir_as_python_package(directory):
-    """
-    Create a directory and then makes it a python
-    package by creating `__init__.py` file.
-    """
-    create_dir(directory)
-    init_file_path = os.path.join(directory, "__init__.py")
-    with open(init_file_path, "w") as init_file:  # noqa
-        # to create empty file
-        pass
-
-
-def extract_zip_file(download_location, extract_location, new_name=None):
-    """
-    Helper function to extract zip file
-    Params:
-        * `download_location`: Location of zip file
-        * `extract_location`: Location of directory for extracted file
-    """
-    zip_ref = zipfile.ZipFile(download_location, "r")
-    original_name = zip_ref.namelist()[0]
-    zip_ref.extractall(extract_location)
-    zip_ref.close()
-
-    # print("extract_location: {}".format(extract_location))
-
-    if new_name is not None:
-        source_dir = os.path.join(extract_location, original_name)
-        target_dir = os.path.join(extract_location, new_name)
-        for file_name in os.listdir(source_dir):
-            shutil.move(
-                os.path.join(source_dir, file_name), os.path.join(target_dir, file_name)
-            )
-
-
-def delete_zip_file(download_location):
-    """
-    Helper function to remove zip file from location `download_location`
-    Params:
-        * `download_location`: Location of file to be removed.
-    """
-    try:
-        os.remove(download_location)
-    except Exception as e:
-        logger.error(
-            "{} Failed to remove zip file {}, error {}".format(
-                WORKER_LOGS_PREFIX, download_location, e
-            )
-        )
-        traceback.print_exc()
-
-
-def delete_submission_data_directory(location):
-    """
-    Helper function to delete submission data from location `location`
-    Arguments:
-        location {[string]} -- Location of directory to be removed.
-    """
-    try:
-        shutil.rmtree(location)
-    except Exception as e:
-        logger.exception(
-            "{} Failed to delete submission data directory {}, error {}".format(
-                WORKER_LOGS_PREFIX, location, e
-            )
-        )
-
-
-def download_and_extract_zip_file(
-    file_name, download_location, extract_location, new_name=None
-):
-    """
-    * Function to extract download a zip file, extract it and then removes the zip file.
-    * `download_location` should include name of file as well.
-    """
-    try:
-        s3 = boto3.client(
-            "s3",
-            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
-        )
-        s3.download_file(S3_BUCKET_NAME, file_name, download_location)
-    except Exception as e:
-        logger.error(
-            "{} Failed to fetch file from {}, error {}".format(
-                WORKER_LOGS_PREFIX, file_name, e
-            )
-        )
-
-    # extract zip file
-    extract_zip_file(download_location, extract_location, new_name)
-
-    # delete zip file
-    delete_zip_file(download_location)
 
 
 ############ analysis functions #############
@@ -359,6 +170,24 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     files = list_s3_bucket(
         f"pv-validation-hub-bucket/evaluation_scripts/{analysis_id}/"
     )
+    # check if required files exist
+    if len(files) == 0:
+        raise FileNotFoundError(
+            f"No files found in s3 bucket for analysis {analysis_id}"
+        )
+
+    required_files = [
+        "config.json",
+        "file_test_link.csv",
+    ]
+    file_names = [file.split("/")[-1] for file in files]
+
+    for required_file in required_files:
+        if required_file not in file_names:
+            raise FileNotFoundError(
+                f"Required file {required_file} not found in s3 bucket for analysis {analysis_id}"
+            )
+
     logger.info(f"pull evaluation scripts from s3")
     for file in files:
         logger.info(f"pull file {file} from s3")
@@ -366,6 +195,7 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
         shutil.move(
             tmp_path, os.path.join(current_evaluation_dir, tmp_path.split("/")[-1])
         )
+
     # create data directory and sub directories
     data_dir = os.path.join(current_evaluation_dir, "data")
     file_data_dir = os.path.join(data_dir, "file_data")
@@ -373,34 +203,65 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(file_data_dir, exist_ok=True)
     os.makedirs(validation_data_dir, exist_ok=True)
-    # # move file_test_link
-    # shutil.move(os.path.join(current_evaluation_dir, 'file_test_link.csv'),
-    #             os.path.join(data_dir, 'file_test_link.csv'))
-    # shutil.move(os.path.join(current_evaluation_dir, 'config.json'),
-    #             os.path.join(data_dir, 'config.json'))
-    # download data files
+
+    # File category link: This file represents the file_category_link table,
+    # which links specific files in the file_metadata table.
+    # This table exists specifically to allow for
+    # many-to-many relationships, where one file can link to multiple
+    # categories/tests, and multiple categories/tests can link to multiple
+    # files.
+    file_test_link = pd.read_csv(
+        os.path.join(current_evaluation_dir, "file_test_link.csv")
+    )
+
+    # Get the unique file ids
+    unique_file_ids = file_test_link["file_id"].unique()
+
+    # File metadata: This file represents the file_metadata table, which is
+    # the master table for files associated with different tests (az-tilt,
+    # time shifts, degradation, etc.). Contains file name, associated file
+    # information (sampling frequency, specific test, timezone, etc) as well
+    # as ground truth information to test against in the validation_dictionary
+    # field
+    # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
+    file_metadata_list = []
+    for file_id in unique_file_ids:
+        fmd_url = f"http://{API_BASE_URL}/file_metadata/filemetadata/{file_id}/"
+        response = requests.get(fmd_url)
+        file_metadata_list.append(response.json())
+
+    # Convert the list of file metadata to a DataFrame
+    file_metadata = pd.DataFrame(file_metadata_list)
+    files_for_analysis: list[str] = file_metadata["file_name"].tolist()
+
     analyticals = list_s3_bucket(f"pv-validation-hub-bucket/data_files/analytical/")
+    ground_truths = list_s3_bucket(
+        f"pv-validation-hub-bucket/data_files/ground_truth/{analysis_id}/"
+    )
+
     for analytical in analyticals:
+        if analytical.split("/")[-1] not in files_for_analysis:
+            raise FileNotFoundError(
+                f"Analytical file {analytical} not found in file metadata for analysis {analysis_id}"
+            )
         tmp_path = pull_from_s3(analytical)
         shutil.move(tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1]))
-    ground_truths = list_s3_bucket(f"pv-validation-hub-bucket/data_files/ground_truth/")
     for ground_truth in ground_truths:
+        if ground_truth.split("/")[-1] not in files_for_analysis:
+            raise FileNotFoundError(
+                f"Ground truth file {ground_truth} not found in file metadata for analysis {analysis_id}"
+            )
         tmp_path = pull_from_s3(ground_truth)
         shutil.move(
             tmp_path, os.path.join(validation_data_dir, tmp_path.split("/")[-1])
         )
 
 
-def create_current_evaluation_dir(dir_name="current_evaluation"):
-    local_dir = dir_name
-    logger.info(f"create local folder {local_dir}")
-    current_evaluation_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), local_dir
-    )
-    logger.info(f"local folder located at {current_evaluation_dir}")
-    if not os.path.exists(current_evaluation_dir):
-        os.makedirs(current_evaluation_dir)
-        logger.info(f"created local folder {current_evaluation_dir}")
+def create_current_evaluation_dir(directory_path: str):
+    current_evaluation_dir = directory_path
+
+    os.makedirs(current_evaluation_dir, exist_ok=True)
+    logger.info(f"created evaluation folder {current_evaluation_dir}")
     return current_evaluation_dir
 
 
@@ -447,9 +308,9 @@ def process_submission_message(message: dict[str, Any]):
                 SUBMISSION_LOGS_PREFIX, message
             )
         )
-        return
+        raise ValueError(1, "Missing required fields in submission message")
 
-    current_evaluation_dir = create_current_evaluation_dir()
+    current_evaluation_dir = create_current_evaluation_dir(CURRENT_EVALUATION_DIR)
 
     analysis_function, function_parameters = load_analysis(
         analysis_id, current_evaluation_dir
@@ -463,7 +324,7 @@ def process_submission_message(message: dict[str, Any]):
 
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
-    ret = analysis_function(argument, current_evaluation_dir)
+    ret = analysis_function(argument, current_evaluation_dir, BASE_TEMP_DIR)
     logger.info(f"runner module function returns {ret}")
 
     logger.info(f"update submission status to {FINISHED}")
@@ -484,7 +345,7 @@ def process_submission_message(message: dict[str, Any]):
             full_file_name = os.path.join(dir_path, file_name)
             relative_file_name = full_file_name[len(f"{res_files_path}/") :]
 
-            if is_s3_emulation:
+            if IS_LOCAL:
                 s3_full_path = f"pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}"
             else:
                 s3_full_path = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}"
@@ -499,16 +360,6 @@ def process_submission_message(message: dict[str, Any]):
     shutil.rmtree(current_evaluation_dir)
 
 
-def process_submission_callback(body: str):
-    logger.info(
-        "{} [x] Received submission message {}".format(SUBMISSION_LOGS_PREFIX, body)
-    )
-    # body = yaml.safe_load(body)
-    # body = dict((k, int(v)) for k, v in body.items())
-    json_message: dict[str, Any] = json.loads(body)
-    process_submission_message(json_message)
-
-
 ############ queue functions #############
 
 
@@ -518,7 +369,7 @@ def get_or_create_sqs_queue(queue_name):
         Returns the SQS Queue object
     """
     # Use the Docker endpoint URL for local development
-    if is_s3_emulation:
+    if IS_LOCAL:
         sqs = boto3.resource(
             "sqs",
             endpoint_url="http://sqs:9324",
@@ -569,10 +420,8 @@ def get_analysis_pk():
     return 1
 
 
-# function to update visibility timeout, to prevent the error "ReceiptHandle is invalid. Reason: The receipt handle has expired."
-def update_visibility_timeout(queue, message, timeout, event: threading.Event):
-    # Use the Docker endpoint URL for local development
-    if is_s3_emulation:
+def get_aws_sqs_client():
+    if IS_LOCAL:
         sqs = boto3.client(
             "sqs",
             endpoint_url="http://sqs:9324",
@@ -581,13 +430,21 @@ def update_visibility_timeout(queue, message, timeout, event: threading.Event):
             aws_access_key_id="x",
             use_ssl=False,
         )
-    # Use the production AWS environment for other environments
+        logger.info(f"Using local SQS endpoint")
     else:
         sqs = boto3.client(
             "sqs",
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
+        logger.info(f"Using AWS SQS endpoint")
+    logger.debug(f"SQS type: {type(sqs)}")
+    return sqs
 
+
+# function to update visibility timeout, to prevent the error "ReceiptHandle is invalid. Reason: The receipt handle has expired."
+def update_visibility_timeout(queue, message, timeout, event: threading.Event):
+    # Use the Docker endpoint URL for local development
+    sqs = get_aws_sqs_client()
     while True:
         # Update visibility timeout
         sqs.change_message_visibility(
@@ -645,7 +502,13 @@ def main():
             t.start()
             try:
                 logger.info(f"Message body type: {type(message.body)}")
-                process_submission_callback(message.body)
+                logger.info(
+                    "{} [x] Received submission message {}".format(
+                        SUBMISSION_LOGS_PREFIX, message.body
+                    )
+                )
+                json_message: dict[str, Any] = json.loads(message.body)
+                process_submission_message(json_message)
             except WorkerException as e:
                 error_code = e.args[0]
                 error_message = e.args[1]
@@ -683,12 +546,47 @@ def main():
                 stop_event.set()
                 t.join()
 
+                # Remove Files and Directories
+                shutil.rmtree(BASE_TEMP_DIR)
+                shutil.rmtree("./current_evaluation")
+
             is_finished = True
             break
 
         # if killer.kill_now:
         #     break
         time.sleep(0.1)
+
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
+
+
+IS_LOCAL = is_local()
+
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
+
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
+
+# base
+BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
+CURRENT_EVALUATION_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "current_evaluation"
+)
+
+# log
+WORKER_LOGS_PREFIX = "WORKER_LOG"
+SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
+
+# AWS
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 
 if __name__ == "__main__":

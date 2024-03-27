@@ -32,10 +32,11 @@
         }
     },
     "loggers": {
-        "root": {
+        "": {
             "level": "DEBUG",
             "handlers": [
                 "stderr",
+                "stdout",
                 "file"
             ]
         }
