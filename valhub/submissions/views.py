@@ -20,7 +20,7 @@ import requests
 import os
 import json
 import boto3
-import botocore
+import botocore.exceptions
 import logging
 
 from analyses.models import Analysis
@@ -57,7 +57,7 @@ is_s3_emulation = is_local()
 @permission_classes([IsAuthenticated])
 @csrf_exempt
 def analysis_submission(request, analysis_id):
-    logging.error(f"request.data = {request.data}")
+    logging.info(f"request.data = {request.data}")
     """API Endpoint for making a submission to a analysis"""
     # check if the analysis exists or not
     # print("analysis_id: {}".format(analysis_id))
@@ -67,7 +67,7 @@ def analysis_submission(request, analysis_id):
         response_data = {"error": "Analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    logging.error("analysis exists")
+    logging.info("analysis exists")
 
     # check if the analysis queue exists or not
     try:
@@ -88,7 +88,7 @@ def analysis_submission(request, analysis_id):
         queue_name = "valhub_submission_queue.fifo"
         queue = sqs.get_queue_by_name(QueueName=queue_name)
     except botocore.exceptions.ClientError as ex:
-        logging.error(f"botocore.exceptions.ClientError = {ex}")
+        logging.info(f"botocore.exceptions.ClientError = {ex}")
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,7 +96,7 @@ def analysis_submission(request, analysis_id):
     serializer = SubmissionSerializer(data=request.data)
 
     if serializer.is_valid():
-        logging.error("serializer is valid")
+        logging.info("serializer is valid")
         serializer.save(analysis=analysis, created_by=user)
         submission_id = int(serializer.instance.submission_id)
         # print("submission_id: {}".format(submission_id))

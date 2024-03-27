@@ -602,9 +602,16 @@ class InsertAnalysis:
             )
 
         # Fill in any missing values with "N/A"
-        df_new["issue"] = df_new["issue"].fillna("N/A")
 
-        df_new["subissue"] = df_new["subissue"].fillna("N/A")
+        if "issue" not in df_new.columns:
+            df_new["issue"] = "N/A"
+        else:
+            df_new["issue"] = df_new["issue"].fillna("N/A")
+
+        if "subissue" not in df_new.columns:
+            df_new["subissue"] = "N/A"
+        else:
+            df_new["subissue"] = df_new["subissue"].fillna("N/A")
 
         # self.new_file_metadata_df = df_new
 

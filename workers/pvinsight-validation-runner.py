@@ -55,9 +55,9 @@ def is_local():
     return "PROD" not in os.environ
 
 
-is_s3_emulation = is_local()
+IS_LOCAL = is_local()
 
-if is_s3_emulation:
+if IS_LOCAL:
     api_base_url = "api:8005"
 else:
     api_base_url = "api.pv-validation-hub.org"
@@ -65,22 +65,22 @@ else:
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 
-def pull_from_s3(s3_file_path):
+def pull_from_s3(s3_file_path: str, local_file_path: str):
     logger.info(f"pulling file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
         logger.info(f"modified path to {s3_file_path}")
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         s3_file_full_path = (
             "http://s3:5000/get_object/" + S3_BUCKET_NAME + "/" + s3_file_path
         )
     else:
         s3_file_full_path = "s3://" + s3_file_path
 
-    target_file_path = os.path.join("/tmp/", s3_file_full_path.split("/")[-1])
+    target_file_path = os.path.join(local_file_path, s3_file_full_path.split("/")[-1])
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         r = requests.get(s3_file_full_path, stream=True)
         if r.status_code != 200:
             print(
@@ -100,14 +100,14 @@ def push_to_s3(local_file_path, s3_file_path):
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         s3_file_full_path = (
             "http://s3:5000/put_object/" + S3_BUCKET_NAME + "/" + s3_file_path
         )
     else:
         s3_file_full_path = "s3://" + s3_file_path
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         with open(local_file_path, "rb") as f:
             file_content = f.read()
             r = requests.put(s3_file_full_path, data=file_content)
@@ -272,7 +272,11 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
-def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
+def run(
+    module_to_import_s3_path: str,
+    current_evaluation_dir: str | None = None,
+    tmp_dir: str | None = None,
+):
     # If a path is provided, set the directories to that path, otherwise use default
     if current_evaluation_dir is not None:
         results_dir = (
@@ -293,6 +297,9 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
         data_dir = "./data"
         current_evaluation_dir = os.getcwd()
 
+    if tmp_dir is None:
+        tmp_dir = "/tmp"
+
     # Ensure results directory exists
     os.makedirs(results_dir, exist_ok=True)
 
@@ -301,7 +308,7 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
 
     # Load in the module that we're going to test on.
     logger.info(f"module_to_import_s3_path: {module_to_import_s3_path}")
-    target_module_compressed_file_path = pull_from_s3(module_to_import_s3_path)
+    target_module_compressed_file_path = pull_from_s3(module_to_import_s3_path, tmp_dir)
     logger.info(
         f"target_module_compressed_file_path: {target_module_compressed_file_path}"
     )
