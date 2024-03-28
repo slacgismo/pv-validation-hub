@@ -9,19 +9,26 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('submissions', '0001_initial'),
+        ("submissions", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ErrorReport',
+            name="ErrorReport",
             fields=[
-                ('error_id', models.AutoField(primary_key=True, serialize=False)),
-                ('error_code', models.CharField(max_length=100)),
-                ('error_type', models.CharField(max_length=100)),
-                ('error_message', models.TextField()),
-                ('error_rate', models.FloatField()),
-                ('submission', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='error_report', to='submissions.submission')),
+                ("error_id", models.AutoField(primary_key=True, serialize=False)),
+                ("error_code", models.CharField(max_length=100)),
+                ("error_type", models.CharField(max_length=100)),
+                ("error_message", models.TextField()),
+                ("error_rate", models.FloatField()),
+                (
+                    "submission",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="error_report",
+                        to="submissions.submission",
+                    ),
+                ),
             ],
         ),
     ]

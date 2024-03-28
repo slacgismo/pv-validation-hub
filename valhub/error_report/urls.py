@@ -1,5 +1,10 @@
 from django.urls import path
-from .views import ErrorReportList, ErrorReportDetail, ErrorReportLeaderboard, ErrorReportPrivateList
+from .views import (
+    ErrorReportList,
+    ErrorReportDetail,
+    ErrorReportLeaderboard,
+    ErrorReportPrivateList,
+)
 
 urlpatterns = [
     path("error_report/", ErrorReportList.as_view()),

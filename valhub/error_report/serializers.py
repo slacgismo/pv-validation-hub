@@ -7,7 +7,8 @@ class ErrorReportSerializer(serializers.ModelSerializer):
         model = ErrorReport
         fields = "__all__"
 
+
 class ErrorReportLeaderboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = ErrorReport
-        fields = ['error_rate']
+        fields = ["error_rate"]
