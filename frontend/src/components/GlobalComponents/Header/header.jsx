@@ -205,11 +205,15 @@ UserLoggedInMenu.propTypes = {
 };
 
 UserInfoMenu.propTypes = {
-  userInfoMenu: PropTypes.arrayOf([]).isRequired,
+  userInfoMenu: PropTypes.array.isRequired,
   anchorElUser: PropTypes.oneOfType([
     PropTypes.instanceOf(Node),
-    PropTypes.instanceOf(null),
-  ]).isRequired,
+    PropTypes.oneOf([null]),
+  ]),
   onClickUserInfoMenu: PropTypes.func.isRequired,
   onCloseUserMenu: PropTypes.func.isRequired,
+};
+
+UserInfoMenu.defaultProps = {
+  anchorElUser: null,
 };

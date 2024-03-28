@@ -7,7 +7,6 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import Typography from '@mui/material/Typography';
 import Proptypes from 'prop-types';
 import SubmissionService from '../../../services/submission_service.js';
 
@@ -36,18 +35,26 @@ export default function SubmissionReport({ submissionId }) {
       <Box sx={{ flexGrow: 1 }}>
         <AppBar position="static">
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Error Rate: {errorData.error_rate}
+            Error Rate:
+            {' '}
+            {errorData.error_rate}
           </Typography>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Error Code: {errorData.error_rate}
+            Error Code:
+            {' '}
+            {errorData.error_rate}
           </Typography>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Error Type: {errorData.error_rate}
+            Error Type:
+            {' '}
+            {errorData.error_rate}
           </Typography>
         </AppBar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Error Message: {errorData.error_rate}
-          </Typography>
+          Error Message:
+          {' '}
+          {errorData.error_rate}
+        </Typography>
       </Box>
 
       <List>

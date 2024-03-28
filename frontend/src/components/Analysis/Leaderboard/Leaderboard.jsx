@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Box, CircularProgress } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import DownloadIcon from '@mui/icons-material/Download';
 import DashboardService from '../../../services/dashboard_service.js';
 
 export default function Leaderboard({ analysisId }) {

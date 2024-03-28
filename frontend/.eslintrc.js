@@ -25,6 +25,7 @@ module.exports = {
     'import/extensions': ['error', 'ignorePackages'],
     'no-console': 'off',
     'react/jsx-filename-extension': [1, { extensions: ['.js', '.jsx'] }],
+    'react/forbid-prop-types': ['error', { forbid: ['any', 'object'], checkContextTypes: true, checkChildContextTypes: true }],
     'import/no-extraneous-dependencies': [
       'error',
       {
