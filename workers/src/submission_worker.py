@@ -570,28 +570,20 @@ def main():
             log_file = os.path.join(LOG_FILE_DIR, "submission.log")
             json_log_file = os.path.join(LOG_FILE_DIR, "submission.jsonl")
 
-            new_log_file = os.path.join(LOG_FILE_DIR, f"submission_{submission_id}.log")
-            new_json_log_file = os.path.join(
-                LOG_FILE_DIR, f"submission_{submission_id}.jsonl"
-            )
-
-            os.rename(log_file, new_log_file)
-            os.rename(json_log_file, new_json_log_file)
-
             # push log files to s3
 
             push_to_s3(
-                new_log_file,
+                log_file,
                 f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission_{submission_id}.log",
             )
             push_to_s3(
-                new_json_log_file,
+                json_log_file,
                 f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission_{submission_id}.jsonl",
             )
 
-            # Remove Files and Directories
-            shutil.rmtree(BASE_TEMP_DIR)
-            shutil.rmtree("./current_evaluation")
+            # Remove all log files
+            os.remove(log_file)
+            os.remove(json_log_file)
 
             is_finished = True
             break
@@ -622,9 +614,9 @@ FINISHED = "finished"
 BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
 # Set to folder where the evaluation scripts are stored
 
-LOG_FILE_DIR = os.path.join(os.path.abspath(__file__), "..", "logs")
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE_DIR = os.path.join(FILE_DIR, "..", "logs")
 CURRENT_EVALUATION_DIR = os.path.join(FILE_DIR, "..", "current_evaluation")
 
 # log

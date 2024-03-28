@@ -39,13 +39,13 @@
         },
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
-            "level": "DEBUG",
+            "level": "INFO",
             "formatter": "detailed",
             "filename": "logs/submission.log"
         },
         "json_file": {
             "class": "logging.handlers.RotatingFileHandler",
-            "level": "DEBUG",
+            "level": "INFO",
             "formatter": "json",
             "filename": "logs/submission.log.jsonl"
         }
