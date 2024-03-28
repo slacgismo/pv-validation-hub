@@ -6,6 +6,8 @@ RUN mkdir worker
 WORKDIR /root/worker
 COPY . .
 
+RUN mkdir -p /root/worker/logs
+
 ENV PORT 8500
 EXPOSE 8500
 EXPOSE 65535

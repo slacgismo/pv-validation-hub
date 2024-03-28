@@ -3,12 +3,25 @@
     "disable_existing_loggers": false,
     "formatters": {
         "simple": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            "format": "%(levelname)s - %(asctime)s - %(name)s - %(message)s",
             "datefmt": "%Y-%m-%dT%H:%M:%S%z"
         },
         "detailed": {
             "format": "[%(levelname)s|%(module)s|L%(lineno)d] %(asctime)s: %(message)s",
             "datefmt": "%Y-%m-%dT%H:%M:%S%z"
+        },
+        "json": {
+            "()": "logger.JSONFormatter",
+            "fmt_keys": {
+                "level": "levelname",
+                "message": "message",
+                "timestamp": "timestamp",
+                "logger": "name",
+                "module": "module",
+                "function": "funcName",
+                "line": "lineno",
+                "thread_name": "threadName"
+            }
         }
     },
     "handlers": {
@@ -21,7 +34,7 @@
         "stdout": {
             "class": "logging.StreamHandler",
             "level": "INFO",
-            "formatter": "detailed",
+            "formatter": "simple",
             "stream": "ext://sys.stdout"
         },
         "file": {
@@ -29,6 +42,12 @@
             "level": "DEBUG",
             "formatter": "detailed",
             "filename": "logs/submission.log"
+        },
+        "json_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "json",
+            "filename": "logs/submission.log.jsonl"
         }
     },
     "loggers": {
@@ -37,7 +56,8 @@
             "handlers": [
                 "stderr",
                 "stdout",
-                "file"
+                "file",
+                "json_file"
             ]
         }
     }

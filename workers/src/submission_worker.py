@@ -1,5 +1,7 @@
+from ast import Call
 from importlib import import_module
-from typing import Any
+from math import log
+from typing import Any, Callable, Optional
 import requests
 import sys
 import os
@@ -164,7 +166,7 @@ def update_submission_result(analysis_id, submission_id, result_json):
 ############ analysis functions #############
 
 
-def extract_analysis_data(analysis_id, current_evaluation_dir):
+def extract_analysis_data(analysis_id, current_evaluation_dir) -> pd.DataFrame:
 
     # download evaluation scripts and requirements.txt etc.
     files = list_s3_bucket(
@@ -224,15 +226,25 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
     # as ground truth information to test against in the validation_dictionary
     # field
     # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
-    file_metadata_list = []
+    file_metadata_list: list[dict[str, Any]] = []
     for file_id in unique_file_ids:
         fmd_url = f"http://{API_BASE_URL}/file_metadata/filemetadata/{file_id}/"
         response = requests.get(fmd_url)
+        if not response.ok:
+            raise FileNotFoundError(
+                f"File metadata for file id {file_id} not found in Django API"
+            )
         file_metadata_list.append(response.json())
 
     # Convert the list of file metadata to a DataFrame
-    file_metadata = pd.DataFrame(file_metadata_list)
-    files_for_analysis: list[str] = file_metadata["file_name"].tolist()
+    file_metadata_df = pd.DataFrame(file_metadata_list)
+
+    if file_metadata_df.empty:
+        raise FileNotFoundError(
+            f"No file metadata found in Django API for analysis {analysis_id}"
+        )
+
+    files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
 
     analyticals = list_s3_bucket(f"pv-validation-hub-bucket/data_files/analytical/")
     ground_truths = list_s3_bucket(
@@ -256,6 +268,8 @@ def extract_analysis_data(analysis_id, current_evaluation_dir):
             tmp_path, os.path.join(validation_data_dir, tmp_path.split("/")[-1])
         )
 
+    return file_metadata_df
+
 
 def create_current_evaluation_dir(directory_path: str):
     current_evaluation_dir = directory_path
@@ -265,14 +279,18 @@ def create_current_evaluation_dir(directory_path: str):
     return current_evaluation_dir
 
 
-def load_analysis(analysis_id, current_evaluation_dir):
+def load_analysis(
+    analysis_id, current_evaluation_dir
+) -> tuple[
+    Callable[[str, pd.DataFrame, Optional[str], Optional[str]], Any], list, pd.DataFrame
+]:
 
     logger.info("pull and extract analysis")
-    extract_analysis_data(analysis_id, current_evaluation_dir)
+    file_metadata_df = extract_analysis_data(analysis_id, current_evaluation_dir)
 
     # Copy the validation runner into the current evaluation directory
     shutil.copy(
-        os.path.join("/root/worker", "pvinsight-validation-runner.py"),
+        os.path.join("/root/worker/src", "pvinsight-validation-runner.py"),
         os.path.join(current_evaluation_dir, "pvinsight-validation-runner.py"),
     )
 
@@ -280,39 +298,37 @@ def load_analysis(analysis_id, current_evaluation_dir):
     sys.path.insert(0, current_evaluation_dir)
     runner_module_name = "pvinsight-validation-runner"
     logger.info(f"import runner module {runner_module_name}")
+
     analysis_module = import_module(runner_module_name)
+
     sys.path.pop(0)
 
-    analysis_function = getattr(analysis_module, "run")
-    function_parameters = list(inspect.signature(analysis_function).parameters)
-    logger.info(f"analysis function parameters: {function_parameters}")
-    return analysis_function, function_parameters
+    try:
+        analysis_function = getattr(analysis_module, "run")
+        function_parameters = list(inspect.signature(analysis_function).parameters)
+        logger.info(f"analysis function parameters: {function_parameters}")
+    except AttributeError:
+        logger.error(
+            f"Runner module {runner_module_name} does not have a 'run' function"
+        )
+        raise WorkerException(1, "Runner module does not have a 'run' function")
+    return analysis_function, function_parameters, file_metadata_df
 
 
 ############ submission functions #############
 
 
-def process_submission_message(message: dict[str, Any]):
+def process_submission_message(
+    analysis_id, submission_id, user_id, submission_filename
+):
     """
     Extracts the submission related metadata from the message
     and send the submission object for evaluation
     """
-    analysis_id = int(message.get("analysis_pk", None))
-    submission_id = int(message.get("submission_pk", None))
-    user_id = int(message.get("user_pk", None))
-    submission_filename = message.get("submission_filename", None)
-
-    if not analysis_id or not submission_id or not user_id or not submission_filename:
-        logger.error(
-            "{} Missing required fields in submission message {}".format(
-                SUBMISSION_LOGS_PREFIX, message
-            )
-        )
-        raise ValueError(1, "Missing required fields in submission message")
 
     current_evaluation_dir = create_current_evaluation_dir(CURRENT_EVALUATION_DIR)
 
-    analysis_function, function_parameters = load_analysis(
+    analysis_function, function_parameters, file_metadata_df = load_analysis(
         analysis_id, current_evaluation_dir
     )
     logger.info(f"function parameters returns {function_parameters}")
@@ -324,7 +340,9 @@ def process_submission_message(message: dict[str, Any]):
 
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
-    ret = analysis_function(argument, current_evaluation_dir, BASE_TEMP_DIR)
+    ret = analysis_function(
+        argument, file_metadata_df, current_evaluation_dir, BASE_TEMP_DIR
+    )
     logger.info(f"runner module function returns {ret}")
 
     logger.info(f"update submission status to {FINISHED}")
@@ -486,12 +504,32 @@ def main():
         )
 
         for message in messages:
+
             logger.info(
                 "{} Processing message body: {}".format(
                     WORKER_LOGS_PREFIX, message.body
                 )
             )
-            logger.info(f"Message body: {message.body}")
+
+            json_message: dict[str, Any] = json.loads(message.body)
+
+            analysis_id = int(json_message.get("analysis_pk", None))
+            submission_id = int(json_message.get("submission_pk", None))
+            user_id = int(json_message.get("user_pk", None))
+            submission_filename = json_message.get("submission_filename", None)
+
+            if (
+                not analysis_id
+                or not submission_id
+                or not user_id
+                or not submission_filename
+            ):
+                logger.error(
+                    "{} Missing required fields in submission message {}".format(
+                        SUBMISSION_LOGS_PREFIX, json_message
+                    )
+                )
+                raise ValueError(1, "Missing required fields in submission message")
 
             # start a thread to refresh the timeout
             stop_event = threading.Event()
@@ -500,33 +538,14 @@ def main():
                 args=(queue, message, 43200, stop_event),
             )
             t.start()
-            try:
-                logger.info(f"Message body type: {type(message.body)}")
-                logger.info(
-                    "{} [x] Received submission message {}".format(
-                        SUBMISSION_LOGS_PREFIX, message.body
-                    )
-                )
-                json_message: dict[str, Any] = json.loads(message.body)
-                process_submission_message(json_message)
-            except WorkerException as e:
-                error_code = e.args[0]
-                error_message = e.args[1]
-                logger.error(
-                    "{} WorkerException while processing message from submission queue with error code {} and message {}".format(
-                        WORKER_LOGS_PREFIX, error_code, error_message
-                    )
-                )
-            except RunnerException as e:
-                error_code = e.args[0]
-                error_message = e.args[1]
-                logger.error(
-                    "{} RunnerException while processing message from submission queue with error code {} and message {}".format(
-                        WORKER_LOGS_PREFIX, error_code, error_message
-                    )
-                )
 
+            try:
+                process_submission_message(
+                    analysis_id, submission_id, user_id, submission_filename
+                )
             except Exception as e:
+                error_code = e.args[0]
+                error_message = e.args[1]
                 logger.exception(
                     "{} Exception while processing message from submission queue with error {}".format(
                         WORKER_LOGS_PREFIX, e
@@ -546,9 +565,33 @@ def main():
                 stop_event.set()
                 t.join()
 
-                # Remove Files and Directories
-                shutil.rmtree(BASE_TEMP_DIR)
-                shutil.rmtree("./current_evaluation")
+            # rename log file to include submission_id
+
+            log_file = os.path.join(LOG_FILE_DIR, "submission.log")
+            json_log_file = os.path.join(LOG_FILE_DIR, "submission.jsonl")
+
+            new_log_file = os.path.join(LOG_FILE_DIR, f"submission_{submission_id}.log")
+            new_json_log_file = os.path.join(
+                LOG_FILE_DIR, f"submission_{submission_id}.jsonl"
+            )
+
+            os.rename(log_file, new_log_file)
+            os.rename(json_log_file, new_json_log_file)
+
+            # push log files to s3
+
+            push_to_s3(
+                new_log_file,
+                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission_{submission_id}.log",
+            )
+            push_to_s3(
+                new_json_log_file,
+                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission_{submission_id}.jsonl",
+            )
+
+            # Remove Files and Directories
+            shutil.rmtree(BASE_TEMP_DIR)
+            shutil.rmtree("./current_evaluation")
 
             is_finished = True
             break
@@ -577,16 +620,16 @@ FINISHED = "finished"
 
 # base
 BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
-CURRENT_EVALUATION_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "current_evaluation"
-)
+# Set to folder where the evaluation scripts are stored
+
+LOG_FILE_DIR = os.path.join(os.path.abspath(__file__), "..", "logs")
+
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+CURRENT_EVALUATION_DIR = os.path.join(FILE_DIR, "..", "current_evaluation")
 
 # log
 WORKER_LOGS_PREFIX = "WORKER_LOG"
 SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
-
-# AWS
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 
 if __name__ == "__main__":

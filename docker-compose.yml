@@ -117,10 +117,10 @@ services:
       - sqs
     volumes:
       - ./workers/current_evaluation:/root/worker/current_evaluation
-      - ./workers/tmp:/tmp
-      - ./workers/submission_worker.py:/root/worker/submission_worker.py
-      - ./workers/pvinsight-validation-runner.py:/root/worker/pvinsight-validation-runner.py
       - ./workers/logs:/root/worker/logs
+      - ./workers/tmp:/tmp
+      - ./workers/requirements.txt:/root/worker/requirements.txt
+      - ./workers/src:/root/worker/src
     restart: always
 
 volumes:

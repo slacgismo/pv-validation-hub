@@ -16,7 +16,7 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import cast
+from typing import Any, cast
 import pandas as pd
 import os
 from importlib import import_module
@@ -35,14 +35,12 @@ import zipfile
 import subprocess
 import logging
 import boto3
+from logger import setup_logging
+from utility import timing
 
-# Basic logging configuration
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
-# Create a logger
-logger = logging.getLogger(__name__)
+class RunnerException(Exception):
+    pass
 
 
 def is_local():
@@ -53,16 +51,6 @@ def is_local():
         bool: True if the application is running locally, False otherwise.
     """
     return "PROD" not in os.environ
-
-
-IS_LOCAL = is_local()
-
-if IS_LOCAL:
-    api_base_url = "api:8005"
-else:
-    api_base_url = "api.pv-validation-hub.org"
-
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 
 def pull_from_s3(s3_file_path: str, local_file_path: str):
@@ -83,9 +71,8 @@ def pull_from_s3(s3_file_path: str, local_file_path: str):
     if IS_LOCAL:
         r = requests.get(s3_file_full_path, stream=True)
         if r.status_code != 200:
-            print(
+            logger.error(
                 f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}",
-                file=sys.stderr,
             )
         with open(target_file_path, "wb") as f:
             f.write(r.content)
@@ -112,9 +99,8 @@ def push_to_s3(local_file_path, s3_file_path):
             file_content = f.read()
             r = requests.put(s3_file_full_path, data=file_content)
             if r.status_code != 204:
-                print(
-                    f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}",
-                    file=sys.stderr,
+                logger.error(
+                    f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}"
                 )
     else:
         s3 = boto3.client("s3")
@@ -272,8 +258,14 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
+@timing()
+def run_user_submission(fn, *args, **kwargs):
+    return fn(*args, **kwargs)
+
+
 def run(
     module_to_import_s3_path: str,
+    file_metadata_df: pd.DataFrame,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ):
@@ -346,9 +338,11 @@ def run(
                 os.path.join(target_module_path, "requirements.txt"),
             ]
         )
-        print("submission dependencies installed successfully.")
+        logger.info("submission dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
-        print("error installing submission dependencies:", e)
+        logger.error("error installing submission dependencies:", e)
+        raise RunnerException("error installing submission dependencies")
+
     shutil.move(
         os.path.join(target_module_path, file_name), os.path.join(new_dir, file_name)
     )
@@ -359,48 +353,29 @@ def run(
 
     # Make GET requests to the Django API to get the system metadata
     # http://api.pv-validation-hub.org/system_metadata/systemmetadata/
-    smd_url = f"http://{api_base_url}/system_metadata/systemmetadata/"
+    smd_url = f"http://{API_BASE_URL}/system_metadata/systemmetadata/"
     system_metadata_response = requests.get(smd_url)
+
+    if not system_metadata_response.ok:
+        logger.error(
+            f"Failed to get system metadata from {smd_url}: {system_metadata_response.content}"
+        )
+        raise RunnerException("Failed to get system metadata")
 
     # Convert the responses to DataFrames
 
     # System metadata: This CSV represents the system_metadata table, which is
     # a master table for associated system metadata (system_id, name, azimuth,
     # tilt, etc.)
-    system_metadata = pd.DataFrame(system_metadata_response.json())
+    system_metadata_df = pd.DataFrame(system_metadata_response.json())
 
-    # File category link: This file represents the file_category_link table,
-    # which links specific files in the file_metadata table.
-    # This table exists specifically to allow for
-    # many-to-many relationships, where one file can link to multiple
-    # categories/tests, and multiple categories/tests can link to multiple
-    # files.
-    file_test_link = pd.read_csv(
-        os.path.join(current_evaluation_dir, "file_test_link.csv")
-    )
-
-    # Get the unique file ids
-    unique_file_ids = file_test_link["file_id"].unique()
-
-    # File metadata: This file represents the file_metadata table, which is
-    # the master table for files associated with different tests (az-tilt,
-    # time shifts, degradation, etc.). Contains file name, associated file
-    # information (sampling frequency, specific test, timezone, etc) as well
-    # as ground truth information to test against in the validation_dictionary
-    # field
-    # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
-    file_metadata_list = []
-    for file_id in unique_file_ids:
-        fmd_url = f"http://{api_base_url}/file_metadata/filemetadata/{file_id}/"
-        response = requests.get(fmd_url)
-        file_metadata_list.append(response.json())
-
-    # Convert the list of file metadata to a DataFrame
-    file_metadata = pd.DataFrame(file_metadata_list)
+    if system_metadata_df.empty:
+        logger.error("System metadata is empty")
+        raise RunnerException("System metadata is empty")
 
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json")) as f:
-        config_data = json.load(f)
+        config_data: dict[str, Any] = json.load(f)
 
     # Get the associated metrics we're supposed to calculate
     performance_metrics = config_data["performance_metrics"]
@@ -411,10 +386,24 @@ def run(
     function_name = config_data["function_name"]
     # Import designated module via importlib
     module = import_module(module_name)
-    function = getattr(module, function_name)
-    function_parameters = list(inspect.signature(function).parameters)
+    try:
+        function = getattr(module, function_name)
+        function_parameters = list(inspect.signature(function).parameters)
+    except AttributeError:
+        logger.error(f"function {function_name} not found in module {module_name}")
+        raise RunnerException(
+            f"function {function_name} not found in module {module_name}"
+        )
+
+    total_number_of_files = len(file_metadata_df)
+    logger.info(f"total_number_of_files: {total_number_of_files}")
+
+    number_of_errors = 0
+
     # Loop through each file and generate predictions
-    for index, row in file_metadata.iterrows():
+
+    for index, (_, row) in enumerate(file_metadata_df.iterrows()):
+        logger.info(f"processing file {index + 1} of {total_number_of_files}")
         # Get file_name, which will be pulled from database or S3 for
         # each analysis
         file_name = row["file_name"]
@@ -425,7 +414,7 @@ def run(
         # on its system ID. This metadata will be passed in via kwargs for
         # any necessary arguments
         associated_metadata = dict(
-            system_metadata[system_metadata["system_id"] == system_id].iloc[0]
+            system_metadata_df[system_metadata_df["system_id"] == system_id].iloc[0]
         )
         # Get the ground truth scalars that we will compare to
         ground_truth_dict = dict()
@@ -433,12 +422,14 @@ def run(
             for val in config_data["ground_truth_compare"]:
                 ground_truth_dict[val] = associated_metadata[val]
         if config_data["comparison_type"] == "time_series":
-            ground_truth_series = pd.read_csv(
+            ground_truth_series: pd.Series = pd.read_csv(
                 os.path.join(data_dir + "/validation_data/", file_name),
                 index_col=0,
                 parse_dates=True,
             ).squeeze()
             ground_truth_dict["time_series"] = ground_truth_series
+
+        ground_truth_file_length = len(ground_truth_series)
         # Create master dictionary of all possible function kwargs
         kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
         # Filter out to only allowable args for the function
@@ -446,13 +437,13 @@ def run(
         # Now that we've collected all of the information associated with the
         # test, let's read in the file as a pandas dataframe (this data
         # would most likely be stored in an S3 bucket)
-        time_series: pd.DataFrame = pd.read_csv(
+        time_series_df: pd.DataFrame = pd.read_csv(
             os.path.join(data_dir + "/file_data/", file_name),
             index_col=0,
             parse_dates=True,
         )
 
-        time_series = time_series.asfreq(
+        time_series: pd.Series = time_series_df.asfreq(
             str(row["data_sampling_frequency"]) + "min"
         ).squeeze()
 
@@ -463,14 +454,31 @@ def run(
 
         # Run the routine (timed)
         logger.info(f"running function {function_name} with kwargs {kwargs}")
-        start_time = time.time()
-        data_outputs = function(time_series, **kwargs)
-        end_time = time.time()
-        function_run_time = end_time - start_time
+
+        try:
+            data_outputs, function_run_time = run_user_submission(
+                function, time_series, **kwargs
+            )
+
+        except Exception as e:
+            logger.error(f"error running function {function_name}: {e}")
+            number_of_errors += 1
+            continue
+
         logger.info(f"function {function_name} run time: {function_run_time}")
+
+        file_submission_result_length = len(data_outputs)
+        if file_submission_result_length != ground_truth_file_length:
+            logger.error(
+                f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
+            )
+
+            number_of_errors += 1
+            continue
+
         # Convert the data outputs to a dictionary identical to the
         # ground truth dictionary
-        output_dictionary = dict()
+        output_dictionary: dict[str, Any] = dict()
         if config_data["comparison_type"] == "scalar":
             for idx in range(len(config_data["ground_truth_compare"])):
                 output_dictionary[config_data["ground_truth_compare"][idx]] = (
@@ -480,7 +488,7 @@ def run(
             output_dictionary["time_series"] = data_outputs
         # Run routine for all of the performance metrics and append
         # results to the dictionary
-        results_dictionary = dict()
+        results_dictionary: dict[str, Any] = dict()
         results_dictionary["file_name"] = file_name
         # Set the runtime in the results dictionary
         results_dictionary["run_time"] = function_run_time
@@ -546,7 +554,7 @@ def run(
     # type of analysis being run as results will be color-coded by certain
     # parameters. These params will be available as columns in the
     # 'associated_files' dataframe
-    results_df_private = pd.merge(results_df, file_metadata, on="file_name")
+    results_df_private = pd.merge(results_df, file_metadata_df, on="file_name")
     # Filter to only the necessary columns (available via the config)
     results_df_private = results_df_private[config_data["private_results_columns"]]
     results_df_private.to_csv(
@@ -592,14 +600,38 @@ def run(
             gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
             plt.close()
             plt.clf()
+
+    logger.info(f"number_of_errors: {number_of_errors}")
+
+    success_rate = (
+        (total_number_of_files - number_of_errors) / total_number_of_files
+    ) * 100
+    logger.info(f"success_rate: {success_rate}%")
+    logger.info(
+        f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
+    )
+
     return public_metrics_dict
 
 
+setup_logging()
+
+# Create a logger
+logger = logging.getLogger(__name__)
+
+
+IS_LOCAL = is_local()
+
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
+
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+
 if __name__ == "__main__":
-    run(
-        "submission_files/submission_user_1/submission_5/2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
-        "/root/worker/current_evaluation",
-    )
+    pass
+    # run(
+    #     "submission_files/submission_user_1/submission_5/2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
+    #     "/root/worker/current_evaluation",
+    # )
     # push_to_s3(
     #     "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
     #     "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",
