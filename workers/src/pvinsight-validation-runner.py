@@ -16,12 +16,11 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import Any, cast
+from typing import Any, Callable, cast
 import pandas as pd
 import os
 from importlib import import_module
 import inspect
-import time
 from collections import ChainMap
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -36,21 +35,24 @@ import subprocess
 import logging
 import boto3
 from logger import setup_logging
-from utility import timing
+from utility import timing, is_local
+
+
+setup_logging()
+
+# Create a logger
+logger = logging.getLogger(__name__)
+
+
+IS_LOCAL = is_local()
+
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
+
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
 
 
 class RunnerException(Exception):
     pass
-
-
-def is_local():
-    """
-    Checks if the application is running locally or in an Amazon ECS environment.
-
-    Returns:
-        bool: True if the application is running locally, False otherwise.
-    """
-    return "PROD" not in os.environ
 
 
 def pull_from_s3(s3_file_path: str, local_file_path: str):
@@ -258,8 +260,8 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
-@timing()
-def run_user_submission(fn, *args, **kwargs):
+@timing(verbose=True, logger=logger)
+def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
     return fn(*args, **kwargs)
 
 
@@ -268,7 +270,7 @@ def run(
     file_metadata_df: pd.DataFrame,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
-):
+) -> dict[str, Any]:
     # If a path is provided, set the directories to that path, otherwise use default
     if current_evaluation_dir is not None:
         results_dir = (
@@ -400,9 +402,20 @@ def run(
 
     number_of_errors = 0
 
+    FAILURE_CUTOFF = 3
+
     # Loop through each file and generate predictions
 
     for index, (_, row) in enumerate(file_metadata_df.iterrows()):
+        logger.debug(
+            f"index: {index}, FAILURE_CUTOFF: {FAILURE_CUTOFF}, number_of_errors: {number_of_errors}"
+        )
+        if index <= FAILURE_CUTOFF:
+            if number_of_errors == FAILURE_CUTOFF:
+                raise RunnerException(
+                    f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting."
+                )
+
         logger.info(f"processing file {index + 1} of {total_number_of_files}")
         # Get file_name, which will be pulled from database or S3 for
         # each analysis
@@ -465,8 +478,6 @@ def run(
             number_of_errors += 1
             continue
 
-        logger.info(f"function {function_name} run time: {function_run_time}")
-
         file_submission_result_length = len(data_outputs)
         if file_submission_result_length != ground_truth_file_length:
             logger.error(
@@ -520,7 +531,7 @@ def run(
     #   2) Private reporting: graphics and tables split by different factors
     # First get mean value for all the performance metrics and save (this will
     # be saved to a public metrics dictionary)
-    public_metrics_dict = dict()
+    public_metrics_dict: dict[str, Any] = dict()
     public_metrics_dict["module"] = module_name
     # Get the mean and median run times
     public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
@@ -613,18 +624,6 @@ def run(
 
     return public_metrics_dict
 
-
-setup_logging()
-
-# Create a logger
-logger = logging.getLogger(__name__)
-
-
-IS_LOCAL = is_local()
-
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
-
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
 
 if __name__ == "__main__":
     pass

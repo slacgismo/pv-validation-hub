@@ -1,21 +1,29 @@
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import wraps
 from logging import Logger
-from multiprocessing import Pool
 from time import perf_counter
-from typing import Callable
+import os
+from typing import Any, Callable, Tuple, TypeVar, Union
 
 
-def timing(verbose: bool = True) -> Callable:
-    def decorator(func: Callable):
+T = TypeVar("T")
+
+
+def timing(verbose: bool = True, logger: Union[Logger, None] = None):
+    @wraps(timing)
+    def decorator(func: Callable[..., T]):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs) -> Tuple[T, float]:
             start_time = perf_counter()
             result = func(*args, **kwargs)
             end_time = perf_counter()
             execution_time = end_time - start_time
             if verbose:
-                print(f"{func.__name__} took {execution_time:.3f} seconds to run")
+                msg = f"{func.__name__} took {execution_time:.3f} seconds to run"
+                if logger:
+                    logger.info(msg)
+                else:
+                    print(msg)
             return result, execution_time
 
         return wrapper
@@ -33,3 +41,13 @@ def multiprocess(func: Callable, data: list, n_processes: int, logger: Logger) -
             except Exception as e:
                 logger.error(f"Error: {e}")
     return results
+
+
+def is_local():
+    """
+    Checks if the application is running locally or in an Amazon ECS environment.
+
+    Returns:
+        bool: True if the application is running locally, False otherwise.
+    """
+    return "PROD" not in os.environ

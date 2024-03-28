@@ -1,6 +1,4 @@
-from ast import Call
 from importlib import import_module
-from math import log
 from typing import Any, Callable, Optional
 import requests
 import sys
@@ -19,6 +17,39 @@ import threading
 import time
 import pandas as pd
 from logger import setup_logging
+from utility import timing, is_local
+
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
+
+IS_LOCAL = is_local()
+
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
+
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
+
+# base
+BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
+# Set to folder where the evaluation scripts are stored
+
+
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
+CURRENT_EVALUATION_DIR = os.path.abspath(
+    os.path.join(FILE_DIR, "..", "current_evaluation")
+)
+
+# log
+WORKER_LOGS_PREFIX = "WORKER_LOG"
+SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
 
 
 class WorkerException(Exception):
@@ -27,16 +58,6 @@ class WorkerException(Exception):
 
 class RunnerException(Exception):
     pass
-
-
-def is_local():
-    """
-    Checks if the application is running locally or in an Amazon ECS environment.
-
-    Returns:
-        bool: True if the application is running locally, False otherwise.
-    """
-    return "PROD" not in os.environ
 
 
 def pull_from_s3(s3_file_path: str):
@@ -78,7 +99,9 @@ def push_to_s3(local_file_path, s3_file_path):
         s3_file_path = s3_file_path[1:]
 
     if IS_LOCAL:
-        s3_file_full_path = "http://s3:5000/put_object/" + s3_file_path
+        s3_file_full_path = (
+            f"http://s3:5000/put_object/{S3_BUCKET_NAME}/" + s3_file_path
+        )
     else:
         s3_file_full_path = "s3://" + s3_file_path
 
@@ -166,7 +189,9 @@ def update_submission_result(analysis_id, submission_id, result_json):
 ############ analysis functions #############
 
 
-def extract_analysis_data(analysis_id, current_evaluation_dir) -> pd.DataFrame:
+def extract_analysis_data(
+    analysis_id: str, current_evaluation_dir: str
+) -> pd.DataFrame:
 
     # download evaluation scripts and requirements.txt etc.
     files = list_s3_bucket(
@@ -279,10 +304,10 @@ def create_current_evaluation_dir(directory_path: str):
     return current_evaluation_dir
 
 
-def load_analysis(
-    analysis_id, current_evaluation_dir
-) -> tuple[
-    Callable[[str, pd.DataFrame, Optional[str], Optional[str]], Any], list, pd.DataFrame
+def load_analysis(analysis_id: str, current_evaluation_dir: str) -> tuple[
+    Callable[[str, pd.DataFrame, Optional[str], Optional[str]], dict[str, Any]],
+    list,
+    pd.DataFrame,
 ]:
 
     logger.info("pull and extract analysis")
@@ -319,7 +344,7 @@ def load_analysis(
 
 
 def process_submission_message(
-    analysis_id, submission_id, user_id, submission_filename
+    analysis_id: str, submission_id: str, user_id: str, submission_filename: str
 ):
     """
     Extracts the submission related metadata from the message
@@ -363,10 +388,7 @@ def process_submission_message(
             full_file_name = os.path.join(dir_path, file_name)
             relative_file_name = full_file_name[len(f"{res_files_path}/") :]
 
-            if IS_LOCAL:
-                s3_full_path = f"pv-validation-hub-bucket/submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}"
-            else:
-                s3_full_path = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}"
+            s3_full_path = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}"
 
             logger.info(
                 f'upload result file "{full_file_name}" to s3 path "{s3_full_path}"'
@@ -485,6 +507,7 @@ def handle_error(message, error_code, error_message):
     # Send the error message to the submission
 
 
+@timing(verbose=True, logger=logger)
 def main():
     # killer = GracefulKiller()
     logger.info(
@@ -513,10 +536,12 @@ def main():
 
             json_message: dict[str, Any] = json.loads(message.body)
 
-            analysis_id = int(json_message.get("analysis_pk", None))
-            submission_id = int(json_message.get("submission_pk", None))
-            user_id = int(json_message.get("user_pk", None))
-            submission_filename = json_message.get("submission_filename", None)
+            analysis_id: str | None = json_message.get("analysis_pk", None)
+            submission_id: str | None = json_message.get("submission_pk", None)
+            user_id: str | None = json_message.get("user_pk", None)
+            submission_filename: str | None = json_message.get(
+                "submission_filename", None
+            )
 
             if (
                 not analysis_id
@@ -544,18 +569,18 @@ def main():
                     analysis_id, submission_id, user_id, submission_filename
                 )
             except Exception as e:
-                error_code = e.args[0]
-                error_message = e.args[1]
-                logger.exception(
+                try:
+                    error_code = e.args[0]
+                    error_message = e.args[1]
+                except IndexError:
+                    error_code = 1
+                    error_message = str(e)
+                logger.error(
                     "{} Exception while processing message from submission queue with error {}".format(
                         WORKER_LOGS_PREFIX, e
                     )
                 )
-                # # update submission status to failed
-                # body = json.loads(message.body)
-                # analysis_id = int(body.get("analysis_pk"))
-                # submission_id = int(body.get("submission_pk"))
-                # update_submission_status(analysis_id, submission_id, FAILED)
+
             finally:
                 message.delete()
                 # Let the queue know that the message is processed
@@ -568,17 +593,17 @@ def main():
             # rename log file to include submission_id
 
             log_file = os.path.join(LOG_FILE_DIR, "submission.log")
-            json_log_file = os.path.join(LOG_FILE_DIR, "submission.jsonl")
+            json_log_file = os.path.join(LOG_FILE_DIR, "submission.log.jsonl")
 
             # push log files to s3
 
             push_to_s3(
                 log_file,
-                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission_{submission_id}.log",
+                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
             )
             push_to_s3(
                 json_log_file,
-                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission_{submission_id}.jsonl",
+                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
             )
 
             # Remove all log files
@@ -593,38 +618,8 @@ def main():
         time.sleep(0.1)
 
 
-setup_logging()
-
-logger = logging.getLogger(__name__)
-
-
-IS_LOCAL = is_local()
-
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
-
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
-
-SUBMITTING = "submitting"
-SUBMITTED = "submitted"
-RUNNING = "running"
-FAILED = "failed"
-FINISHED = "finished"
-
-# base
-BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
-# Set to folder where the evaluation scripts are stored
-
-
-FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE_DIR = os.path.join(FILE_DIR, "..", "logs")
-CURRENT_EVALUATION_DIR = os.path.join(FILE_DIR, "..", "current_evaluation")
-
-# log
-WORKER_LOGS_PREFIX = "WORKER_LOG"
-SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
-
-
 if __name__ == "__main__":
     logger.info("{} Starting Submission Worker.".format(WORKER_LOGS_PREFIX))
-    main()
+    _, execution_time = main()
+    logger.info(f"Evaluation Worker took {execution_time:.3f} seconds to run")
     logger.info("{} Quitting Submission Worker.".format(WORKER_LOGS_PREFIX))
