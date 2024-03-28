@@ -12,4 +12,4 @@
 #     sleep 5
 # done
 
-python submission_worker.py
+python src/submission_worker.py
