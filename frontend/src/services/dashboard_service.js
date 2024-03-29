@@ -15,7 +15,7 @@ const DashboardService = {
       for (let i = 0; i < response.length; i += 1) {
         const element = {
           id,
-          algorithm: response[i].algorithm_s3_path,
+          error_rate: response[i].error_rate,
           created_by: response[i].created_by.username,
           execution_time: response[i].mrt,
           status: response[i].status,

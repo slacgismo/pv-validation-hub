@@ -27,7 +27,7 @@ function Footer() {
         <Grid item xs={12}>
           <Box display="flex" justifyContent="center" alignItems="center" sx={{ borderBottom: 1, borderColor: 'divider', marginTop: 4 }}>
             <Grid item xs={2} />
-            <Grid container spacing={2} xs={8}>
+            <Grid container spacing={2}>
               <Grid item xs={2}>
                 <Link href="https://www6.slac.stanford.edu/news-and-events/connect-with-us" underline="hover" color="inherit">
                   Community
