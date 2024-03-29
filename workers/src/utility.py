@@ -3,7 +3,7 @@ from functools import wraps
 from logging import Logger
 from time import perf_counter
 import os
-from typing import Any, Callable, Tuple, TypeVar, Union
+from typing import Callable, Tuple, TypeVar, Union
 
 
 T = TypeVar("T")
@@ -19,7 +19,9 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
             end_time = perf_counter()
             execution_time = end_time - start_time
             if verbose:
-                msg = f"{func.__name__} took {execution_time:.3f} seconds to run"
+                msg = (
+                    f"{func.__name__} took {execution_time:.3f} seconds to run"
+                )
                 if logger:
                     logger.info(msg)
                 else:
@@ -31,7 +33,9 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
     return decorator
 
 
-def multiprocess(func: Callable, data: list, n_processes: int, logger: Logger) -> list:
+def multiprocess(
+    func: Callable, data: list, n_processes: int, logger: Logger
+) -> list:
     with ProcessPoolExecutor(max_workers=n_processes) as executor:
         futures = {executor.submit(func, d): d for d in data}
         results = []

@@ -4,7 +4,7 @@ script, the following occurs:
     1. Pull down all of the metadata associated with the data sets
     2. Loop through all metadata cases, pull down the associated data, and
     run the associated submission on it
-    3. Aggregate the results for the entire data set and generate assessment 
+    3. Aggregate the results for the entire data set and generate assessment
     metrics. Assessment metrics will vary based on the type of analysis being
     run. Some examples include:
         1. Mean Absolute Error between predicted time shift series and ground
@@ -68,7 +68,9 @@ def pull_from_s3(s3_file_path: str, local_file_path: str):
     else:
         s3_file_full_path = "s3://" + s3_file_path
 
-    target_file_path = os.path.join(local_file_path, s3_file_full_path.split("/")[-1])
+    target_file_path = os.path.join(
+        local_file_path, s3_file_full_path.split("/")[-1]
+    )
 
     if IS_LOCAL:
         r = requests.get(s3_file_full_path, stream=True)
@@ -116,6 +118,104 @@ def convert_compressed_file_path_to_directory(compressed_file_path):
     return path_components
 
 
+def extract_files(  # noqa: C901
+    ref: zipfile.ZipFile | tarfile.TarFile,
+    extract_path: str,
+    zip_path: str,
+    remove_unallowed_starting_characters: Callable[[str], str | None],
+):
+
+    logger.info("Extracting files from: " + zip_path)
+
+    if ref.__class__ == zipfile.ZipFile:
+        ref = cast(zipfile.ZipFile, ref)
+        file_names = ref.namelist()
+    elif ref.__class__ == tarfile.TarFile:
+        ref = cast(tarfile.TarFile, ref)
+        file_names = ref.getnames()
+    else:
+        raise Exception("File is not a zip or tar file.")
+
+    # recursively remove files and folders that start with certain characters
+    file_names = [
+        f for f in file_names if remove_unallowed_starting_characters(f)
+    ]
+    logger.info("File names:")
+    logger.info(file_names)
+    folders = [f for f in file_names if f.endswith("/")]
+    logger.info("Folders:")
+    logger.info(folders)
+
+    if len(folders) == 0:
+        logger.info("Extracting all files...")
+
+        for file in file_names:
+            if ref.__class__ == zipfile.ZipFile:
+                ref = cast(zipfile.ZipFile, ref)
+                ref.extract(file, path=extract_path)
+            elif ref.__class__ == tarfile.TarFile:
+                ref = cast(tarfile.TarFile, ref)
+                ref.extract(file, path=extract_path, filter="data")
+            else:
+                raise Exception("File is not a zip or tar file.")
+
+    else:
+        # if all files have the same root any folder can be used to check since all will have the same root if true
+        do_all_files_have_same_root = all(
+            [f.startswith(folders[0]) for f in file_names]
+        )
+        logger.info(
+            "Do all files have the same root? "
+            + str(do_all_files_have_same_root)
+        )
+
+        if do_all_files_have_same_root:
+            # extract all files within the folder with folder of the zipfile that has the same root
+            root_folder_name = folders[0]
+
+            logger.info("Extracting files...")
+            for file in file_names:
+                if file.endswith("/") and file != root_folder_name:
+                    os.makedirs(
+                        os.path.join(
+                            extract_path,
+                            file.removeprefix(root_folder_name),
+                        )
+                    )
+                if not file.endswith("/"):
+                    if ref.__class__ == zipfile.ZipFile:
+                        ref = cast(zipfile.ZipFile, ref)
+                        ref.extract(file, path=extract_path)
+                    elif ref.__class__ == tarfile.TarFile:
+                        ref = cast(tarfile.TarFile, ref)
+                        ref.extract(file, path=extract_path, filter="data")
+                    else:
+                        raise Exception("File is not a zip or tar file.")
+
+                    os.rename(
+                        os.path.join(extract_path, file),
+                        os.path.join(
+                            extract_path,
+                            file.removeprefix(root_folder_name),
+                        ),
+                    )
+
+            # remove the root folder and all other folders
+            shutil.rmtree(os.path.join(extract_path, root_folder_name))
+
+        else:
+            logger.info("Extracting all files...")
+            for file in file_names:
+                if ref.__class__ == zipfile.ZipFile:
+                    ref = cast(zipfile.ZipFile, ref)
+                    ref.extract(file, path=extract_path)
+                elif ref.__class__ == tarfile.TarFile:
+                    ref = cast(tarfile.TarFile, ref)
+                    ref.extract(file, path=extract_path, filter="data")
+                else:
+                    raise Exception("File is not a zip or tar file.")
+
+
 def extract_zip(zip_path: str, extract_path: str):
     if not os.path.exists(extract_path):
         os.makedirs(extract_path)
@@ -129,99 +229,22 @@ def extract_zip(zip_path: str, extract_path: str):
                 return None
         return file_name
 
-    def extract_files(ref: zipfile.ZipFile | tarfile.TarFile, extract_path: str):
-
-        logger.info("Extracting files from: " + zip_path)
-
-        if ref.__class__ == zipfile.ZipFile:
-            ref = cast(zipfile.ZipFile, ref)
-            file_names = ref.namelist()
-        elif ref.__class__ == tarfile.TarFile:
-            ref = cast(tarfile.TarFile, ref)
-            file_names = ref.getnames()
-        else:
-            raise Exception("File is not a zip or tar file.")
-
-        # recursively remove files and folders that start with certain characters
-        file_names = [f for f in file_names if remove_unallowed_starting_characters(f)]
-        logger.info("File names:")
-        logger.info(file_names)
-        folders = [f for f in file_names if f.endswith("/")]
-        logger.info("Folders:")
-        logger.info(folders)
-
-        if len(folders) == 0:
-            logger.info("Extracting all files...")
-
-            for file in file_names:
-                if ref.__class__ == zipfile.ZipFile:
-                    ref = cast(zipfile.ZipFile, ref)
-                    ref.extract(file, path=extract_path)
-                elif ref.__class__ == tarfile.TarFile:
-                    ref = cast(tarfile.TarFile, ref)
-                    ref.extract(file, path=extract_path, filter="data")
-                else:
-                    raise Exception("File is not a zip or tar file.")
-
-        else:
-            # if all files have the same root any folder can be used to check since all will have the same root if true
-            do_all_files_have_same_root = all(
-                [f.startswith(folders[0]) for f in file_names]
-            )
-            logger.info(
-                "Do all files have the same root? " + str(do_all_files_have_same_root)
-            )
-
-            if do_all_files_have_same_root:
-                # extract all files within the folder with folder of the zipfile that has the same root
-                root_folder_name = folders[0]
-
-                logger.info("Extracting files...")
-                for file in file_names:
-                    if file.endswith("/") and file != root_folder_name:
-                        os.makedirs(
-                            os.path.join(
-                                extract_path, file.removeprefix(root_folder_name)
-                            )
-                        )
-                    if not file.endswith("/"):
-                        if ref.__class__ == zipfile.ZipFile:
-                            ref = cast(zipfile.ZipFile, ref)
-                            ref.extract(file, path=extract_path)
-                        elif ref.__class__ == tarfile.TarFile:
-                            ref = cast(tarfile.TarFile, ref)
-                            ref.extract(file, path=extract_path, filter="data")
-                        else:
-                            raise Exception("File is not a zip or tar file.")
-
-                        os.rename(
-                            os.path.join(extract_path, file),
-                            os.path.join(
-                                extract_path, file.removeprefix(root_folder_name)
-                            ),
-                        )
-
-                # remove the root folder and all other folders
-                shutil.rmtree(os.path.join(extract_path, root_folder_name))
-
-            else:
-                logger.info("Extracting all files...")
-                for file in file_names:
-                    if ref.__class__ == zipfile.ZipFile:
-                        ref = cast(zipfile.ZipFile, ref)
-                        ref.extract(file, path=extract_path)
-                    elif ref.__class__ == tarfile.TarFile:
-                        ref = cast(tarfile.TarFile, ref)
-                        ref.extract(file, path=extract_path, filter="data")
-                    else:
-                        raise Exception("File is not a zip or tar file.")
-
     if zipfile.is_zipfile(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            extract_files(zip_ref, extract_path)
+            extract_files(
+                zip_ref,
+                extract_path,
+                zip_path,
+                remove_unallowed_starting_characters,
+            )
     elif tarfile.is_tarfile(zip_path):
         with tarfile.open(zip_path, "r") as tar_ref:
-            extract_files(tar_ref, extract_path)
+            extract_files(
+                tar_ref,
+                extract_path,
+                zip_path,
+                remove_unallowed_starting_characters,
+            )
     else:
         raise Exception("File is not a zip or tar file.")
 
@@ -232,19 +255,25 @@ def get_module_file_name(module_dir: str):
             if name.endswith(".py"):
                 return name.split("/")[-1]
     else:
-        raise FileNotFoundError("No python file found in the module directory.")
+        raise FileNotFoundError(
+            "No python file found in the module directory."
+        )
 
 
 def get_module_name(module_dir: str):
     return get_module_file_name(module_dir)[:-3]
 
 
-def generate_histogram(dataframe, x_axis, title, color_code=None, number_bins=30):
+def generate_histogram(
+    dataframe, x_axis, title, color_code=None, number_bins=30
+):
     """
     Generate a histogram for a distribution. Option to color code the
     histogram by the color_code column parameter.
     """
-    sns.displot(dataframe, x=x_axis, hue=color_code, multiple="stack", bins=number_bins)
+    sns.displot(
+        dataframe, x=x_axis, hue=color_code, multiple="stack", bins=number_bins
+    )
     plt.title(title)
     plt.tight_layout()
     return plt
@@ -265,7 +294,7 @@ def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
     return fn(*args, **kwargs)
 
 
-def run(
+def run(  # noqa: C901
     module_to_import_s3_path: str,
     file_metadata_df: pd.DataFrame,
     current_evaluation_dir: str | None = None,
@@ -302,7 +331,9 @@ def run(
 
     # Load in the module that we're going to test on.
     logger.info(f"module_to_import_s3_path: {module_to_import_s3_path}")
-    target_module_compressed_file_path = pull_from_s3(module_to_import_s3_path, tmp_dir)
+    target_module_compressed_file_path = pull_from_s3(
+        module_to_import_s3_path, tmp_dir
+    )
     logger.info(
         f"target_module_compressed_file_path: {target_module_compressed_file_path}"
     )
@@ -346,7 +377,8 @@ def run(
         raise RunnerException("error installing submission dependencies")
 
     shutil.move(
-        os.path.join(target_module_path, file_name), os.path.join(new_dir, file_name)
+        os.path.join(target_module_path, file_name),
+        os.path.join(new_dir, file_name),
     )
 
     # Generate list for us to store all of our results for the module
@@ -392,7 +424,9 @@ def run(
         function = getattr(module, function_name)
         function_parameters = list(inspect.signature(function).parameters)
     except AttributeError:
-        logger.error(f"function {function_name} not found in module {module_name}")
+        logger.error(
+            f"function {function_name} not found in module {module_name}"
+        )
         raise RunnerException(
             f"function {function_name} not found in module {module_name}"
         )
@@ -427,7 +461,9 @@ def run(
         # on its system ID. This metadata will be passed in via kwargs for
         # any necessary arguments
         associated_metadata = dict(
-            system_metadata_df[system_metadata_df["system_id"] == system_id].iloc[0]
+            system_metadata_df[
+                system_metadata_df["system_id"] == system_id
+            ].iloc[0]
         )
         # Get the ground truth scalars that we will compare to
         ground_truth_dict = dict()
@@ -446,7 +482,9 @@ def run(
         # Create master dictionary of all possible function kwargs
         kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
         # Filter out to only allowable args for the function
-        kwargs_dict = {key: kwargs_dict[key] for key in config_data["allowable_kwargs"]}
+        kwargs_dict = {
+            key: kwargs_dict[key] for key in config_data["allowable_kwargs"]
+        }
         # Now that we've collected all of the information associated with the
         # test, let's read in the file as a pandas dataframe (this data
         # would most likely be stored in an S3 bucket)
@@ -462,7 +500,9 @@ def run(
 
         # Filter the kwargs dictionary based on required function params
         kwargs = dict(
-            (k, kwargs_dict[k]) for k in function_parameters if k in kwargs_dict
+            (k, kwargs_dict[k])
+            for k in function_parameters
+            if k in kwargs_dict
         )
 
         # Run the routine (timed)
@@ -512,7 +552,9 @@ def run(
                 # Loop through the input and the output dictionaries,
                 # and calculate the absolute error
                 for val in config_data["ground_truth_compare"]:
-                    error = np.abs(output_dictionary[val] - ground_truth_dict[val])
+                    error = np.abs(
+                        output_dictionary[val] - ground_truth_dict[val]
+                    )
                     results_dictionary[metric + "_" + val] = error
             elif metric == "mean_absolute_error":
                 for val in config_data["ground_truth_compare"]:
@@ -567,7 +609,9 @@ def run(
     # 'associated_files' dataframe
     results_df_private = pd.merge(results_df, file_metadata_df, on="file_name")
     # Filter to only the necessary columns (available via the config)
-    results_df_private = results_df_private[config_data["private_results_columns"]]
+    results_df_private = results_df_private[
+        config_data["private_results_columns"]
+    ]
     results_df_private.to_csv(
         os.path.join(results_dir, module_name + "_full_results.csv")
     )
@@ -590,7 +634,9 @@ def run(
             # (if color_code param is not None)
             if color_code:
                 stratified_results_tbl = pd.DataFrame(
-                    results_df_private.groupby(color_code)[plot["x_val"]].mean()
+                    results_df_private.groupby(color_code)[
+                        plot["x_val"]
+                    ].mean()
                 )
                 stratified_results_tbl.to_csv(
                     os.path.join(
