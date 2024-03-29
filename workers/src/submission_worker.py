@@ -14,7 +14,6 @@ import time
 import urllib.request
 import inspect
 import threading
-import time
 import pandas as pd
 from logger import setup_logging
 from utility import timing, is_local
@@ -35,6 +34,7 @@ SUBMITTED = "submitted"
 RUNNING = "running"
 FAILED = "failed"
 FINISHED = "finished"
+
 
 # base
 BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
@@ -87,8 +87,11 @@ def pull_from_s3(s3_file_path: str):
 
         try:
             s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
-        except:
-            raise FileNotFoundError(f"File {target_file_path} not found in s3 bucket.")
+        except botocore.exceptions.ClientError as e:
+            logger.error(f"Error: {e}")
+            raise FileNotFoundError(
+                f"File {target_file_path} not found in s3 bucket."
+            )
 
     return target_file_path
 
@@ -120,7 +123,8 @@ def push_to_s3(local_file_path, s3_file_path):
 
         try:
             s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
-        except:
+        except botocore.exceptions.ClientError as e:
+            logger.error(f"Error: {e}")
             return None
 
 
@@ -145,7 +149,9 @@ def list_s3_bucket(s3_dir: str):
         # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
         s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        logger.info(f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}")
+        logger.info(
+            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
+        )
 
         s3 = boto3.client("s3")
         paginator = s3.get_paginator("list_objects_v2")
@@ -186,10 +192,7 @@ def update_submission_result(analysis_id, submission_id, result_json):
         )
 
 
-############ analysis functions #############
-
-
-def extract_analysis_data(
+def extract_analysis_data(  # noqa: C901
     analysis_id: str, current_evaluation_dir: str
 ) -> pd.DataFrame:
 
@@ -215,12 +218,13 @@ def extract_analysis_data(
                 f"Required file {required_file} not found in s3 bucket for analysis {analysis_id}"
             )
 
-    logger.info(f"pull evaluation scripts from s3")
+    logger.info("pull evaluation scripts from s3")
     for file in files:
         logger.info(f"pull file {file} from s3")
         tmp_path = pull_from_s3(file)
         shutil.move(
-            tmp_path, os.path.join(current_evaluation_dir, tmp_path.split("/")[-1])
+            tmp_path,
+            os.path.join(current_evaluation_dir, tmp_path.split("/")[-1]),
         )
 
     # create data directory and sub directories
@@ -253,7 +257,9 @@ def extract_analysis_data(
     # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
     file_metadata_list: list[dict[str, Any]] = []
     for file_id in unique_file_ids:
-        fmd_url = f"http://{API_BASE_URL}/file_metadata/filemetadata/{file_id}/"
+        fmd_url = (
+            f"http://{API_BASE_URL}/file_metadata/filemetadata/{file_id}/"
+        )
         response = requests.get(fmd_url)
         if not response.ok:
             raise FileNotFoundError(
@@ -271,26 +277,44 @@ def extract_analysis_data(
 
     files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
 
-    analyticals = list_s3_bucket(f"pv-validation-hub-bucket/data_files/analytical/")
+    analyticals = list_s3_bucket(
+        f"pv-validation-hub-bucket/data_files/analytical/"
+    )
+    analytical_files = [
+        analytical.split("/")[-1] for analytical in analyticals
+    ]
     ground_truths = list_s3_bucket(
         f"pv-validation-hub-bucket/data_files/ground_truth/{analysis_id}/"
     )
+    ground_truth_files = [
+        ground_truth.split("/")[-1] for ground_truth in ground_truths
+    ]
 
-    for analytical in analyticals:
-        if analytical.split("/")[-1] not in files_for_analysis:
-            raise FileNotFoundError(
-                f"Analytical file {analytical} not found in file metadata for analysis {analysis_id}"
-            )
+    if not all(file in ground_truth_files for file in files_for_analysis):
+        raise FileNotFoundError(
+            f"Ground truth data files not found for analysis {analysis_id}"
+        )
+
+    if not all(file in analytical_files for file in files_for_analysis):
+        raise FileNotFoundError(
+            f"Analytical data files not found for analysis {analysis_id}"
+        )
+
+    for file in files_for_analysis:
+
+        analytical = analyticals[analytical_files.index(file)]
+
         tmp_path = pull_from_s3(analytical)
-        shutil.move(tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1]))
-    for ground_truth in ground_truths:
-        if ground_truth.split("/")[-1] not in files_for_analysis:
-            raise FileNotFoundError(
-                f"Ground truth file {ground_truth} not found in file metadata for analysis {analysis_id}"
-            )
+        shutil.move(
+            tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
+        )
+
+        ground_truth = ground_truths[ground_truth_files.index(file)]
+
         tmp_path = pull_from_s3(ground_truth)
         shutil.move(
-            tmp_path, os.path.join(validation_data_dir, tmp_path.split("/")[-1])
+            tmp_path,
+            os.path.join(validation_data_dir, tmp_path.split("/")[-1]),
         )
 
     return file_metadata_df
@@ -299,19 +323,27 @@ def extract_analysis_data(
 def create_current_evaluation_dir(directory_path: str):
     current_evaluation_dir = directory_path
 
+    if os.path.exists(current_evaluation_dir):
+        logger.info(f"remove directory {current_evaluation_dir}")
+        shutil.rmtree(current_evaluation_dir, ignore_errors=True)
+
     os.makedirs(current_evaluation_dir, exist_ok=True)
     logger.info(f"created evaluation folder {current_evaluation_dir}")
     return current_evaluation_dir
 
 
 def load_analysis(analysis_id: str, current_evaluation_dir: str) -> tuple[
-    Callable[[str, pd.DataFrame, Optional[str], Optional[str]], dict[str, Any]],
+    Callable[
+        [str, pd.DataFrame, Optional[str], Optional[str]], dict[str, Any]
+    ],
     list,
     pd.DataFrame,
 ]:
 
     logger.info("pull and extract analysis")
-    file_metadata_df = extract_analysis_data(analysis_id, current_evaluation_dir)
+    file_metadata_df = extract_analysis_data(
+        analysis_id, current_evaluation_dir
+    )
 
     # Copy the validation runner into the current evaluation directory
     shutil.copy(
@@ -330,28 +362,34 @@ def load_analysis(analysis_id: str, current_evaluation_dir: str) -> tuple[
 
     try:
         analysis_function = getattr(analysis_module, "run")
-        function_parameters = list(inspect.signature(analysis_function).parameters)
+        function_parameters = list(
+            inspect.signature(analysis_function).parameters
+        )
         logger.info(f"analysis function parameters: {function_parameters}")
     except AttributeError:
         logger.error(
             f"Runner module {runner_module_name} does not have a 'run' function"
         )
-        raise WorkerException(1, "Runner module does not have a 'run' function")
+        raise WorkerException(
+            1, "Runner module does not have a 'run' function"
+        )
     return analysis_function, function_parameters, file_metadata_df
 
 
-############ submission functions #############
-
-
 def process_submission_message(
-    analysis_id: str, submission_id: str, user_id: str, submission_filename: str
+    analysis_id: str,
+    submission_id: str,
+    user_id: str,
+    submission_filename: str,
 ):
     """
     Extracts the submission related metadata from the message
     and send the submission object for evaluation
     """
 
-    current_evaluation_dir = create_current_evaluation_dir(CURRENT_EVALUATION_DIR)
+    current_evaluation_dir = create_current_evaluation_dir(
+        CURRENT_EVALUATION_DIR
+    )
 
     analysis_function, function_parameters, file_metadata_df = load_analysis(
         analysis_id, current_evaluation_dir
@@ -381,12 +419,16 @@ def process_submission_message(
     logger.info(f"upload result files to s3")
 
     res_files_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "current_evaluation/results"
+        CURRENT_EVALUATION_DIR,
+        "results",
     )
     for dir_path, dir_names, file_names in os.walk(res_files_path):
         for file_name in file_names:
             full_file_name = os.path.join(dir_path, file_name)
             relative_file_name = full_file_name[len(f"{res_files_path}/") :]
+
+            logger.info(f"full file name {full_file_name}")
+            logger.info(f"relative file name {relative_file_name}")
 
             s3_full_path = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/{relative_file_name}"
 
@@ -395,12 +437,9 @@ def process_submission_message(
             )
             push_to_s3(full_file_name, s3_full_path)
 
-    # remove the current evaluation dir
-    logger.info(f"remove directory {current_evaluation_dir}")
-    shutil.rmtree(current_evaluation_dir)
-
-
-############ queue functions #############
+    # # remove the current evaluation dir
+    # logger.info(f"remove directory {current_evaluation_dir}")
+    # shutil.rmtree(current_evaluation_dir)
 
 
 def get_or_create_sqs_queue(queue_name):
@@ -436,14 +475,18 @@ def get_or_create_sqs_queue(queue_name):
             != "AWS.SimpleQueueService.NonExistentQueue"
         ):
             logger.exception("Cannot get queue: {}".format(queue_name))
-        queue = sqs.create_queue(QueueName=queue_name, Attributes={"FifoQueue": "true"})
+        queue = sqs.create_queue(
+            QueueName=queue_name, Attributes={"FifoQueue": "true"}
+        )
 
     return queue
 
 
 def get_analysis_pk():
     instance_id = (
-        urllib.request.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
+        urllib.request.urlopen(
+            "http://169.254.169.254/latest/meta-data/instance-id"
+        )
         .read()
         .decode()
     )
@@ -554,7 +597,9 @@ def main():
                         SUBMISSION_LOGS_PREFIX, json_message
                     )
                 )
-                raise ValueError(1, "Missing required fields in submission message")
+                raise ValueError(
+                    1, "Missing required fields in submission message"
+                )
 
             # start a thread to refresh the timeout
             stop_event = threading.Event()
@@ -575,17 +620,19 @@ def main():
                 except IndexError:
                     error_code = 1
                     error_message = str(e)
+
                 logger.error(
-                    "{} Exception while processing message from submission queue with error {}".format(
-                        WORKER_LOGS_PREFIX, e
-                    )
+                    f'Error processing message from submission queue with error code {error_code} and message "{error_message}"'
                 )
+                logger.exception(e)
 
             finally:
                 message.delete()
                 # Let the queue know that the message is processed
                 logger.info(
-                    "{} Message processed successfully".format(WORKER_LOGS_PREFIX)
+                    "{} Message processed successfully".format(
+                        WORKER_LOGS_PREFIX
+                    )
                 )
                 stop_event.set()
                 t.join()

@@ -25,12 +25,6 @@
         }
     },
     "handlers": {
-        "stderr": {
-            "class": "logging.StreamHandler",
-            "level": "ERROR",
-            "formatter": "detailed",
-            "stream": "ext://sys.stderr"
-        },
         "stdout": {
             "class": "logging.StreamHandler",
             "level": "INFO",
@@ -54,7 +48,6 @@
         "": {
             "level": "DEBUG",
             "handlers": [
-                "stderr",
                 "stdout",
                 "file",
                 "json_file"
