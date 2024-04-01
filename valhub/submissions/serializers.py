@@ -59,7 +59,9 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
     #        return ErrorReportLeaderboardSerializer(error_report).data if error_report else None
 
     def to_representation(self, instance):
-        data = super(SubmissionDetailSerializer, self).to_representation(instance)
+        data = super(SubmissionDetailSerializer, self).to_representation(
+            instance
+        )
         data["created_by"] = {
             "uuid": instance.created_by.uuid,
             "username": instance.created_by.username,

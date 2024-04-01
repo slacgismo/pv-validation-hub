@@ -3,6 +3,16 @@ import '@testing-library/jest-dom';
 import { render, screen, cleanup } from '@testing-library/react';
 import App from './App.jsx';
 
+// Mock window.location
+global.window = Object.create(window);
+Object.defineProperty(window, 'location', {
+  value: {
+    hostname: 'localhost',
+    origin: 'http://localhost', // add this line
+    href: 'http://localhost/', // add this line
+  },
+});
+
 // This is the exported function that contains all the tests
 export default function AppTests() {
   // Cleanup after each test

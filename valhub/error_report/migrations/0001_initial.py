@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="ErrorReport",
             fields=[
-                ("error_id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "error_id",
+                    models.AutoField(primary_key=True, serialize=False),
+                ),
                 ("error_code", models.CharField(max_length=100)),
                 ("error_type", models.CharField(max_length=100)),
                 ("error_message", models.TextField()),

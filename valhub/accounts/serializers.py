@@ -22,7 +22,9 @@ class AccountSerializer(serializers.ModelSerializer):
         return Account.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        instance.githubLink = validated_data.get("githubLink", instance.githubLink)
+        instance.githubLink = validated_data.get(
+            "githubLink", instance.githubLink
+        )
         instance.email = validated_data.get("email", instance.email)
         instance.save()
         return instance

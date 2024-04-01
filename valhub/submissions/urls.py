@@ -34,7 +34,11 @@ urlpatterns = [
         name="analysis_user_submission",
     ),
     path("leaderboard", views.leaderboard_update, name="leaderboard_update"),
-    path("preload_submissions", views.preload_submissions, name="preload_submissions"),
+    path(
+        "preload_submissions",
+        views.preload_submissions,
+        name="preload_submissions",
+    ),
     path(
         "submission_results/<int:submission_id>",
         views.get_submission_results,

@@ -77,7 +77,9 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
         except:
             return None
 
-        bucket_location = boto3.client("s3").get_bucket_location(Bucket=bucket_name)
+        bucket_location = boto3.client("s3").get_bucket_location(
+            Bucket=bucket_name
+        )
         object_url = "https://{}.s3.{}.amazonaws.com/{}".format(
             bucket_name, bucket_location["LocationConstraint"], upload_path
         )

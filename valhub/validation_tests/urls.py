@@ -7,7 +7,9 @@ from .views import (
 
 
 urlpatterns = [
-    path("", ValidationTestsListAPIView.as_view(), name="validation_tests_list"),
+    path(
+        "", ValidationTestsListAPIView.as_view(), name="validation_tests_list"
+    ),
     path(
         "<int:pk>/",
         ValidationTestsDetailAPIView.as_view(),
