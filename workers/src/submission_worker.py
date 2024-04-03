@@ -56,10 +56,6 @@ class WorkerException(Exception):
     pass
 
 
-class RunnerException(Exception):
-    pass
-
-
 def pull_from_s3(s3_file_path: str):
     logger.info(f"pull file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
@@ -525,7 +521,9 @@ def get_aws_sqs_client():
 
 
 # function to update visibility timeout, to prevent the error "ReceiptHandle is invalid. Reason: The receipt handle has expired."
-def update_visibility_timeout(queue, message, timeout, event: threading.Event):
+def update_visibility_timeout(
+    queue, message, timeout: int, event: threading.Event
+):
     # Use the Docker endpoint URL for local development
     sqs = get_aws_sqs_client()
     while True:
@@ -538,6 +536,31 @@ def update_visibility_timeout(queue, message, timeout, event: threading.Event):
         time.sleep(60)  # Adjust the sleep duration as needed
         if event.is_set():
             break
+
+
+def post_error_to_api(
+    submission_id: str,
+    error_code: str,
+    error_type: str,
+    error_rate: str | None = None,
+):
+    api_route = f"http://{API_BASE_URL}/error/error_report/"
+
+    body = {
+        "submission": submission_id,
+        "error_code": error_code,
+        "error_type": error_type,
+    }
+
+    if error_rate is not None:
+        body["error_rate"] = error_rate
+
+    r = requests.post(
+        api_route,
+        data=body,
+    )
+    if not r.ok:
+        raise WorkerException(1, "Error posting error report to Django API")
 
 
 def handle_error(message, error_code, error_message):
@@ -618,7 +641,7 @@ def main():
                     error_code = e.args[0]
                     error_message = e.args[1]
                 except IndexError:
-                    error_code = 1
+                    error_code = 500
                     error_message = str(e)
 
                 logger.error(
