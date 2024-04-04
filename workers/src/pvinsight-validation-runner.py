@@ -253,9 +253,18 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
+def prepare_submission():
+    pass
+
+
 @timing(verbose=True, logger=logger)
 def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
     return fn(*args, **kwargs)
+
+
+def run_user_submission_on_file(function, time_series, **kwargs):
+
+    run_user_submission()
 
 
 def run(  # noqa: C901
@@ -318,8 +327,8 @@ def run(  # noqa: C901
     new_dir = os.path.dirname(os.path.abspath(__file__))
     logger.info(f"new_dir: {new_dir}")
 
-    file_name = get_module_file_name(target_module_path)
-    logger.info(f"file_name: {file_name}")
+    submission_file_name = get_module_file_name(target_module_path)
+    logger.info(f"file_name: {submission_file_name}")
     module_name = get_module_name(target_module_path)
     logger.info(f"module_name: {module_name}")
 
@@ -343,8 +352,8 @@ def run(  # noqa: C901
         )
 
     shutil.move(
-        os.path.join(target_module_path, file_name),
-        os.path.join(new_dir, file_name),
+        os.path.join(target_module_path, submission_file_name),
+        os.path.join(new_dir, submission_file_name),
     )
 
     # Generate list for us to store all of our results for the module
@@ -388,12 +397,14 @@ def run(  # noqa: C901
 
     # Get the name of the function we want to import associated with this
     # test
-    function_name = config_data["function_name"]
+    function_name: str = config_data["function_name"]
     # Import designated module via importlib
     module = import_module(module_name)
     try:
-        function = getattr(module, function_name)
-        function_parameters = list(inspect.signature(function).parameters)
+        submission_function: Callable = getattr(module, function_name)
+        function_parameters = list(
+            inspect.signature(submission_function).parameters
+        )
     except AttributeError:
         logger.error(
             f"function {function_name} not found in module {module_name}"
@@ -425,22 +436,42 @@ def run(  # noqa: C901
                     f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting.",
                     current_error_rate(number_of_errors, index),
                 )
-
-        logger.info(f"processing file {index + 1} of {total_number_of_files}")
-        # Get file_name, which will be pulled from database or S3 for
-        # each analysis
         file_name = row["file_name"]
-        logger.info(f"file_name: {file_name}")
+
         # Get associated system ID
         system_id = row["system_id"]
+
         # Get all of the associated metadata for the particular file based
         # on its system ID. This metadata will be passed in via kwargs for
         # any necessary arguments
-        associated_metadata = dict(
+        associated_metadata: dict[str, Any] = dict(
             system_metadata_df[
                 system_metadata_df["system_id"] == system_id
             ].iloc[0]
         )
+
+        logger.info(f"processing file {index + 1} of {total_number_of_files}")
+        try:
+            # Get file_name, which will be pulled from database or S3 for
+            # each analysis
+            (
+                data_outputs,
+                function_run_time,
+            ) = run_submission(
+                file_name,
+                data_dir,
+                associated_metadata,
+                config_data,
+                submission_function,
+                function_parameters,
+                row,
+            )
+
+        except Exception as e:
+            logger.error(f"error running function {function_name}: {e}")
+            number_of_errors += 1
+            continue
+
         # Get the ground truth scalars that we will compare to
         ground_truth_dict = dict()
         if config_data["comparison_type"] == "scalar":
@@ -455,44 +486,6 @@ def run(  # noqa: C901
             ground_truth_dict["time_series"] = ground_truth_series
 
         ground_truth_file_length = len(ground_truth_series)
-        # Create master dictionary of all possible function kwargs
-        kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
-        # Filter out to only allowable args for the function
-        kwargs_dict = {
-            key: kwargs_dict[key] for key in config_data["allowable_kwargs"]
-        }
-        # Now that we've collected all of the information associated with the
-        # test, let's read in the file as a pandas dataframe (this data
-        # would most likely be stored in an S3 bucket)
-        time_series_df: pd.DataFrame = pd.read_csv(
-            os.path.join(data_dir + "/file_data/", file_name),
-            index_col=0,
-            parse_dates=True,
-        )
-
-        time_series: pd.Series = time_series_df.asfreq(
-            str(row["data_sampling_frequency"]) + "min"
-        ).squeeze()
-
-        # Filter the kwargs dictionary based on required function params
-        kwargs = dict(
-            (k, kwargs_dict[k])
-            for k in function_parameters
-            if k in kwargs_dict
-        )
-
-        # Run the routine (timed)
-        logger.info(f"running function {function_name} with kwargs {kwargs}")
-
-        try:
-            data_outputs, function_run_time = run_user_submission(
-                function, time_series, **kwargs
-            )
-
-        except Exception as e:
-            logger.error(f"error running function {function_name}: {e}")
-            number_of_errors += 1
-            continue
 
         file_submission_result_length = len(data_outputs)
         if file_submission_result_length != ground_truth_file_length:
@@ -645,6 +638,79 @@ def run(  # noqa: C901
     )
 
     return public_metrics_dict
+
+
+def run_submission(
+    file_name: str,
+    data_dir: str,
+    associated_metadata: dict[str, Any],
+    config_data: dict[str, Any],
+    submission_function: Callable,
+    function_parameters: list[str],
+    row: pd.Series,
+):
+
+    logger.info(f"file_name: {file_name}")
+
+    # Create master dictionary of all possible function kwargs
+    kwargs = prepare_kwargs_for_submission_function(
+        config_data, function_parameters, row, associated_metadata
+    )
+
+    # Now that we've collected all of the information associated with the
+    # test, let's read in the file as a pandas dataframe (this data
+    # would most likely be stored in an S3 bucket)
+    time_series = prepare_time_series(data_dir, file_name, row)
+
+    # Run the routine (timed)
+    logger.info(
+        f"running function {submission_function.__name__} with kwargs {kwargs}"
+    )
+
+    data_outputs, function_run_time = run_user_submission(
+        submission_function, time_series, **kwargs
+    )
+
+    return (
+        data_outputs,
+        function_run_time,
+    )
+
+
+def prepare_kwargs_for_submission_function(
+    config_data: dict[str, Any],
+    function_parameters: list[str],
+    row: pd.Series,
+    associated_metadata: dict[str, Any],
+):
+    kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
+    # Filter out to only allowable args for the function
+    kwargs_dict = {
+        key: kwargs_dict[key] for key in config_data["allowable_kwargs"]
+    }
+
+    # Filter the kwargs dictionary based on required function params
+    kwargs: dict[str, Any] = dict(
+        (k, kwargs_dict[k]) for k in function_parameters if k in kwargs_dict
+    )
+
+    return kwargs
+
+
+def prepare_time_series(
+    data_dir: str, file_name: str, row: pd.Series
+) -> pd.Series:
+    time_series_df: pd.DataFrame = pd.read_csv(
+        os.path.join(data_dir + "/file_data/", file_name),
+        index_col=0,
+        parse_dates=True,
+    )
+
+    time_series: pd.Series = time_series_df.asfreq(
+        str(row["data_sampling_frequency"]) + "min"
+    ).squeeze()
+
+    return time_series
 
 
 if __name__ == "__main__":

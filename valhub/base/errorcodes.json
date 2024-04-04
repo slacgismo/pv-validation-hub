@@ -1,6 +1,6 @@
 {
     "op": {
-        "1": "Zip file is not a valid zip file",
+        "1": "Submission file is not a valid zipped file",
         "2": "Error installing Python submission dependencies",
         "3": "Failed to get system metadata information",
         "4": "No system metadata returned from API",
