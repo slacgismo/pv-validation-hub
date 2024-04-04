@@ -6,6 +6,10 @@ import os
 from typing import Callable, Tuple, TypeVar, Union
 
 
+WORKER_ERROR_PREFIX = "wr"
+RUNNER_ERROR_PREFIX = "op"
+SUBMISSION_ERROR_PREFIX = "sb"
+
 T = TypeVar("T")
 
 
@@ -55,3 +59,30 @@ def is_local():
         bool: True if the application is running locally, False otherwise.
     """
     return "PROD" not in os.environ
+
+
+class WorkerException(Exception):
+    def __init__(
+        self, code: int, message: str, error_rate: float | None = None
+    ):
+        self.code = f"{WORKER_ERROR_PREFIX}_{code}"
+        self.message = message
+        self.error_rate = error_rate
+
+
+class RunnerException(Exception):
+    def __init__(
+        self, code: int, message: str, error_rate: float | None = None
+    ):
+        self.code = f"{RUNNER_ERROR_PREFIX}_{code}"
+        self.message = message
+        self.error_rate = error_rate
+
+
+class SubmissionException(Exception):
+    def __init__(
+        self, code: int, message: str, error_rate: float | None = None
+    ):
+        self.code = f"{SUBMISSION_ERROR_PREFIX}_{code}"
+        self.message = message
+        self.error_rate = error_rate

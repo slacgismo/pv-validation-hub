@@ -3,7 +3,17 @@
         "1": "This is a test message for 1"
     },
     "wr": {
-        "1": ""
+        "1": "Error uploading file to s3",
+        "2": "Error downloading file from s3",
+        "3": "No files found in s3 bucket for analysis",
+        "4": "Error updating submission result to API",
+        "5": "Error updating submission status to API",
+        "6": "Required evaluation files not found in s3 bucket",
+        "7": "File metadata for file ID not found in API",
+        "8": "No file metadata found in API for analysis ID",
+        "9": "Not all ground truth data files found in s3 bucket for analysis",
+        "10": "Not all analytical data files found in s3 bucket for analysis",
+        "11": "Runner module does not have a 'run' function"
     },
     "sb": {
         "1": ""
