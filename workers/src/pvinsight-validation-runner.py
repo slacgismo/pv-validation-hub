@@ -35,7 +35,7 @@ import subprocess
 import logging
 import boto3
 from logger import setup_logging
-from utility import timing, is_local
+from utility import RunnerException, pull_from_s3, timing, is_local
 
 
 setup_logging()
@@ -49,42 +49,6 @@ IS_LOCAL = is_local()
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
-
-
-class RunnerException(Exception):
-    pass
-
-
-def pull_from_s3(s3_file_path: str, local_file_path: str):
-    logger.info(f"pulling file {s3_file_path} from s3")
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-        logger.info(f"modified path to {s3_file_path}")
-
-    if IS_LOCAL:
-        s3_file_full_path = (
-            "http://s3:5000/get_object/" + S3_BUCKET_NAME + "/" + s3_file_path
-        )
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    target_file_path = os.path.join(
-        local_file_path, s3_file_full_path.split("/")[-1]
-    )
-
-    if IS_LOCAL:
-        r = requests.get(s3_file_full_path, stream=True)
-        if r.status_code != 200:
-            logger.error(
-                f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}",
-            )
-        with open(target_file_path, "wb") as f:
-            f.write(r.content)
-    else:
-        s3 = boto3.client("s3")
-        s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
-
-    return target_file_path
 
 
 def push_to_s3(local_file_path, s3_file_path):
@@ -190,7 +154,7 @@ def extract_files(  # noqa: C901
                         ref = cast(tarfile.TarFile, ref)
                         ref.extract(file, path=extract_path, filter="data")
                     else:
-                        raise Exception("File is not a zip or tar file.")
+                        raise Exception(1, "File is not a zip or tar file.")
 
                     os.rename(
                         os.path.join(extract_path, file),
@@ -213,7 +177,7 @@ def extract_files(  # noqa: C901
                     ref = cast(tarfile.TarFile, ref)
                     ref.extract(file, path=extract_path, filter="data")
                 else:
-                    raise Exception("File is not a zip or tar file.")
+                    raise Exception(1, "File is not a zip or tar file.")
 
 
 def extract_zip(zip_path: str, extract_path: str):
@@ -246,7 +210,7 @@ def extract_zip(zip_path: str, extract_path: str):
                 remove_unallowed_starting_characters,
             )
     else:
-        raise Exception("File is not a zip or tar file.")
+        raise Exception(1, "File is not a zip or tar file.")
 
 
 def get_module_file_name(module_dir: str):
@@ -295,7 +259,7 @@ def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
 
 
 def run(  # noqa: C901
-    module_to_import_s3_path: str,
+    s3_submission_zip_file_path: str,
     file_metadata_df: pd.DataFrame,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
@@ -330,9 +294,9 @@ def run(  # noqa: C901
     os.makedirs(data_dir, exist_ok=True)
 
     # Load in the module that we're going to test on.
-    logger.info(f"module_to_import_s3_path: {module_to_import_s3_path}")
+    logger.info(f"module_to_import_s3_path: {s3_submission_zip_file_path}")
     target_module_compressed_file_path = pull_from_s3(
-        module_to_import_s3_path, tmp_dir
+        IS_LOCAL, S3_BUCKET_NAME, s3_submission_zip_file_path, tmp_dir, logger
     )
     logger.info(
         f"target_module_compressed_file_path: {target_module_compressed_file_path}"
@@ -374,7 +338,9 @@ def run(  # noqa: C901
         logger.info("submission dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
         logger.error("error installing submission dependencies:", e)
-        raise RunnerException("error installing submission dependencies")
+        raise RunnerException(
+            2, "error installing python submission dependencies"
+        )
 
     shutil.move(
         os.path.join(target_module_path, file_name),
@@ -394,7 +360,7 @@ def run(  # noqa: C901
         logger.error(
             f"Failed to get system metadata from {smd_url}: {system_metadata_response.content}"
         )
-        raise RunnerException("Failed to get system metadata")
+        raise RunnerException(3, "Failed to get system metadata information")
 
     # Convert the responses to DataFrames
 
@@ -405,10 +371,15 @@ def run(  # noqa: C901
 
     if system_metadata_df.empty:
         logger.error("System metadata is empty")
-        raise RunnerException("System metadata is empty")
+        raise RunnerException(4, "No system metadata returned from API")
 
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json")) as f:
+        if not f:
+            logger.error("config.json not found")
+            raise RunnerException(
+                5, "config.json not found in current evaluation directory"
+            )
         config_data: dict[str, Any] = json.load(f)
 
     # Get the associated metrics we're supposed to calculate
@@ -428,7 +399,7 @@ def run(  # noqa: C901
             f"function {function_name} not found in module {module_name}"
         )
         raise RunnerException(
-            f"function {function_name} not found in module {module_name}"
+            6, f"function {function_name} not found in module {module_name}"
         )
 
     total_number_of_files = len(file_metadata_df)
@@ -437,6 +408,9 @@ def run(  # noqa: C901
     number_of_errors = 0
 
     FAILURE_CUTOFF = 3
+
+    def current_error_rate(number_of_errors: int, index: int):
+        return (number_of_errors / (index + 1)) * 100
 
     # Loop through each file and generate predictions
 
@@ -447,7 +421,9 @@ def run(  # noqa: C901
         if index <= FAILURE_CUTOFF:
             if number_of_errors == FAILURE_CUTOFF:
                 raise RunnerException(
-                    f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting."
+                    7,
+                    f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting.",
+                    current_error_rate(number_of_errors, index),
                 )
 
         logger.info(f"processing file {index + 1} of {total_number_of_files}")

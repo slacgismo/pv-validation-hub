@@ -22,6 +22,7 @@ from utility import (
     RunnerException,
     SubmissionException,
     WorkerException,
+    pull_from_s3,
     timing,
     is_local,
 )
@@ -54,41 +55,6 @@ LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
 CURRENT_EVALUATION_DIR = os.path.abspath(
     os.path.join(FILE_DIR, "..", "current_evaluation")
 )
-
-
-def pull_from_s3(s3_file_path: str):
-    logger.info(f"pull file {s3_file_path} from s3")
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-
-    if IS_LOCAL:
-        s3_file_full_path = "http://s3:5000/get_object/" + s3_file_path
-        # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    target_file_path = os.path.join("/tmp/", s3_file_full_path.split("/")[-1])
-
-    if IS_LOCAL:
-        r = requests.get(s3_file_full_path, stream=True)
-        if not r.ok:
-            raise WorkerException(
-                2, f"Error downloading file from s3: {r.content}"
-            )
-        with open(target_file_path, "wb") as f:
-            f.write(r.content)
-    else:
-        s3 = boto3.client("s3")
-
-        try:
-            s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
-        except botocore.exceptions.ClientError as e:
-            logger.error(f"Error: {e}")
-            raise FileNotFoundError(
-                2, f"File {target_file_path} not found in s3 bucket."
-            )
-
-    return target_file_path
 
 
 def push_to_s3(local_file_path, s3_file_path):
@@ -222,7 +188,9 @@ def extract_analysis_data(  # noqa: C901
     logger.info("pull evaluation scripts from s3")
     for file in files:
         logger.info(f"pull file {file} from s3")
-        tmp_path = pull_from_s3(file)
+        tmp_path = pull_from_s3(
+            IS_LOCAL, S3_BUCKET_NAME, file, BASE_TEMP_DIR, logger
+        )
         shutil.move(
             tmp_path,
             os.path.join(current_evaluation_dir, tmp_path.split("/")[-1]),
@@ -307,14 +275,18 @@ def extract_analysis_data(  # noqa: C901
 
         analytical = analyticals[analytical_files.index(file)]
 
-        tmp_path = pull_from_s3(analytical)
+        tmp_path = pull_from_s3(
+            IS_LOCAL, S3_BUCKET_NAME, analytical, BASE_TEMP_DIR, logger
+        )
         shutil.move(
             tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
         )
 
         ground_truth = ground_truths[ground_truth_files.index(file)]
 
-        tmp_path = pull_from_s3(ground_truth)
+        tmp_path = pull_from_s3(
+            IS_LOCAL, S3_BUCKET_NAME, ground_truth, BASE_TEMP_DIR, logger
+        )
         shutil.move(
             tmp_path,
             os.path.join(validation_data_dir, tmp_path.split("/")[-1]),
@@ -401,13 +373,18 @@ def process_submission_message(
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
-    argument = f"submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}"
-    logger.info(f"execute runner module function with argument {argument}")
+    s3_submission_zip_file_path = f"{S3_BUCKET_NAME}/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}"
+    logger.info(
+        f"execute runner module function with argument {s3_submission_zip_file_path}"
+    )
 
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
     ret = analysis_function(
-        argument, file_metadata_df, current_evaluation_dir, BASE_TEMP_DIR
+        s3_submission_zip_file_path,
+        file_metadata_df,
+        current_evaluation_dir,
+        BASE_TEMP_DIR,
     )
     logger.info(f"runner module function returns {ret}")
 

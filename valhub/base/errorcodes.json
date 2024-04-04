@@ -1,6 +1,12 @@
 {
     "op": {
-        "1": "This is a test message for 1"
+        "1": "Zip file is not a valid zip file",
+        "2": "Error installing Python submission dependencies",
+        "3": "Failed to get system metadata information",
+        "4": "No system metadata returned from API",
+        "5": "Configuration file not found in current evaluation directory",
+        "6": "Required function name not found within submission python file",
+        "7": "Failure cutoff met for submission evaluation and execution has been terminated"
     },
     "wr": {
         "1": "Error uploading file to s3",
