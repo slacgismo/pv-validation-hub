@@ -42,11 +42,11 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
 
 
 def multiprocess(
-    func: Callable, data: list, n_processes: int, logger: Logger
-) -> list:
+    func: Callable[..., T], data: list, n_processes: int, logger: Logger
+) -> list[T]:
     with ProcessPoolExecutor(max_workers=n_processes) as executor:
         futures = {executor.submit(func, d): d for d in data}
-        results = []
+        results: list[T] = []
         for future in as_completed(futures):
             try:
                 results.append(future.result())

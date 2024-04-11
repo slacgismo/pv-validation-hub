@@ -253,18 +253,9 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
-def prepare_submission():
-    pass
-
-
 @timing(verbose=True, logger=logger)
 def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
     return fn(*args, **kwargs)
-
-
-def run_user_submission_on_file(function, time_series, **kwargs):
-
-    run_user_submission()
 
 
 def run(  # noqa: C901
