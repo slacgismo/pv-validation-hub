@@ -177,14 +177,18 @@ function UserInfoMenu({
         onClose={onCloseUserMenu}
       >
         {
-          userInfoMenu.map((item) => (
-            <Box>
-              <MenuItem key={item.text} onClick={item.handler}>
-                <Typography textAlign="center">{item.text}</Typography>
-              </MenuItem>
-              { item.border ? <Divider /> : <Box /> }
-            </Box>
-          ))
+          userInfoMenu.map((item) => {
+            const boxKey = item.text;
+            const menuKey = `${item.text} menu`;
+            return (
+              <Box key={boxKey}>
+                <MenuItem key={menuKey} onClick={item.handler}>
+                  <Typography textAlign="center">{item.text}</Typography>
+                </MenuItem>
+                { item.border ? <Divider /> : <Box /> }
+              </Box>
+            );
+          })
         }
       </Menu>
     </Box>
@@ -205,11 +209,15 @@ UserLoggedInMenu.propTypes = {
 };
 
 UserInfoMenu.propTypes = {
-  userInfoMenu: PropTypes.arrayOf([]).isRequired,
+  userInfoMenu: PropTypes.array.isRequired,
   anchorElUser: PropTypes.oneOfType([
     PropTypes.instanceOf(Node),
-    PropTypes.instanceOf(null),
-  ]).isRequired,
+    PropTypes.oneOf([null]),
+  ]),
   onClickUserInfoMenu: PropTypes.func.isRequired,
   onCloseUserMenu: PropTypes.func.isRequired,
+};
+
+UserInfoMenu.defaultProps = {
+  anchorElUser: null,
 };

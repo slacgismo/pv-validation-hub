@@ -16,7 +16,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="FileMetadata",
             fields=[
-                ("file_id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "file_id",
+                    models.AutoField(primary_key=True, serialize=False),
+                ),
                 ("file_name", models.CharField(max_length=256)),
                 ("timezone", models.CharField(max_length=128)),
                 ("data_sampling_frequency", models.PositiveIntegerField()),

@@ -1,10 +1,12 @@
-FROM python:3.10-slim as base
+FROM python:3.11-slim as base
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
 RUN mkdir worker
 WORKDIR /root/worker
 COPY . .
+
+RUN mkdir -p /root/worker/logs
 
 ENV PORT 8500
 EXPOSE 8500

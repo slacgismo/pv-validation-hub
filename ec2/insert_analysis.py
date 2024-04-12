@@ -30,7 +30,9 @@ def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
-def post_data_to_api_to_df(api_url: str, endpoint: str, data: dict) -> pd.DataFrame:
+def post_data_to_api_to_df(
+    api_url: str, endpoint: str, data: dict
+) -> pd.DataFrame:
     response = requests.post(f"{api_url}{endpoint}", json=data)
     if not response.ok:
         raise ValueError(
@@ -115,10 +117,14 @@ def upload_to_s3_bucket(
             s3.upload_file(local_path, bucket_name, upload_path)
             print(f"uploaded {local_path} to {bucket_name}/{upload_path}")
         except Exception as e:
-            print(f"error uploading {local_path} to {bucket_name}/{upload_path}")
+            print(
+                f"error uploading {local_path} to {bucket_name}/{upload_path}"
+            )
             raise e
 
-        bucket_location = boto3.client("s3").get_bucket_location(Bucket=bucket_name)
+        bucket_location = boto3.client("s3").get_bucket_location(
+            Bucket=bucket_name
+        )
         object_url = "https://{}.s3.{}.amazonaws.com/{}".format(
             bucket_name, bucket_location["LocationConstraint"], upload_path
         )
@@ -207,8 +213,12 @@ class InsertAnalysis:
         self.file_data_folder_path = file_data_folder_path
         self.evaluation_scripts_folder_path = evaluation_scripts_folder_path
         # self.validation_tests_file_path = validation_tests_file_path
-        self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(sys_metadata_file_path)
-        self.new_file_metadata_df: pd.DataFrame = pd.read_csv(file_metadata_file_path)
+        self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(
+            sys_metadata_file_path
+        )
+        self.new_file_metadata_df: pd.DataFrame = pd.read_csv(
+            file_metadata_file_path
+        )
 
         self.analysis_id = None
         self.system_id_mapping = dict()
@@ -230,13 +240,17 @@ class InsertAnalysis:
 
         # are there any duplicates?
         if file_metadata_files.duplicated().any():
-            raise ValueError("There are duplicate file names in the file metadata.")
+            raise ValueError(
+                "There are duplicate file names in the file metadata."
+            )
 
         sys_metadata_files = self.new_sys_metadata_df["name"]
 
         # are there any duplicates?
         if sys_metadata_files.duplicated().any():
-            raise ValueError("There are duplicate system names in the system metadata.")
+            raise ValueError(
+                "There are duplicate system names in the system metadata."
+            )
 
         file_data_files = os.listdir(self.file_data_folder_path)
 
@@ -247,7 +261,9 @@ class InsertAnalysis:
 
         validation_data_files = os.listdir(self.validation_data_folder_path)
 
-        if not all(file in validation_data_files for file in file_metadata_files):
+        if not all(
+            file in validation_data_files for file in file_metadata_files
+        ):
             raise ValueError(
                 "The file metadata contains files that are not in the validation data folder."
             )
@@ -275,7 +291,9 @@ class InsertAnalysis:
 
     # Create and upload to the API and S3
     def createAnalysis(
-        self, db_analysis_df: pd.DataFrame, max_concurrent_submission_evaluation: int
+        self,
+        db_analysis_df: pd.DataFrame,
+        max_concurrent_submission_evaluation: int,
     ):
         """
         Create a new analysis in the API.
@@ -289,7 +307,8 @@ class InsertAnalysis:
             db_analysis_id = cast(
                 int,
                 db_analysis_df.loc[
-                    db_analysis_df["analysis_name"] == self.config["category_name"],
+                    db_analysis_df["analysis_name"]
+                    == self.config["category_name"],
                     "analysis_id",
                 ].values[  # type: ignore
                     0
@@ -307,7 +326,9 @@ class InsertAnalysis:
                 "max_concurrent_submission_evaluation": max_concurrent_submission_evaluation,
             }
 
-            res = post_data_to_api_to_df(self.api_url, "/analysis/create/", body)
+            res = post_data_to_api_to_df(
+                self.api_url, "/analysis/create/", body
+            )
             print("Analysis created")
             self.analysis_id = res["analysis_id"].values[0]
 
@@ -374,12 +395,18 @@ class InsertAnalysis:
                 self.api_url, "/file_metadata/filemetadata/", json_body
             )
 
-            local_path = os.path.join(self.file_data_folder_path, metadata["file_name"])
+            local_path = os.path.join(
+                self.file_data_folder_path, metadata["file_name"]
+            )
             upload_path = f'data_files/analytical/{metadata["file_name"]}'
 
             # upload metadata to s3
             upload_to_s3_bucket(
-                self.s3_url, self.s3_bucket_name, local_path, upload_path, self.is_local
+                self.s3_url,
+                self.s3_bucket_name,
+                local_path,
+                upload_path,
+                self.is_local,
             )
 
             # upload validation data to s3
@@ -388,7 +415,11 @@ class InsertAnalysis:
             )
             upload_path = f'data_files/ground_truth/{str(self.analysis_id)}/{metadata["file_name"]}'
             upload_to_s3_bucket(
-                self.s3_url, self.s3_bucket_name, local_path, upload_path, self.is_local
+                self.s3_url,
+                self.s3_bucket_name,
+                local_path,
+                upload_path,
+                self.is_local,
             )
 
     # def createValidationData(self):
@@ -511,7 +542,10 @@ class InsertAnalysis:
 
         # Create a dictionary of the file metadata IDs
         db_file_name_to_id_mapping: dict[str, int] = dict(
-            zip(db_file_metadata_df["file_name"], db_file_metadata_df["file_id"])
+            zip(
+                db_file_metadata_df["file_name"],
+                db_file_metadata_df["file_id"],
+            )
         )
 
         counter = 0
@@ -557,7 +591,9 @@ class InsertAnalysis:
             )
 
         if not hasAllColumns(df_old, ["name", "latitude", "longitude"]):
-            df_old = pd.DataFrame([], columns=["name", "latitude", "longitude"])
+            df_old = pd.DataFrame(
+                [], columns=["name", "latitude", "longitude"]
+            )
 
         same_systems = pd.merge(
             df_new, df_old, how="inner", on=["name", "latitude", "longitude"]
@@ -591,7 +627,9 @@ class InsertAnalysis:
         df_new = self.new_file_metadata_df.copy()
 
         # Remove the repeat systems from the metadata we want to insert
-        df_new = df_new[~df_new["file_name"].isin(list(overlapping_files["file_name"]))]
+        df_new = df_new[
+            ~df_new["file_name"].isin(list(overlapping_files["file_name"]))
+        ]
 
         df_new["system_id"] = df_new["system_id"].map(self.system_id_mapping)
 
@@ -602,9 +640,16 @@ class InsertAnalysis:
             )
 
         # Fill in any missing values with "N/A"
-        df_new["issue"] = df_new["issue"].fillna("N/A")
 
-        df_new["subissue"] = df_new["subissue"].fillna("N/A")
+        if "issue" not in df_new.columns:
+            df_new["issue"] = "N/A"
+        else:
+            df_new["issue"] = df_new["issue"].fillna("N/A")
+
+        if "subissue" not in df_new.columns:
+            df_new["subissue"] = "N/A"
+        else:
+            df_new["subissue"] = df_new["subissue"].fillna("N/A")
 
         # self.new_file_metadata_df = df_new
 
@@ -749,14 +794,16 @@ if __name__ == "__main__":
     with open("routes.json", "r") as file:
         config = json.load(file)
 
-        is_local = False
+        is_local = True
 
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
 
         config_file_path = config["config_file_path"]
         file_data_folder_path = config["file_data_folder_path"]
-        evaluation_scripts_folder_path = config["evaluation_scripts_folder_path"]
+        evaluation_scripts_folder_path = config[
+            "evaluation_scripts_folder_path"
+        ]
         sys_metadata_file_path = config["sys_metadata_file_path"]
         file_metadata_file_path = config["file_metadata_file_path"]
         validation_data_folder_path = config["validation_data_folder_path"]

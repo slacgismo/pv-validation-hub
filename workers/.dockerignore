@@ -1,0 +1,5 @@
+.vscode/
+current_evaluation/
+logs/
+tmp/
+__pycache__/

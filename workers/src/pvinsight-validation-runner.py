@@ -4,7 +4,7 @@ script, the following occurs:
     1. Pull down all of the metadata associated with the data sets
     2. Loop through all metadata cases, pull down the associated data, and
     run the associated submission on it
-    3. Aggregate the results for the entire data set and generate assessment 
+    3. Aggregate the results for the entire data set and generate assessment
     metrics. Assessment metrics will vary based on the type of analysis being
     run. Some examples include:
         1. Mean Absolute Error between predicted time shift series and ground
@@ -16,12 +16,11 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import cast
+from typing import Any, Callable, cast
 import pandas as pd
 import os
 from importlib import import_module
 import inspect
-import time
 from collections import ChainMap
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -35,86 +34,41 @@ import zipfile
 import subprocess
 import logging
 import boto3
+from logger import setup_logging
+from utility import RunnerException, pull_from_s3, timing, is_local
 
-# Basic logging configuration
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+
+setup_logging()
 
 # Create a logger
 logger = logging.getLogger(__name__)
 
 
-def is_local():
-    """
-    Checks if the application is running locally or in an Amazon ECS environment.
-
-    Returns:
-        bool: True if the application is running locally, False otherwise.
-    """
-    return "PROD" not in os.environ
-
-
-is_s3_emulation = is_local()
-
-if is_s3_emulation:
-    api_base_url = "api:8005"
-else:
-    api_base_url = "api.pv-validation-hub.org"
+IS_LOCAL = is_local()
 
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
-
-def pull_from_s3(s3_file_path):
-    logger.info(f"pulling file {s3_file_path} from s3")
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-        logger.info(f"modified path to {s3_file_path}")
-
-    if is_s3_emulation:
-        s3_file_full_path = (
-            "http://s3:5000/get_object/" + S3_BUCKET_NAME + "/" + s3_file_path
-        )
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    target_file_path = os.path.join("/tmp/", s3_file_full_path.split("/")[-1])
-
-    if is_s3_emulation:
-        r = requests.get(s3_file_full_path, stream=True)
-        if r.status_code != 200:
-            print(
-                f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}",
-                file=sys.stderr,
-            )
-        with open(target_file_path, "wb") as f:
-            f.write(r.content)
-    else:
-        s3 = boto3.client("s3")
-        s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
-
-    return target_file_path
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
 
 
 def push_to_s3(local_file_path, s3_file_path):
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         s3_file_full_path = (
             "http://s3:5000/put_object/" + S3_BUCKET_NAME + "/" + s3_file_path
         )
     else:
         s3_file_full_path = "s3://" + s3_file_path
 
-    if is_s3_emulation:
+    if IS_LOCAL:
         with open(local_file_path, "rb") as f:
             file_content = f.read()
             r = requests.put(s3_file_full_path, data=file_content)
             if r.status_code != 204:
-                print(
-                    f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}",
-                    file=sys.stderr,
+                logger.error(
+                    f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}"
                 )
     else:
         s3 = boto3.client("s3")
@@ -126,6 +80,104 @@ def convert_compressed_file_path_to_directory(compressed_file_path):
     path_components[-1] = path_components[-1].split(".")[0]
     path_components = "/".join(path_components)
     return path_components
+
+
+def extract_files(  # noqa: C901
+    ref: zipfile.ZipFile | tarfile.TarFile,
+    extract_path: str,
+    zip_path: str,
+    remove_unallowed_starting_characters: Callable[[str], str | None],
+):
+
+    logger.info("Extracting files from: " + zip_path)
+
+    if ref.__class__ == zipfile.ZipFile:
+        ref = cast(zipfile.ZipFile, ref)
+        file_names = ref.namelist()
+    elif ref.__class__ == tarfile.TarFile:
+        ref = cast(tarfile.TarFile, ref)
+        file_names = ref.getnames()
+    else:
+        raise Exception("File is not a zip or tar file.")
+
+    # recursively remove files and folders that start with certain characters
+    file_names = [
+        f for f in file_names if remove_unallowed_starting_characters(f)
+    ]
+    logger.info("File names:")
+    logger.info(file_names)
+    folders = [f for f in file_names if f.endswith("/")]
+    logger.info("Folders:")
+    logger.info(folders)
+
+    if len(folders) == 0:
+        logger.info("Extracting all files...")
+
+        for file in file_names:
+            if ref.__class__ == zipfile.ZipFile:
+                ref = cast(zipfile.ZipFile, ref)
+                ref.extract(file, path=extract_path)
+            elif ref.__class__ == tarfile.TarFile:
+                ref = cast(tarfile.TarFile, ref)
+                ref.extract(file, path=extract_path, filter="data")
+            else:
+                raise Exception("File is not a zip or tar file.")
+
+    else:
+        # if all files have the same root any folder can be used to check since all will have the same root if true
+        do_all_files_have_same_root = all(
+            [f.startswith(folders[0]) for f in file_names]
+        )
+        logger.info(
+            "Do all files have the same root? "
+            + str(do_all_files_have_same_root)
+        )
+
+        if do_all_files_have_same_root:
+            # extract all files within the folder with folder of the zipfile that has the same root
+            root_folder_name = folders[0]
+
+            logger.info("Extracting files...")
+            for file in file_names:
+                if file.endswith("/") and file != root_folder_name:
+                    os.makedirs(
+                        os.path.join(
+                            extract_path,
+                            file.removeprefix(root_folder_name),
+                        )
+                    )
+                if not file.endswith("/"):
+                    if ref.__class__ == zipfile.ZipFile:
+                        ref = cast(zipfile.ZipFile, ref)
+                        ref.extract(file, path=extract_path)
+                    elif ref.__class__ == tarfile.TarFile:
+                        ref = cast(tarfile.TarFile, ref)
+                        ref.extract(file, path=extract_path, filter="data")
+                    else:
+                        raise Exception(1, "File is not a zip or tar file.")
+
+                    os.rename(
+                        os.path.join(extract_path, file),
+                        os.path.join(
+                            extract_path,
+                            file.removeprefix(root_folder_name),
+                        ),
+                    )
+
+            # remove the root folder and all other folders
+            shutil.rmtree(os.path.join(extract_path, root_folder_name))
+
+        else:
+            logger.info("Extracting all files...")
+            for file in file_names:
+                if ref.__class__ == zipfile.ZipFile:
+                    ref = cast(zipfile.ZipFile, ref)
+                    ref.extract(file, path=extract_path)
+                elif ref.__class__ == tarfile.TarFile:
+                    ref = cast(tarfile.TarFile, ref)
+                    ref.extract(file, path=extract_path, filter="data")
+                else:
+                    raise Exception(1, "File is not a zip or tar file.")
 
 
 def extract_zip(zip_path: str, extract_path: str):
@@ -141,101 +193,24 @@ def extract_zip(zip_path: str, extract_path: str):
                 return None
         return file_name
 
-    def extract_files(ref: zipfile.ZipFile | tarfile.TarFile, extract_path: str):
-
-        logger.info("Extracting files from: " + zip_path)
-
-        if ref.__class__ == zipfile.ZipFile:
-            ref = cast(zipfile.ZipFile, ref)
-            file_names = ref.namelist()
-        elif ref.__class__ == tarfile.TarFile:
-            ref = cast(tarfile.TarFile, ref)
-            file_names = ref.getnames()
-        else:
-            raise Exception("File is not a zip or tar file.")
-
-        # recursively remove files and folders that start with certain characters
-        file_names = [f for f in file_names if remove_unallowed_starting_characters(f)]
-        logger.info("File names:")
-        logger.info(file_names)
-        folders = [f for f in file_names if f.endswith("/")]
-        logger.info("Folders:")
-        logger.info(folders)
-
-        if len(folders) == 0:
-            logger.info("Extracting all files...")
-
-            for file in file_names:
-                if ref.__class__ == zipfile.ZipFile:
-                    ref = cast(zipfile.ZipFile, ref)
-                    ref.extract(file, path=extract_path)
-                elif ref.__class__ == tarfile.TarFile:
-                    ref = cast(tarfile.TarFile, ref)
-                    ref.extract(file, path=extract_path, filter="data")
-                else:
-                    raise Exception("File is not a zip or tar file.")
-
-        else:
-            # if all files have the same root any folder can be used to check since all will have the same root if true
-            do_all_files_have_same_root = all(
-                [f.startswith(folders[0]) for f in file_names]
-            )
-            logger.info(
-                "Do all files have the same root? " + str(do_all_files_have_same_root)
-            )
-
-            if do_all_files_have_same_root:
-                # extract all files within the folder with folder of the zipfile that has the same root
-                root_folder_name = folders[0]
-
-                logger.info("Extracting files...")
-                for file in file_names:
-                    if file.endswith("/") and file != root_folder_name:
-                        os.makedirs(
-                            os.path.join(
-                                extract_path, file.removeprefix(root_folder_name)
-                            )
-                        )
-                    if not file.endswith("/"):
-                        if ref.__class__ == zipfile.ZipFile:
-                            ref = cast(zipfile.ZipFile, ref)
-                            ref.extract(file, path=extract_path)
-                        elif ref.__class__ == tarfile.TarFile:
-                            ref = cast(tarfile.TarFile, ref)
-                            ref.extract(file, path=extract_path, filter="data")
-                        else:
-                            raise Exception("File is not a zip or tar file.")
-
-                        os.rename(
-                            os.path.join(extract_path, file),
-                            os.path.join(
-                                extract_path, file.removeprefix(root_folder_name)
-                            ),
-                        )
-
-                # remove the root folder and all other folders
-                shutil.rmtree(os.path.join(extract_path, root_folder_name))
-
-            else:
-                logger.info("Extracting all files...")
-                for file in file_names:
-                    if ref.__class__ == zipfile.ZipFile:
-                        ref = cast(zipfile.ZipFile, ref)
-                        ref.extract(file, path=extract_path)
-                    elif ref.__class__ == tarfile.TarFile:
-                        ref = cast(tarfile.TarFile, ref)
-                        ref.extract(file, path=extract_path, filter="data")
-                    else:
-                        raise Exception("File is not a zip or tar file.")
-
     if zipfile.is_zipfile(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            extract_files(zip_ref, extract_path)
+            extract_files(
+                zip_ref,
+                extract_path,
+                zip_path,
+                remove_unallowed_starting_characters,
+            )
     elif tarfile.is_tarfile(zip_path):
         with tarfile.open(zip_path, "r") as tar_ref:
-            extract_files(tar_ref, extract_path)
+            extract_files(
+                tar_ref,
+                extract_path,
+                zip_path,
+                remove_unallowed_starting_characters,
+            )
     else:
-        raise Exception("File is not a zip or tar file.")
+        raise Exception(1, "File is not a zip or tar file.")
 
 
 def get_module_file_name(module_dir: str):
@@ -244,19 +219,25 @@ def get_module_file_name(module_dir: str):
             if name.endswith(".py"):
                 return name.split("/")[-1]
     else:
-        raise FileNotFoundError("No python file found in the module directory.")
+        raise FileNotFoundError(
+            "No python file found in the module directory."
+        )
 
 
 def get_module_name(module_dir: str):
     return get_module_file_name(module_dir)[:-3]
 
 
-def generate_histogram(dataframe, x_axis, title, color_code=None, number_bins=30):
+def generate_histogram(
+    dataframe, x_axis, title, color_code=None, number_bins=30
+):
     """
     Generate a histogram for a distribution. Option to color code the
     histogram by the color_code column parameter.
     """
-    sns.displot(dataframe, x=x_axis, hue=color_code, multiple="stack", bins=number_bins)
+    sns.displot(
+        dataframe, x=x_axis, hue=color_code, multiple="stack", bins=number_bins
+    )
     plt.title(title)
     plt.tight_layout()
     return plt
@@ -272,7 +253,17 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
     return plt
 
 
-def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
+@timing(verbose=True, logger=logger)
+def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
+    return fn(*args, **kwargs)
+
+
+def run(  # noqa: C901
+    s3_submission_zip_file_path: str,
+    file_metadata_df: pd.DataFrame,
+    current_evaluation_dir: str | None = None,
+    tmp_dir: str | None = None,
+) -> dict[str, Any]:
     # If a path is provided, set the directories to that path, otherwise use default
     if current_evaluation_dir is not None:
         results_dir = (
@@ -293,6 +284,9 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
         data_dir = "./data"
         current_evaluation_dir = os.getcwd()
 
+    if tmp_dir is None:
+        tmp_dir = "/tmp"
+
     # Ensure results directory exists
     os.makedirs(results_dir, exist_ok=True)
 
@@ -300,8 +294,10 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
     os.makedirs(data_dir, exist_ok=True)
 
     # Load in the module that we're going to test on.
-    logger.info(f"module_to_import_s3_path: {module_to_import_s3_path}")
-    target_module_compressed_file_path = pull_from_s3(module_to_import_s3_path)
+    logger.info(f"module_to_import_s3_path: {s3_submission_zip_file_path}")
+    target_module_compressed_file_path = pull_from_s3(
+        IS_LOCAL, S3_BUCKET_NAME, s3_submission_zip_file_path, tmp_dir, logger
+    )
     logger.info(
         f"target_module_compressed_file_path: {target_module_compressed_file_path}"
     )
@@ -322,8 +318,8 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
     new_dir = os.path.dirname(os.path.abspath(__file__))
     logger.info(f"new_dir: {new_dir}")
 
-    file_name = get_module_file_name(target_module_path)
-    logger.info(f"file_name: {file_name}")
+    submission_file_name = get_module_file_name(target_module_path)
+    logger.info(f"file_name: {submission_file_name}")
     module_name = get_module_name(target_module_path)
     logger.info(f"module_name: {module_name}")
 
@@ -339,11 +335,16 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
                 os.path.join(target_module_path, "requirements.txt"),
             ]
         )
-        print("submission dependencies installed successfully.")
+        logger.info("submission dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
-        print("error installing submission dependencies:", e)
+        logger.error("error installing submission dependencies:", e)
+        raise RunnerException(
+            2, "error installing python submission dependencies"
+        )
+
     shutil.move(
-        os.path.join(target_module_path, file_name), os.path.join(new_dir, file_name)
+        os.path.join(target_module_path, submission_file_name),
+        os.path.join(new_dir, submission_file_name),
     )
 
     # Generate list for us to store all of our results for the module
@@ -352,48 +353,34 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
 
     # Make GET requests to the Django API to get the system metadata
     # http://api.pv-validation-hub.org/system_metadata/systemmetadata/
-    smd_url = f"http://{api_base_url}/system_metadata/systemmetadata/"
+    smd_url = f"http://{API_BASE_URL}/system_metadata/systemmetadata/"
     system_metadata_response = requests.get(smd_url)
+
+    if not system_metadata_response.ok:
+        logger.error(
+            f"Failed to get system metadata from {smd_url}: {system_metadata_response.content}"
+        )
+        raise RunnerException(3, "Failed to get system metadata information")
 
     # Convert the responses to DataFrames
 
     # System metadata: This CSV represents the system_metadata table, which is
     # a master table for associated system metadata (system_id, name, azimuth,
     # tilt, etc.)
-    system_metadata = pd.DataFrame(system_metadata_response.json())
+    system_metadata_df = pd.DataFrame(system_metadata_response.json())
 
-    # File category link: This file represents the file_category_link table,
-    # which links specific files in the file_metadata table.
-    # This table exists specifically to allow for
-    # many-to-many relationships, where one file can link to multiple
-    # categories/tests, and multiple categories/tests can link to multiple
-    # files.
-    file_test_link = pd.read_csv(
-        os.path.join(current_evaluation_dir, "file_test_link.csv")
-    )
-
-    # Get the unique file ids
-    unique_file_ids = file_test_link["file_id"].unique()
-
-    # File metadata: This file represents the file_metadata table, which is
-    # the master table for files associated with different tests (az-tilt,
-    # time shifts, degradation, etc.). Contains file name, associated file
-    # information (sampling frequency, specific test, timezone, etc) as well
-    # as ground truth information to test against in the validation_dictionary
-    # field
-    # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
-    file_metadata_list = []
-    for file_id in unique_file_ids:
-        fmd_url = f"http://{api_base_url}/file_metadata/filemetadata/{file_id}/"
-        response = requests.get(fmd_url)
-        file_metadata_list.append(response.json())
-
-    # Convert the list of file metadata to a DataFrame
-    file_metadata = pd.DataFrame(file_metadata_list)
+    if system_metadata_df.empty:
+        logger.error("System metadata is empty")
+        raise RunnerException(4, "No system metadata returned from API")
 
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json")) as f:
-        config_data = json.load(f)
+        if not f:
+            logger.error("config.json not found")
+            raise RunnerException(
+                5, "config.json not found in current evaluation directory"
+            )
+        config_data: dict[str, Any] = json.load(f)
 
     # Get the associated metrics we're supposed to calculate
     performance_metrics = config_data["performance_metrics"]
@@ -401,69 +388,108 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
 
     # Get the name of the function we want to import associated with this
     # test
-    function_name = config_data["function_name"]
+    function_name: str = config_data["function_name"]
     # Import designated module via importlib
     module = import_module(module_name)
-    function = getattr(module, function_name)
-    function_parameters = list(inspect.signature(function).parameters)
+    try:
+        submission_function: Callable = getattr(module, function_name)
+        function_parameters = list(
+            inspect.signature(submission_function).parameters
+        )
+    except AttributeError:
+        logger.error(
+            f"function {function_name} not found in module {module_name}"
+        )
+        raise RunnerException(
+            6, f"function {function_name} not found in module {module_name}"
+        )
+
+    total_number_of_files = len(file_metadata_df)
+    logger.info(f"total_number_of_files: {total_number_of_files}")
+
+    number_of_errors = 0
+
+    FAILURE_CUTOFF = 3
+
+    def current_error_rate(number_of_errors: int, index: int):
+        return (number_of_errors / (index + 1)) * 100
+
     # Loop through each file and generate predictions
-    for index, row in file_metadata.iterrows():
-        # Get file_name, which will be pulled from database or S3 for
-        # each analysis
+
+    for index, (_, row) in enumerate(file_metadata_df.iterrows()):
+        logger.debug(
+            f"index: {index}, FAILURE_CUTOFF: {FAILURE_CUTOFF}, number_of_errors: {number_of_errors}"
+        )
+        if index <= FAILURE_CUTOFF:
+            if number_of_errors == FAILURE_CUTOFF:
+                raise RunnerException(
+                    7,
+                    f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting.",
+                    current_error_rate(number_of_errors, index),
+                )
         file_name = row["file_name"]
-        logger.info(f"file_name: {file_name}")
+
         # Get associated system ID
         system_id = row["system_id"]
+
         # Get all of the associated metadata for the particular file based
         # on its system ID. This metadata will be passed in via kwargs for
         # any necessary arguments
-        associated_metadata = dict(
-            system_metadata[system_metadata["system_id"] == system_id].iloc[0]
+        associated_metadata: dict[str, Any] = dict(
+            system_metadata_df[
+                system_metadata_df["system_id"] == system_id
+            ].iloc[0]
         )
+
+        logger.info(f"processing file {index + 1} of {total_number_of_files}")
+        try:
+            # Get file_name, which will be pulled from database or S3 for
+            # each analysis
+            (
+                data_outputs,
+                function_run_time,
+            ) = run_submission(
+                file_name,
+                data_dir,
+                associated_metadata,
+                config_data,
+                submission_function,
+                function_parameters,
+                row,
+            )
+
+        except Exception as e:
+            logger.error(f"error running function {function_name}: {e}")
+            number_of_errors += 1
+            continue
+
         # Get the ground truth scalars that we will compare to
         ground_truth_dict = dict()
         if config_data["comparison_type"] == "scalar":
             for val in config_data["ground_truth_compare"]:
                 ground_truth_dict[val] = associated_metadata[val]
         if config_data["comparison_type"] == "time_series":
-            ground_truth_series = pd.read_csv(
+            ground_truth_series: pd.Series = pd.read_csv(
                 os.path.join(data_dir + "/validation_data/", file_name),
                 index_col=0,
                 parse_dates=True,
             ).squeeze()
             ground_truth_dict["time_series"] = ground_truth_series
-        # Create master dictionary of all possible function kwargs
-        kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
-        # Filter out to only allowable args for the function
-        kwargs_dict = {key: kwargs_dict[key] for key in config_data["allowable_kwargs"]}
-        # Now that we've collected all of the information associated with the
-        # test, let's read in the file as a pandas dataframe (this data
-        # would most likely be stored in an S3 bucket)
-        time_series: pd.DataFrame = pd.read_csv(
-            os.path.join(data_dir + "/file_data/", file_name),
-            index_col=0,
-            parse_dates=True,
-        )
 
-        time_series = time_series.asfreq(
-            str(row["data_sampling_frequency"]) + "min"
-        ).squeeze()
+        ground_truth_file_length = len(ground_truth_series)
 
-        # Filter the kwargs dictionary based on required function params
-        kwargs = dict(
-            (k, kwargs_dict[k]) for k in function_parameters if k in kwargs_dict
-        )
+        file_submission_result_length = len(data_outputs)
+        if file_submission_result_length != ground_truth_file_length:
+            logger.error(
+                f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
+            )
 
-        # Run the routine (timed)
-        logger.info(f"running function {function_name} with kwargs {kwargs}")
-        start_time = time.time()
-        data_outputs = function(time_series, **kwargs)
-        end_time = time.time()
-        function_run_time = end_time - start_time
-        logger.info(f"function {function_name} run time: {function_run_time}")
+            number_of_errors += 1
+            continue
+
         # Convert the data outputs to a dictionary identical to the
         # ground truth dictionary
-        output_dictionary = dict()
+        output_dictionary: dict[str, Any] = dict()
         if config_data["comparison_type"] == "scalar":
             for idx in range(len(config_data["ground_truth_compare"])):
                 output_dictionary[config_data["ground_truth_compare"][idx]] = (
@@ -473,7 +499,7 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
             output_dictionary["time_series"] = data_outputs
         # Run routine for all of the performance metrics and append
         # results to the dictionary
-        results_dictionary = dict()
+        results_dictionary: dict[str, Any] = dict()
         results_dictionary["file_name"] = file_name
         # Set the runtime in the results dictionary
         results_dictionary["run_time"] = function_run_time
@@ -486,7 +512,9 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
                 # Loop through the input and the output dictionaries,
                 # and calculate the absolute error
                 for val in config_data["ground_truth_compare"]:
-                    error = np.abs(output_dictionary[val] - ground_truth_dict[val])
+                    error = np.abs(
+                        output_dictionary[val] - ground_truth_dict[val]
+                    )
                     results_dictionary[metric + "_" + val] = error
             elif metric == "mean_absolute_error":
                 for val in config_data["ground_truth_compare"]:
@@ -505,7 +533,7 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
     #   2) Private reporting: graphics and tables split by different factors
     # First get mean value for all the performance metrics and save (this will
     # be saved to a public metrics dictionary)
-    public_metrics_dict = dict()
+    public_metrics_dict: dict[str, Any] = dict()
     public_metrics_dict["module"] = module_name
     # Get the mean and median run times
     public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
@@ -539,9 +567,11 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
     # type of analysis being run as results will be color-coded by certain
     # parameters. These params will be available as columns in the
     # 'associated_files' dataframe
-    results_df_private = pd.merge(results_df, file_metadata, on="file_name")
+    results_df_private = pd.merge(results_df, file_metadata_df, on="file_name")
     # Filter to only the necessary columns (available via the config)
-    results_df_private = results_df_private[config_data["private_results_columns"]]
+    results_df_private = results_df_private[
+        config_data["private_results_columns"]
+    ]
     results_df_private.to_csv(
         os.path.join(results_dir, module_name + "_full_results.csv")
     )
@@ -564,7 +594,9 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
             # (if color_code param is not None)
             if color_code:
                 stratified_results_tbl = pd.DataFrame(
-                    results_df_private.groupby(color_code)[plot["x_val"]].mean()
+                    results_df_private.groupby(color_code)[
+                        plot["x_val"]
+                    ].mean()
                 )
                 stratified_results_tbl.to_csv(
                     os.path.join(
@@ -585,14 +617,99 @@ def run(module_to_import_s3_path, current_evaluation_dir: str | None = None):
             gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
             plt.close()
             plt.clf()
+
+    logger.info(f"number_of_errors: {number_of_errors}")
+
+    success_rate = (
+        (total_number_of_files - number_of_errors) / total_number_of_files
+    ) * 100
+    logger.info(f"success_rate: {success_rate}%")
+    logger.info(
+        f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
+    )
+
     return public_metrics_dict
 
 
-if __name__ == "__main__":
-    run(
-        "submission_files/submission_user_1/submission_5/2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
-        "/root/worker/current_evaluation",
+def run_submission(
+    file_name: str,
+    data_dir: str,
+    associated_metadata: dict[str, Any],
+    config_data: dict[str, Any],
+    submission_function: Callable,
+    function_parameters: list[str],
+    row: pd.Series,
+):
+
+    logger.info(f"file_name: {file_name}")
+
+    # Create master dictionary of all possible function kwargs
+    kwargs = prepare_kwargs_for_submission_function(
+        config_data, function_parameters, row, associated_metadata
     )
+
+    # Now that we've collected all of the information associated with the
+    # test, let's read in the file as a pandas dataframe (this data
+    # would most likely be stored in an S3 bucket)
+    time_series = prepare_time_series(data_dir, file_name, row)
+
+    # Run the routine (timed)
+    logger.info(
+        f"running function {submission_function.__name__} with kwargs {kwargs}"
+    )
+
+    data_outputs, function_run_time = run_user_submission(
+        submission_function, time_series, **kwargs
+    )
+
+    return (
+        data_outputs,
+        function_run_time,
+    )
+
+
+def prepare_kwargs_for_submission_function(
+    config_data: dict[str, Any],
+    function_parameters: list[str],
+    row: pd.Series,
+    associated_metadata: dict[str, Any],
+):
+    kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
+    # Filter out to only allowable args for the function
+    kwargs_dict = {
+        key: kwargs_dict[key] for key in config_data["allowable_kwargs"]
+    }
+
+    # Filter the kwargs dictionary based on required function params
+    kwargs: dict[str, Any] = dict(
+        (k, kwargs_dict[k]) for k in function_parameters if k in kwargs_dict
+    )
+
+    return kwargs
+
+
+def prepare_time_series(
+    data_dir: str, file_name: str, row: pd.Series
+) -> pd.Series:
+    time_series_df: pd.DataFrame = pd.read_csv(
+        os.path.join(data_dir + "/file_data/", file_name),
+        index_col=0,
+        parse_dates=True,
+    )
+
+    time_series: pd.Series = time_series_df.asfreq(
+        str(row["data_sampling_frequency"]) + "min"
+    ).squeeze()
+
+    return time_series
+
+
+if __name__ == "__main__":
+    pass
+    # run(
+    #     "submission_files/submission_user_1/submission_5/2aa7ab7c-57b7-403e-b42e-097c15cb7421_Archive.zip",
+    #     "/root/worker/current_evaluation",
+    # )
     # push_to_s3(
     #     "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
     #     "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",

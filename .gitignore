@@ -146,6 +146,7 @@ node-docker-ecs
 ec2/az-tilt-estimation-validation
 ec2/time-shift-validation-hub
 ec2/test_analysis
+ec2/evaluation_scripts/*
 
 **/.vscode
 **/.venv
@@ -153,6 +154,7 @@ ec2/test_analysis
 s3Emulator/pv-validation-hub-bucket/data_files/analytical/*
 s3Emulator/pv-validation-hub-bucket/data_files/ground_truth/*
 s3Emulator/pv-validation-hub-bucket/submission_files/*
+s3Emulator/pv-validation-hub-bucket/evaluation_scripts/*
 
 valhub/staticfiles
 valhub/media
@@ -162,3 +164,4 @@ workers/current_evaluation
 
 
 *.pid
+*.jsonl

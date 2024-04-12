@@ -19,12 +19,14 @@ module.exports = {
   },
   plugins: [
     'react',
+    'import',
   ],
   rules: {
     'linebreak-style': 0,
     'import/extensions': ['error', 'ignorePackages'],
     'no-console': 'off',
-    'react/jsx-filename-extension': [1, { extensions: ['.js', '.jsx'] }],
+    'react/jsx-filename-extension': [1, { extensions: ['.js', '.jsx', '.ts', '.tsx'] }],
+    'react/forbid-prop-types': ['error', { forbid: ['any', 'object'], checkContextTypes: true, checkChildContextTypes: true }],
     'import/no-extraneous-dependencies': [
       'error',
       {

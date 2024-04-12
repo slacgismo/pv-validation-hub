@@ -64,7 +64,7 @@ export default function DeveloperHome() {
     <Container sx={{ position: 'absolute' }}>
       <Grid container alignItems="center" spacing={2}>
         <Grid item xs={3}>
-          <Box component="Nav" aria-label="mailbox folders" sx={{ position: 'fixed', display: 'flex' }}>
+          <Box component="nav" aria-label="mailbox folders" sx={{ position: 'fixed', display: 'flex' }}>
             <Drawer variant="permanent" sx={{ top: '10%', border: '1px solid rgba(0, 0, 0, 0.12)' }} open>
               <Toolbar />
               <Divider />

@@ -72,6 +72,10 @@ services:
       - type: bind
         source: ./ec2
         target: /root/admin
+      # aws credentials
+      - type: bind
+        source: ~/.aws
+        target: /root/.aws
 
   react-client:
     stdin_open: true
@@ -112,8 +116,12 @@ services:
       - s3
       - sqs
     volumes:
-      - ./workers:/root/worker
+      - ./workers/current_evaluation:/root/worker/current_evaluation
+      - ./workers/logs:/root/worker/logs
       - ./workers/tmp:/tmp
+      - ./workers/requirements.txt:/root/worker/requirements.txt
+      - ./workers/src:/root/worker/src
+    restart: unless-stopped
 
 volumes:
   valhub:

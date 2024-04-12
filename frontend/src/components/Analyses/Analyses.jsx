@@ -9,7 +9,7 @@ import CardMedia from '@mui/material/CardMedia';
 import CardContent from '@mui/material/CardContent';
 import { useNavigate } from 'react-router-dom';
 import CircularProgress from '@mui/material/CircularProgress';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'markdown-to-jsx';
 import PropTypes from 'prop-types';
 import DashboardService from '../../services/dashboard_service.js';
 
@@ -76,14 +76,18 @@ export default function Dashboard() {
                       : (
                         <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 4, sm: 8, md: 12 }} alignItems="stretch">
                           {
-                                cardDetails.map((card, index) => (
-                                  <CustomizedCard
-                                    index={index}
-                                    card={card}
-                                    onClick={handleCardClick}
-                                    testId={`analysis-card${index}`}
-                                  />
-                                ))
+                                cardDetails.map((card, index) => {
+                                  const newKey = `${card.analysis_id}-${index}`;
+                                  return (
+                                    <CustomizedCard
+                                      key={newKey}
+                                      index={index}
+                                      card={card}
+                                      onClick={handleCardClick}
+                                      testId={`analysis-card${index}`}
+                                    />
+                                  );
+                                })
                             }
                         </Grid>
                       )
@@ -129,13 +133,11 @@ function CustomizedCard({
           alt={card.analysis_name}
         />
         <CardContent>
-          <Typography variant="body2" color="text.secondary">
-            { /* eslint-disable-next-line */ }
-            <ReactMarkdown children={shortDescription !== undefined
+          { /* eslint-disable-next-line */ }
+            <Markdown children={shortDescription !== undefined
                             && shortDescription.length > 100
               ? `${shortDescription.slice(0, 100)}.....` : shortDescription}
             />
-          </Typography>
         </CardContent>
       </Card>
     </Grid>

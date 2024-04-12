@@ -1,5 +1,9 @@
 from django.urls import path
-from .views import SystemMetadataList, SystemMetadataDetail, bulk_systemmetadata_create
+from .views import (
+    SystemMetadataList,
+    SystemMetadataDetail,
+    bulk_systemmetadata_create,
+)
 
 urlpatterns = [
     path("systemmetadata/", SystemMetadataList.as_view()),

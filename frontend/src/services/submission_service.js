@@ -26,6 +26,10 @@ const SubmissionService = {
     return client.get(`/submissions/submission_results/${submissionId}`)
       .then((response) => response.data);
   },
+  getSubmissionErrors(submissionId) {
+    return client.get(`/error/error_report/private/${submissionId}`)
+      .then((response) => response.data);
+  },
 };
 
 export default SubmissionService;

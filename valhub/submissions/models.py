@@ -36,7 +36,10 @@ class Submission(models.Model):
     algorithm_s3_path = models.URLField(max_length=1000)
     result = models.TextField(null=True, blank=True, default="")
     status = models.CharField(
-        max_length=30, choices=STATUS_OPTIONS, db_index=True, default=SUBMITTING
+        max_length=30,
+        choices=STATUS_OPTIONS,
+        db_index=True,
+        default=SUBMITTING,
     )
 
     # mae - mean average error

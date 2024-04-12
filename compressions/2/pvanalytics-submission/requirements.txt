@@ -1,0 +1,5 @@
+pandas==2.0.3
+pvanalytics==0.2.0
+pvlib==0.10.2
+matplotlib==3.7.2
+ruptures==1.1.8

@@ -26,7 +26,9 @@ class SystemMetadataTestCase(TestCase):
 
     def test_systemmetadata_detail(self):
         response = self.client.get(
-            reverse("systemmetadata-detail", kwargs={"pk": self.systemmetadata.pk})
+            reverse(
+                "systemmetadata-detail", kwargs={"pk": self.systemmetadata.pk}
+            )
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["name"], "System 1")

@@ -24,7 +24,9 @@ mimetypes.add_type("text/css", ".css", True)
 mimetypes.add_type("text/html", ".css", True)
 
 config = Config(
-    connect_timeout=2, read_timeout=2, retries={"max_attempts": 10, "mode": "standard"}
+    connect_timeout=2,
+    read_timeout=2,
+    retries={"max_attempts": 10, "mode": "standard"},
 )
 
 
@@ -45,7 +47,9 @@ def get_secret(secret_name):
 
     try:
         print("Retrieving secrets")
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
         print("Retrieved secrets")
     except ClientError as e:
         if e.response["Error"]["Code"] == "DecryptionFailureException":
@@ -122,6 +126,7 @@ INSTALLED_APPS = [
     "file_metadata.apps.FilemetadataConfig",
     "validation_tests.apps.ValidationTestsConfig",
     "backend.apps.BackendConfig",
+    "error_report.apps.ErrorReportConfig",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",

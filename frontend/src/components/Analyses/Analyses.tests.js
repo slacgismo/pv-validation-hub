@@ -8,11 +8,13 @@ import { BrowserRouter } from 'react-router-dom';
 import * as router from 'react-router';
 import Dashboard from './Analyses.jsx';
 
-// Mock window.location.hostname
+// Mock window.location
 global.window = Object.create(window);
 Object.defineProperty(window, 'location', {
   value: {
     hostname: 'localhost',
+    origin: 'http://localhost', // add this line
+    href: 'http://localhost/', // add this line
   },
 });
 

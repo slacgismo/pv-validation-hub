@@ -12,8 +12,7 @@ import Cookies from 'universal-cookie';
 import AppTable from '../../GlobalComponents/AppTable/AppTable.jsx';
 import DashboardService from '../../../services/dashboard_service.js';
 
-// eslint-disable-next-line no-unused-vars
-export default function Submission({ analysisId, userId }) {
+export default function Submission({ analysisId }) {
   const statusToIcon = {
     submitted: <Tooltip title="Submitted"><PublishedWithChangesIcon /></Tooltip>,
     submitting: <Tooltip title="Submitting"><AccessTimeIcon /></Tooltip>,
@@ -110,5 +109,4 @@ Submission.propTypes = {
     PropTypes.string,
     PropTypes.number,
   ]).isRequired,
-  userId: PropTypes.number.isRequired,
 };

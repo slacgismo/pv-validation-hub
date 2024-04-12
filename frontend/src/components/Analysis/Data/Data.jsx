@@ -3,7 +3,7 @@ import {
   Box, Button, Grid, Typography,
 } from '@mui/material';
 import PropTypes from 'prop-types';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'markdown-to-jsx';
 
 export default function Data({ dataDescription, downloadableLink }) {
   const handleDownloadClick = (url) => {
@@ -22,10 +22,8 @@ export default function Data({ dataDescription, downloadableLink }) {
           <Typography variant="h3">
             Dataset Description
           </Typography>
-          <Typography variant="body2">
-            { /* eslint-disable-next-line */ }
-            <ReactMarkdown children={dataDescription} />
-          </Typography>
+          { /* eslint-disable-next-line */ }
+            <Markdown children={dataDescription} />
         </Box>
       </Grid>
       <Grid item md={4}>

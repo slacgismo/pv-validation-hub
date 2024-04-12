@@ -2,7 +2,7 @@ import React from 'react';
 import { Typography } from '@mui/material';
 import { Box, Container } from '@mui/system';
 import PropTypes from 'prop-types';
-import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
+import Markdown from 'markdown-to-jsx';
 
 export default function Overview({ title, description }) {
   return (
@@ -11,10 +11,8 @@ export default function Overview({ title, description }) {
         <Typography variant="h5">
           {title}
         </Typography>
-        <Typography variant="body2">
-          { /* eslint-disable-next-line */}
-          <ReactMarkdown children={description} />
-        </Typography>
+        { /* eslint-disable-next-line */}
+          <Markdown children={description} />
       </Box>
     </Container>
   );

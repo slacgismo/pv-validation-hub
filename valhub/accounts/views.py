@@ -84,7 +84,9 @@ class AccountDetail(APIView):
         account = request.user
 
         # update origin account
-        serializer = AccountSerializer(account, data=request.data, partial=True)
+        serializer = AccountSerializer(
+            account, data=request.data, partial=True
+        )
         if serializer.is_valid():
             serializer.save()
             return JsonResponse(serializer.data)

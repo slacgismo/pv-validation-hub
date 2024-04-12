@@ -20,7 +20,7 @@ import requests
 import os
 import json
 import boto3
-import botocore
+import botocore.exceptions
 import logging
 
 from analyses.models import Analysis
@@ -57,7 +57,7 @@ is_s3_emulation = is_local()
 @permission_classes([IsAuthenticated])
 @csrf_exempt
 def analysis_submission(request, analysis_id):
-    logging.error(f"request.data = {request.data}")
+    logging.info(f"request.data = {request.data}")
     """API Endpoint for making a submission to a analysis"""
     # check if the analysis exists or not
     # print("analysis_id: {}".format(analysis_id))
@@ -67,7 +67,7 @@ def analysis_submission(request, analysis_id):
         response_data = {"error": "Analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    logging.error("analysis exists")
+    logging.info("analysis exists")
 
     # check if the analysis queue exists or not
     try:
@@ -88,7 +88,7 @@ def analysis_submission(request, analysis_id):
         queue_name = "valhub_submission_queue.fifo"
         queue = sqs.get_queue_by_name(QueueName=queue_name)
     except botocore.exceptions.ClientError as ex:
-        logging.error(f"botocore.exceptions.ClientError = {ex}")
+        logging.info(f"botocore.exceptions.ClientError = {ex}")
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,7 +96,7 @@ def analysis_submission(request, analysis_id):
     serializer = SubmissionSerializer(data=request.data)
 
     if serializer.is_valid():
-        logging.error("serializer is valid")
+        logging.info("serializer is valid")
         serializer.save(analysis=analysis, created_by=user)
         submission_id = int(serializer.instance.submission_id)
         # print("submission_id: {}".format(submission_id))
@@ -112,7 +112,9 @@ def analysis_submission(request, analysis_id):
             f"{submission_path.split('/')[-1]}",
         )
 
-        object_url = upload_to_s3_bucket(bucket_name, submission_path, upload_path)
+        object_url = upload_to_s3_bucket(
+            bucket_name, submission_path, upload_path
+        )
         if object_url is None:
             response_data = {"error": "Cannot upload file to S3 bucket"}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
@@ -275,7 +277,8 @@ def leaderboard_update(request):
             submission = Submission.objects.get(submission_id=submission_id)
         except Submission.DoesNotExist:
             return Response(
-                {"error": "submission does not exist"}, status=status.HTTP_404_NOT_FOUND
+                {"error": "submission does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         if mae is not None:
@@ -334,7 +337,8 @@ def preload_submissions(request):
         submission.save()
 
     return JsonResponse(
-        {"message": "Submissions preloaded successfully."}, status=status.HTTP_200_OK
+        {"message": "Submissions preloaded successfully."},
+        status=status.HTTP_200_OK,
     )
 
 
@@ -352,7 +356,9 @@ def get_submission_results(request, submission_id):
     user_id = submission.created_by.uuid
     bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
-    cf_results_path = f"submission_user_{user_id}/submission_{submission_id}/results/"
+    cf_results_path = (
+        f"submission_user_{user_id}/submission_{submission_id}/results/"
+    )
     file_urls = []
     ret = {}
 
@@ -375,7 +381,9 @@ def get_submission_results(request, submission_id):
         # get the list of files in the results directory
         s3 = boto3.client("s3")
         logging.info(f"pre-list_objects_v2")
-        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=results_directory)
+        response = s3.list_objects_v2(
+            Bucket=bucket_name, Prefix=results_directory
+        )
         logging.info(f"post-list_objects_v2")
         if "Contents" not in response or not response["Contents"]:
             return JsonResponse(
@@ -387,7 +395,9 @@ def get_submission_results(request, submission_id):
             file_list = [file["Key"] for file in response["Contents"][1:]]
         else:
             file_list = [file["Key"] for file in response["Contents"]]
-        base_url = f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
+        base_url = (
+            f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
+        )
 
     png_files = [file for file in file_list if file.lower().endswith(".png")]
     logging.info(f"png_files: {png_files}")

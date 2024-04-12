@@ -3,6 +3,6 @@ requires = ["black"]
 build-backend = "black.build"
 
 [tool.black]
-target-version = ["py38", "py39", "py310", "py311"]
-line-length = 88
+target-version = ["py38", "py39", "py310", "py311", "py312"]
+line-length = 79
 include = '\.pyi?$'
