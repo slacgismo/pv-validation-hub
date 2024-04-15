@@ -9,6 +9,8 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import ErrorIcon from '@mui/icons-material/Error';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import Checkbox from '@mui/material/Checkbox';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import Toolbar from '@mui/material/Toolbar';
@@ -115,6 +117,21 @@ function Home({ onClick }) {
     fetchSubmissions();
   }, []);
 
+  const getIcon = (status) => {
+    switch (status) {
+      case 'submitted':
+        return <CheckCircleOutlineIcon />;
+      case 'running':
+        return <QueryBuilderIcon />;
+      case 'failed':
+        return <ErrorIcon />;
+      case 'finished':
+        return <DoneIcon />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
       {submissions.sort(
@@ -134,7 +151,7 @@ function Home({ onClick }) {
                 />
               </ListItemIcon>
               <ListItemIcon>
-                {submission.status === 'finished' ? <DoneIcon /> : <QueryBuilderIcon />}
+                {getIcon(submission.status)}
               </ListItemIcon>
               <ListItemText id={labelId} primary={`Submission ${submission.submission_id}`} />
               <ListItemIcon onClick={() => onClick(submission.submission_id)}>

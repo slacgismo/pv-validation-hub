@@ -3,7 +3,6 @@ import {
   Box, Grid, Button, Tab, Tabs, Typography, CircularProgress,
 } from '@mui/material';
 import { Container } from '@mui/system';
-import CancelIcon from '@mui/icons-material/Cancel';
 import ReactModal from 'react-modal';
 import Cookies from 'universal-cookie';
 import { FileUploader } from 'react-drag-drop-files';
@@ -27,8 +26,7 @@ export default function Analysis() {
   const user = cookies.get('user');
 
   const [value, setValue] = useState(0);
-  // eslint-disable-next-line no-unused-vars
-  const [uploadSuccess, setUploadSuccess] = useState(0);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -74,6 +72,7 @@ export default function Analysis() {
 
   const closeModal = () => {
     setIsOpen(false);
+    setUploadSuccess('emptyDisplay');
   };
 
   const openModal = () => {
@@ -89,11 +88,18 @@ export default function Analysis() {
     setFile(fileObject);
   };
 
-  const handleUpload = () => {
-    // Used for side effect of uploading file
-    // eslint-disable-next-line no-unused-vars
-    const response = AnalysisService.uploadAlgorithm(analysisId, user.token, file);
-    closeModal();
+  const handleUpload = async () => {
+    try {
+      const response = await AnalysisService.uploadAlgorithm(analysisId, user.token, file);
+      if (response.status === 200) {
+        setUploadSuccess(true);
+      } else {
+        setUploadSuccess(false);
+      }
+    } catch (errorCode) {
+      console.error('Upload failed:', errorCode);
+      setUploadSuccess(false);
+    }
   };
 
   const handleChange = (event, newValue) => {
@@ -237,16 +243,7 @@ export default function Analysis() {
                   </Typography>
                 </Grid>
                 <Grid item xs={1}>
-                  <CancelIcon
-                    sx={{
-                      '&:hover': {
-                        color: '#ADD8E6',
-                        cursor: 'pointer',
-                      },
-                      color: '#18A0FB',
-                    }}
-                    onClick={() => closeModal()}
-                  />
+                  <Button onClick={closeModal}>Exit</Button>
                 </Grid>
               </Grid>
               <Box sx={{ marginTop: 2, marginBottom: 2 }}>
@@ -260,6 +257,21 @@ export default function Analysis() {
               <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
                 {file ? `File name: ${file.name}` : 'No files uploaded yet.'}
               </Typography>
+              {uploadSuccess === true && (
+              <Typography color="green" variant="body1">
+                Upload Successful! Please check your developer page for the status of
+                your upload, or upload another file.
+              </Typography>
+              )}
+              {uploadSuccess === false && (
+              <Typography color="red" variant="body1">
+                Upload failed. Please reload the page and try again. If you continue
+                to receive issues with the upload, please file an issue at our github page,
+                {' '}
+                <a href="https://github.com/slacgismo/pv-validation-hub">https://github.com/slacgismo/pv-validation-hub</a>
+                .
+              </Typography>
+              )}
               <Button variant="contained" onClick={handleUpload}>Upload</Button>
             </Box>
           </ReactModal>
