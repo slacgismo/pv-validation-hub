@@ -45,6 +45,20 @@ FAILED = "failed"
 FINISHED = "finished"
 
 
+def update_submission_status(
+    analysis_id: int, submission_id: int, new_status: str
+):
+    # route needs to be a string stored in a variable, cannot parse in deployed environment
+    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
+    r = requests.put(api_route, data={"status": new_status})
+    if not r.ok:
+        raise WorkerException(
+            5, f"Error updating submission status to {new_status}"
+        )
+    data: dict[str, Any] = r.json()
+    return data
+
+
 # base
 BASE_TEMP_DIR = tempfile.mkdtemp()
 # Set to folder where the evaluation scripts are stored
@@ -57,7 +71,7 @@ CURRENT_EVALUATION_DIR = os.path.abspath(
 )
 
 
-def push_to_s3(local_file_path, s3_file_path):
+def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
     logger.info(f"push file {local_file_path} to s3")
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
@@ -85,6 +99,8 @@ def push_to_s3(local_file_path, s3_file_path):
             s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
         except botocore.exceptions.ClientError as e:
             logger.error(f"Error: {e}")
+            logger.info(f"update submission status to {FAILED}")
+            update_submission_status(analysis_id, submission_id, FAILED)
             raise WorkerException(1, f"Error uploading file to s3")
 
 
@@ -128,20 +144,6 @@ def list_s3_bucket(s3_dir: str):
 
     logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
     return all_files
-
-
-def update_submission_status(
-    analysis_id: int, submission_id: int, new_status: str
-):
-    # route needs to be a string stored in a variable, cannot parse in deployed environment
-    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
-    r = requests.put(api_route, data={"status": new_status})
-    if not r.ok:
-        raise WorkerException(
-            5, f"Error updating submission status to {new_status}"
-        )
-    data: dict[str, Any] = r.json()
-    return data
 
 
 def update_submission_result(
@@ -345,6 +347,8 @@ def load_analysis(analysis_id: int, current_evaluation_dir: str) -> tuple[
         logger.error(
             f"Runner module {runner_module_name} does not have a 'run' function"
         )
+        logger.info(f"update submission status to {FAILED}")
+        update_submission_status(analysis_id, submission_id, FAILED)
         raise AttributeError(
             11, "Runner module does not have a 'run' function"
         )
@@ -421,7 +425,9 @@ def process_submission_message(
             logger.info(
                 f'upload result file "{full_file_name}" to s3 path "{s3_full_path}"'
             )
-            push_to_s3(full_file_name, s3_full_path)
+            push_to_s3(
+                full_file_name, s3_full_path, analysis_id, submission_id
+            )
 
     # # remove the current evaluation dir
     # logger.info(f"remove directory {current_evaluation_dir}")
@@ -613,6 +619,8 @@ def main():
                 logger.error(
                     f"Missing required fields in submission message: analysis_id={analysis_id}, submission_id={submission_id}, user_id={user_id}, submission_filename={submission_filename}"
                 )
+                logger.info(f"update submission status to {FAILED}")
+                update_submission_status(analysis_id, submission_id, FAILED)
                 raise ValueError(
                     "Missing required fields in submission message"
                 )
@@ -641,6 +649,8 @@ def main():
                 logger.error(
                     f'Error processing message from submission queue with error code {e.code} and message "{e.message}"'
                 )
+                logger.info(f"update submission status to {FAILED}")
+                update_submission_status(analysis_id, submission_id, FAILED)
                 logger.exception(e)
                 handle_error(
                     int(analysis_id),
@@ -699,10 +709,14 @@ def main():
             push_to_s3(
                 log_file,
                 f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
+                analysis_id,
+                submission_id,
             )
             push_to_s3(
                 json_log_file,
                 f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
+                analysis_id,
+                submission_id,
             )
 
             # Remove all log files
