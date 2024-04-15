@@ -118,6 +118,7 @@ function Home({ onClick }) {
   }, []);
 
   const getIcon = (status) => {
+    console.log(status);
     switch (status) {
       case 'submitted':
         return <CheckCircleOutlineIcon />;

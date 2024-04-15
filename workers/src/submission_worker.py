@@ -378,11 +378,17 @@ def process_submission_message(
         f"execute runner module function with argument {s3_submission_zip_file_path}"
     )
 
+    logger.info(f"update submission status to {RUNNING}")
+    update_submission_status(analysis_id, submission_id, RUNNING)
+
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
     ret = analysis_function(
         s3_submission_zip_file_path,
         file_metadata_df,
+        update_submission_status,
+        analysis_id,
+        submission_id,
         current_evaluation_dir,
         BASE_TEMP_DIR,
     )
