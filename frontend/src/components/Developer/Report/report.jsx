@@ -15,12 +15,19 @@ export default function SubmissionReport({ submissionId }) {
   const [errorData, setErrorData] = useState([]);
 
   useEffect(() => {
-    const fetchSubmissionResults = async () => {
+    const fetchSubmissionErrors = async () => {
       try {
-        const result = await SubmissionService.getSubmissionResults(submissionId);
         const errors = await SubmissionService.getSubmissionErrors(submissionId);
         setErrorData(errors);
         console.log('Error data:', errors);
+      } catch (error) {
+        console.error('Error fetching submission results:', error);
+      }
+    };
+
+    const fetchSubmissionResults = async () => {
+      try {
+        const result = await SubmissionService.getSubmissionResults(submissionId);
         setImageUrls(result.file_urls);
       } catch (error) {
         console.error('Error fetching submission results:', error);
@@ -28,6 +35,7 @@ export default function SubmissionReport({ submissionId }) {
     };
 
     fetchSubmissionResults();
+    fetchSubmissionErrors();
   }, [submissionId]);
 
   return (
@@ -42,18 +50,18 @@ export default function SubmissionReport({ submissionId }) {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Error Code:
             {' '}
-            {errorData.error_rate}
+            {errorData.error_code}
           </Typography>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Error Type:
             {' '}
-            {errorData.error_rate}
+            {errorData.error_type}
           </Typography>
         </AppBar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           Error Message: WHYY
           {' '}
-          {errorData.error_rate}
+          {errorData.error_message}
         </Typography>
       </Box>
 

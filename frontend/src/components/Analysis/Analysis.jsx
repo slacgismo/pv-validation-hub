@@ -27,6 +27,8 @@ export default function Analysis() {
   const user = cookies.get('user');
 
   const [value, setValue] = useState(0);
+  // eslint-disable-next-line no-unused-vars
+  const [uploadSuccess, setUploadSuccess] = useState(0);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -78,7 +80,8 @@ export default function Analysis() {
     setIsOpen(true);
   };
 
-  const fileTypes = ['ZIP', 'tar.gz'];
+  // lmao, you can't use "tar.gz", only "gz", anything after the last "." works
+  const fileTypes = ['ZIP', 'GZ'];
 
   const [file, setFile] = useState(null);
 
@@ -200,6 +203,7 @@ export default function Analysis() {
                         }
             </TabPanel>
             {/*
+            Disabled until discussions properly implemented
             <TabPanel value={value} index={5}>
               {user === undefined || user == null
                 ? <BlurryPage />
