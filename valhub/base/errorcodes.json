@@ -1,9 +1,25 @@
 {
     "op": {
-        "1": ""
+        "1": "Submission file is not a valid zipped file",
+        "2": "Error installing Python submission dependencies",
+        "3": "Failed to get system metadata information",
+        "4": "No system metadata returned from API",
+        "5": "Configuration file not found in current evaluation directory",
+        "6": "Required function name not found within submission python file",
+        "7": "Failure cutoff met for submission evaluation and execution has been terminated"
     },
     "wr": {
-        "1": ""
+        "1": "Error uploading file to s3",
+        "2": "Error downloading file from s3",
+        "3": "No files found in s3 bucket for analysis",
+        "4": "Error updating submission result to API",
+        "5": "Error updating submission status to API",
+        "6": "Required evaluation files not found in s3 bucket",
+        "7": "File metadata for file ID not found in API",
+        "8": "No file metadata found in API for analysis ID",
+        "9": "Not all ground truth data files found in s3 bucket for analysis",
+        "10": "Not all analytical data files found in s3 bucket for analysis",
+        "11": "Runner module does not have a 'run' function"
     },
     "sb": {
         "1": ""

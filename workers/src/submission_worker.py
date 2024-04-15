@@ -1,5 +1,6 @@
 from importlib import import_module
 from typing import Any, Callable, Optional
+from matplotlib.pylab import f
 import requests
 import sys
 import os
@@ -16,7 +17,15 @@ import inspect
 import threading
 import pandas as pd
 from logger import setup_logging
-from utility import timing, is_local
+from utility import (
+    WORKER_ERROR_PREFIX,
+    RunnerException,
+    SubmissionException,
+    WorkerException,
+    pull_from_s3,
+    timing,
+    is_local,
+)
 
 
 setup_logging()
@@ -37,7 +46,7 @@ FINISHED = "finished"
 
 
 # base
-BASE_TEMP_DIR = tempfile.mkdtemp()  # "/tmp/tmpj6o45zwr"
+BASE_TEMP_DIR = tempfile.mkdtemp()
 # Set to folder where the evaluation scripts are stored
 
 
@@ -46,54 +55,6 @@ LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
 CURRENT_EVALUATION_DIR = os.path.abspath(
     os.path.join(FILE_DIR, "..", "current_evaluation")
 )
-
-# log
-WORKER_LOGS_PREFIX = "WORKER_LOG"
-SUBMISSION_LOGS_PREFIX = "SUBMISSION_LOG"
-
-
-class WorkerException(Exception):
-    pass
-
-
-class RunnerException(Exception):
-    pass
-
-
-def pull_from_s3(s3_file_path: str):
-    logger.info(f"pull file {s3_file_path} from s3")
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-
-    if IS_LOCAL:
-        s3_file_full_path = "http://s3:5000/get_object/" + s3_file_path
-        # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    target_file_path = os.path.join("/tmp/", s3_file_full_path.split("/")[-1])
-
-    if IS_LOCAL:
-        r = requests.get(s3_file_full_path, stream=True)
-        if r.status_code != 200:
-            print(
-                f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}",
-                file=sys.stderr,
-            )
-        with open(target_file_path, "wb") as f:
-            f.write(r.content)
-    else:
-        s3 = boto3.client("s3")
-
-        try:
-            s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
-        except botocore.exceptions.ClientError as e:
-            logger.error(f"Error: {e}")
-            raise FileNotFoundError(
-                f"File {target_file_path} not found in s3 bucket."
-            )
-
-    return target_file_path
 
 
 def push_to_s3(local_file_path, s3_file_path):
@@ -112,20 +73,19 @@ def push_to_s3(local_file_path, s3_file_path):
         with open(local_file_path, "rb") as f:
             file_content = f.read()
             r = requests.put(s3_file_full_path, data=file_content)
-            if r.status_code != 204:
-                print(
-                    f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}",
-                    file=sys.stderr,
+            if not r.ok:
+                raise WorkerException(
+                    1, f"Error uploading file to s3: {r.content}"
                 )
+            data: dict[str, Any] = r.json()
+            return data
     else:
-
         s3 = boto3.client("s3")
-
         try:
             s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
         except botocore.exceptions.ClientError as e:
             logger.error(f"Error: {e}")
-            return None
+            raise WorkerException(1, f"Error uploading file to s3")
 
 
 def list_s3_bucket(s3_dir: str):
@@ -170,30 +130,36 @@ def list_s3_bucket(s3_dir: str):
     return all_files
 
 
-def update_submission_status(analysis_id, submission_id, new_status):
+def update_submission_status(
+    analysis_id: int, submission_id: int, new_status: str
+):
     # route needs to be a string stored in a variable, cannot parse in deployed environment
     api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
     r = requests.put(api_route, data={"status": new_status})
-    if r.status_code != 200:
-        print(
-            f"error update submission status to {new_status}, status code {r.status_code} {r.content}",
-            file=sys.stderr,
+    if not r.ok:
+        raise WorkerException(
+            5, f"Error updating submission status to {new_status}"
         )
+    data: dict[str, Any] = r.json()
+    return data
 
 
-def update_submission_result(analysis_id, submission_id, result_json):
+def update_submission_result(
+    analysis_id: int, submission_id: int, result_json: dict[str, Any]
+):
     headers = {"Content-Type": "application/json"}
     api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}"
     r = requests.put(api_route, json=result_json, headers=headers)
-    if r.status_code != 200:
-        print(
-            f"error update submission result to {result_json}, status code {r.status_code} {r.content}",
-            file=sys.stderr,
+    if not r.ok:
+        raise WorkerException(
+            4, "Error updating submission result to Django API"
         )
+    data: dict[str, Any] = r.json()
+    return data
 
 
 def extract_analysis_data(  # noqa: C901
-    analysis_id: str, current_evaluation_dir: str
+    analysis_id: int, current_evaluation_dir: str
 ) -> pd.DataFrame:
 
     # download evaluation scripts and requirements.txt etc.
@@ -203,7 +169,7 @@ def extract_analysis_data(  # noqa: C901
     # check if required files exist
     if len(files) == 0:
         raise FileNotFoundError(
-            f"No files found in s3 bucket for analysis {analysis_id}"
+            3, f"No files found in s3 bucket for analysis {analysis_id}"
         )
 
     required_files = [
@@ -215,13 +181,16 @@ def extract_analysis_data(  # noqa: C901
     for required_file in required_files:
         if required_file not in file_names:
             raise FileNotFoundError(
-                f"Required file {required_file} not found in s3 bucket for analysis {analysis_id}"
+                6,
+                f"Required evaluation file {required_file} not found in s3 bucket for analysis {analysis_id}",
             )
 
     logger.info("pull evaluation scripts from s3")
     for file in files:
         logger.info(f"pull file {file} from s3")
-        tmp_path = pull_from_s3(file)
+        tmp_path = pull_from_s3(
+            IS_LOCAL, S3_BUCKET_NAME, file, BASE_TEMP_DIR, logger
+        )
         shutil.move(
             tmp_path,
             os.path.join(current_evaluation_dir, tmp_path.split("/")[-1]),
@@ -262,8 +231,9 @@ def extract_analysis_data(  # noqa: C901
         )
         response = requests.get(fmd_url)
         if not response.ok:
-            raise FileNotFoundError(
-                f"File metadata for file id {file_id} not found in Django API"
+            raise requests.exceptions.HTTPError(
+                7,
+                f"File metadata for file id {file_id} not found in Django API",
             )
         file_metadata_list.append(response.json())
 
@@ -271,8 +241,9 @@ def extract_analysis_data(  # noqa: C901
     file_metadata_df = pd.DataFrame(file_metadata_list)
 
     if file_metadata_df.empty:
-        raise FileNotFoundError(
-            f"No file metadata found in Django API for analysis {analysis_id}"
+        raise WorkerException(
+            8,
+            f"No file metadata found in Django API for analysis {analysis_id}",
         )
 
     files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
@@ -292,26 +263,30 @@ def extract_analysis_data(  # noqa: C901
 
     if not all(file in ground_truth_files for file in files_for_analysis):
         raise FileNotFoundError(
-            f"Ground truth data files not found for analysis {analysis_id}"
+            9, f"Ground truth data files not found for analysis {analysis_id}"
         )
 
     if not all(file in analytical_files for file in files_for_analysis):
         raise FileNotFoundError(
-            f"Analytical data files not found for analysis {analysis_id}"
+            10, f"Analytical data files not found for analysis {analysis_id}"
         )
 
     for file in files_for_analysis:
 
         analytical = analyticals[analytical_files.index(file)]
 
-        tmp_path = pull_from_s3(analytical)
+        tmp_path = pull_from_s3(
+            IS_LOCAL, S3_BUCKET_NAME, analytical, BASE_TEMP_DIR, logger
+        )
         shutil.move(
             tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
         )
 
         ground_truth = ground_truths[ground_truth_files.index(file)]
 
-        tmp_path = pull_from_s3(ground_truth)
+        tmp_path = pull_from_s3(
+            IS_LOCAL, S3_BUCKET_NAME, ground_truth, BASE_TEMP_DIR, logger
+        )
         shutil.move(
             tmp_path,
             os.path.join(validation_data_dir, tmp_path.split("/")[-1]),
@@ -332,7 +307,7 @@ def create_current_evaluation_dir(directory_path: str):
     return current_evaluation_dir
 
 
-def load_analysis(analysis_id: str, current_evaluation_dir: str) -> tuple[
+def load_analysis(analysis_id: int, current_evaluation_dir: str) -> tuple[
     Callable[
         [str, pd.DataFrame, Optional[str], Optional[str]], dict[str, Any]
     ],
@@ -370,16 +345,16 @@ def load_analysis(analysis_id: str, current_evaluation_dir: str) -> tuple[
         logger.error(
             f"Runner module {runner_module_name} does not have a 'run' function"
         )
-        raise WorkerException(
-            1, "Runner module does not have a 'run' function"
+        raise AttributeError(
+            11, "Runner module does not have a 'run' function"
         )
     return analysis_function, function_parameters, file_metadata_df
 
 
 def process_submission_message(
-    analysis_id: str,
-    submission_id: str,
-    user_id: str,
+    analysis_id: int,
+    submission_id: int,
+    user_id: int,
     submission_filename: str,
 ):
     """
@@ -398,13 +373,18 @@ def process_submission_message(
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
-    argument = f"submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}"
-    logger.info(f"execute runner module function with argument {argument}")
+    s3_submission_zip_file_path = f"{S3_BUCKET_NAME}/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}"
+    logger.info(
+        f"execute runner module function with argument {s3_submission_zip_file_path}"
+    )
 
     # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
     # bucket name must be passed seperately to boto3 calls.
     ret = analysis_function(
-        argument, file_metadata_df, current_evaluation_dir, BASE_TEMP_DIR
+        s3_submission_zip_file_path,
+        file_metadata_df,
+        current_evaluation_dir,
+        BASE_TEMP_DIR,
     )
     logger.info(f"runner module function returns {ret}")
 
@@ -525,14 +505,19 @@ def get_aws_sqs_client():
 
 
 # function to update visibility timeout, to prevent the error "ReceiptHandle is invalid. Reason: The receipt handle has expired."
-def update_visibility_timeout(queue, message, timeout, event: threading.Event):
+def update_visibility_timeout(
+    queue_url: str,
+    message_receipt_handle: str,
+    timeout: int,
+    event: threading.Event,
+):
     # Use the Docker endpoint URL for local development
     sqs = get_aws_sqs_client()
     while True:
         # Update visibility timeout
         sqs.change_message_visibility(
-            QueueUrl=queue.url,
-            ReceiptHandle=message.receipt_handle,
+            QueueUrl=queue_url,
+            ReceiptHandle=message_receipt_handle,
             VisibilityTimeout=timeout,
         )
         time.sleep(60)  # Adjust the sleep duration as needed
@@ -540,12 +525,45 @@ def update_visibility_timeout(queue, message, timeout, event: threading.Event):
             break
 
 
-def handle_error(message, error_code, error_message):
-    # update submission status to failed
-    body = json.loads(message.body)
-    analysis_id = int(body.get("analysis_pk"))
-    submission_id = int(body.get("submission_pk"))
-    update_submission_status(analysis_id, submission_id, FAILED)
+def post_error_to_api(
+    submission_id: int,
+    error_code: str,
+    error_type: str,
+    error_rate: float | None = None,
+):
+    api_route = f"http://{API_BASE_URL}/error/error_report/"
+
+    body = {
+        "submission": submission_id,
+        "error_code": error_code,
+        "error_type": error_type,
+    }
+
+    if error_rate is not None:
+        body["error_rate"] = error_rate
+
+    r = requests.post(
+        api_route,
+        data=body,
+    )
+    if not r.ok:
+        raise WorkerException(1, "Error posting error report to Django API")
+
+    data: dict[str, Any] = r.json()
+    return data
+
+
+def handle_error(
+    analysis_id: int,
+    submission_id: int,
+    submission_status: str,
+    error_code: str,
+    error_type: str,
+    error_rate: float | None = None,
+):
+
+    update_submission_status(analysis_id, submission_id, submission_status)
+    post_error_to_api(submission_id, error_code, error_type, error_rate)
 
     # Send the error message to the submission
 
@@ -554,9 +572,7 @@ def handle_error(message, error_code, error_message):
 def main():
     # killer = GracefulKiller()
     logger.info(
-        "{} Using {} as temp directory to store data".format(
-            WORKER_LOGS_PREFIX, BASE_TEMP_DIR
-        )
+        f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
     # print(queue)
@@ -571,11 +587,7 @@ def main():
 
         for message in messages:
 
-            logger.info(
-                "{} Processing message body: {}".format(
-                    WORKER_LOGS_PREFIX, message.body
-                )
-            )
+            logger.info(f"Received message: {message.body}")
 
             json_message: dict[str, Any] = json.loads(message.body)
 
@@ -593,32 +605,61 @@ def main():
                 or not submission_filename
             ):
                 logger.error(
-                    "{} Missing required fields in submission message {}".format(
-                        SUBMISSION_LOGS_PREFIX, json_message
-                    )
+                    f"Missing required fields in submission message: analysis_id={analysis_id}, submission_id={submission_id}, user_id={user_id}, submission_filename={submission_filename}"
                 )
                 raise ValueError(
-                    1, "Missing required fields in submission message"
+                    "Missing required fields in submission message"
                 )
 
             # start a thread to refresh the timeout
             stop_event = threading.Event()
             t = threading.Thread(
                 target=update_visibility_timeout,
-                args=(queue, message, 43200, stop_event),
+                args=(queue.url, message.receipt_handle, 43200, stop_event),
             )
             t.start()
 
             try:
                 process_submission_message(
-                    analysis_id, submission_id, user_id, submission_filename
+                    int(analysis_id),
+                    int(submission_id),
+                    int(user_id),
+                    submission_filename,
+                )
+            except (
+                WorkerException,
+                RunnerException,
+                SubmissionException,
+            ) as e:
+                exception_type = type(e).__name__
+                logger.error(
+                    f'Error processing message from submission queue with error code {e.code} and message "{e.message}"'
+                )
+                logger.exception(e)
+                handle_error(
+                    int(analysis_id),
+                    int(submission_id),
+                    FAILED,
+                    e.code,
+                    exception_type,
+                    e.error_rate,
                 )
             except Exception as e:
-                try:
-                    error_code = e.args[0]
-                    error_message = e.args[1]
-                except IndexError:
-                    error_code = 1
+                exception_type = type(e).__name__
+                error_rate: float | None = None
+                if e.args:
+                    if len(e.args) == 2:
+                        error_code: str = f"{WORKER_ERROR_PREFIX}_{e.args[0]}"
+                        error_message: str = e.args[1]
+                    elif len(e.args) == 3:
+                        error_code: str = f"{WORKER_ERROR_PREFIX}_{e.args[0]}"
+                        error_message: str = e.args[1]
+                        error_rate = e.args[2]
+                    else:
+                        error_code = f"{WORKER_ERROR_PREFIX}_500"
+                        error_message = str(e)
+                else:
+                    error_code = f"{WORKER_ERROR_PREFIX}_500"
                     error_message = str(e)
 
                 logger.error(
@@ -626,18 +667,23 @@ def main():
                 )
                 logger.exception(e)
 
+                handle_error(
+                    int(analysis_id),
+                    int(submission_id),
+                    FAILED,
+                    error_code,
+                    exception_type,
+                    error_rate,
+                )
+
             finally:
                 message.delete()
                 # Let the queue know that the message is processed
                 logger.info(
-                    "{} Message processed successfully".format(
-                        WORKER_LOGS_PREFIX
-                    )
+                    f'Deleted message from "valhub_submission_queue.fifo" with submission_id={submission_id} and analysis_id={analysis_id}'
                 )
                 stop_event.set()
                 t.join()
-
-            # rename log file to include submission_id
 
             log_file = os.path.join(LOG_FILE_DIR, "submission.log")
             json_log_file = os.path.join(LOG_FILE_DIR, "submission.log.jsonl")
@@ -666,7 +712,7 @@ def main():
 
 
 if __name__ == "__main__":
-    logger.info("{} Starting Submission Worker.".format(WORKER_LOGS_PREFIX))
+    logger.info(f"Starting Submission Worker.")
     _, execution_time = main()
-    logger.info(f"Evaluation Worker took {execution_time:.3f} seconds to run")
-    logger.info("{} Quitting Submission Worker.".format(WORKER_LOGS_PREFIX))
+    logger.info(f"Submission Worker took {execution_time:.3f} seconds to run")
+    logger.info(f"Submission Worker finished.")

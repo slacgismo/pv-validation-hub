@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 79
+extend-ignore = E501, F541, E203
+exclude = .git,__pycache__,.venv,.eggs,*.egg,*.egg-info,.tox,.mypy_cache,.pytest_cache,.vscode,build,dist,docs,tests,examples,scripts,notebooks,*.ipynb_checkpoints
+max-complexity = 10

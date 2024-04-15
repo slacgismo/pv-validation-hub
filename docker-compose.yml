@@ -121,7 +121,7 @@ services:
       - ./workers/tmp:/tmp
       - ./workers/requirements.txt:/root/worker/requirements.txt
       - ./workers/src:/root/worker/src
-    restart: always
+    restart: unless-stopped
 
 volumes:
   valhub:

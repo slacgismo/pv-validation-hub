@@ -35,7 +35,7 @@ import subprocess
 import logging
 import boto3
 from logger import setup_logging
-from utility import timing, is_local
+from utility import RunnerException, pull_from_s3, timing, is_local
 
 
 setup_logging()
@@ -49,42 +49,6 @@ IS_LOCAL = is_local()
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
-
-
-class RunnerException(Exception):
-    pass
-
-
-def pull_from_s3(s3_file_path: str, local_file_path: str):
-    logger.info(f"pulling file {s3_file_path} from s3")
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-        logger.info(f"modified path to {s3_file_path}")
-
-    if IS_LOCAL:
-        s3_file_full_path = (
-            "http://s3:5000/get_object/" + S3_BUCKET_NAME + "/" + s3_file_path
-        )
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    target_file_path = os.path.join(
-        local_file_path, s3_file_full_path.split("/")[-1]
-    )
-
-    if IS_LOCAL:
-        r = requests.get(s3_file_full_path, stream=True)
-        if r.status_code != 200:
-            logger.error(
-                f"error get file {s3_file_path} from s3, status code {r.status_code} {r.content}",
-            )
-        with open(target_file_path, "wb") as f:
-            f.write(r.content)
-    else:
-        s3 = boto3.client("s3")
-        s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
-
-    return target_file_path
 
 
 def push_to_s3(local_file_path, s3_file_path):
@@ -190,7 +154,7 @@ def extract_files(  # noqa: C901
                         ref = cast(tarfile.TarFile, ref)
                         ref.extract(file, path=extract_path, filter="data")
                     else:
-                        raise Exception("File is not a zip or tar file.")
+                        raise Exception(1, "File is not a zip or tar file.")
 
                     os.rename(
                         os.path.join(extract_path, file),
@@ -213,7 +177,7 @@ def extract_files(  # noqa: C901
                     ref = cast(tarfile.TarFile, ref)
                     ref.extract(file, path=extract_path, filter="data")
                 else:
-                    raise Exception("File is not a zip or tar file.")
+                    raise Exception(1, "File is not a zip or tar file.")
 
 
 def extract_zip(zip_path: str, extract_path: str):
@@ -246,7 +210,7 @@ def extract_zip(zip_path: str, extract_path: str):
                 remove_unallowed_starting_characters,
             )
     else:
-        raise Exception("File is not a zip or tar file.")
+        raise Exception(1, "File is not a zip or tar file.")
 
 
 def get_module_file_name(module_dir: str):
@@ -295,7 +259,7 @@ def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
 
 
 def run(  # noqa: C901
-    module_to_import_s3_path: str,
+    s3_submission_zip_file_path: str,
     file_metadata_df: pd.DataFrame,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
@@ -330,9 +294,9 @@ def run(  # noqa: C901
     os.makedirs(data_dir, exist_ok=True)
 
     # Load in the module that we're going to test on.
-    logger.info(f"module_to_import_s3_path: {module_to_import_s3_path}")
+    logger.info(f"module_to_import_s3_path: {s3_submission_zip_file_path}")
     target_module_compressed_file_path = pull_from_s3(
-        module_to_import_s3_path, tmp_dir
+        IS_LOCAL, S3_BUCKET_NAME, s3_submission_zip_file_path, tmp_dir, logger
     )
     logger.info(
         f"target_module_compressed_file_path: {target_module_compressed_file_path}"
@@ -354,8 +318,8 @@ def run(  # noqa: C901
     new_dir = os.path.dirname(os.path.abspath(__file__))
     logger.info(f"new_dir: {new_dir}")
 
-    file_name = get_module_file_name(target_module_path)
-    logger.info(f"file_name: {file_name}")
+    submission_file_name = get_module_file_name(target_module_path)
+    logger.info(f"file_name: {submission_file_name}")
     module_name = get_module_name(target_module_path)
     logger.info(f"module_name: {module_name}")
 
@@ -374,11 +338,13 @@ def run(  # noqa: C901
         logger.info("submission dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
         logger.error("error installing submission dependencies:", e)
-        raise RunnerException("error installing submission dependencies")
+        raise RunnerException(
+            2, "error installing python submission dependencies"
+        )
 
     shutil.move(
-        os.path.join(target_module_path, file_name),
-        os.path.join(new_dir, file_name),
+        os.path.join(target_module_path, submission_file_name),
+        os.path.join(new_dir, submission_file_name),
     )
 
     # Generate list for us to store all of our results for the module
@@ -394,7 +360,7 @@ def run(  # noqa: C901
         logger.error(
             f"Failed to get system metadata from {smd_url}: {system_metadata_response.content}"
         )
-        raise RunnerException("Failed to get system metadata")
+        raise RunnerException(3, "Failed to get system metadata information")
 
     # Convert the responses to DataFrames
 
@@ -405,10 +371,15 @@ def run(  # noqa: C901
 
     if system_metadata_df.empty:
         logger.error("System metadata is empty")
-        raise RunnerException("System metadata is empty")
+        raise RunnerException(4, "No system metadata returned from API")
 
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json")) as f:
+        if not f:
+            logger.error("config.json not found")
+            raise RunnerException(
+                5, "config.json not found in current evaluation directory"
+            )
         config_data: dict[str, Any] = json.load(f)
 
     # Get the associated metrics we're supposed to calculate
@@ -417,18 +388,20 @@ def run(  # noqa: C901
 
     # Get the name of the function we want to import associated with this
     # test
-    function_name = config_data["function_name"]
+    function_name: str = config_data["function_name"]
     # Import designated module via importlib
     module = import_module(module_name)
     try:
-        function = getattr(module, function_name)
-        function_parameters = list(inspect.signature(function).parameters)
+        submission_function: Callable = getattr(module, function_name)
+        function_parameters = list(
+            inspect.signature(submission_function).parameters
+        )
     except AttributeError:
         logger.error(
             f"function {function_name} not found in module {module_name}"
         )
         raise RunnerException(
-            f"function {function_name} not found in module {module_name}"
+            6, f"function {function_name} not found in module {module_name}"
         )
 
     total_number_of_files = len(file_metadata_df)
@@ -437,6 +410,9 @@ def run(  # noqa: C901
     number_of_errors = 0
 
     FAILURE_CUTOFF = 3
+
+    def current_error_rate(number_of_errors: int, index: int):
+        return (number_of_errors / (index + 1)) * 100
 
     # Loop through each file and generate predictions
 
@@ -447,24 +423,46 @@ def run(  # noqa: C901
         if index <= FAILURE_CUTOFF:
             if number_of_errors == FAILURE_CUTOFF:
                 raise RunnerException(
-                    f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting."
+                    7,
+                    f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting.",
+                    current_error_rate(number_of_errors, index),
                 )
-
-        logger.info(f"processing file {index + 1} of {total_number_of_files}")
-        # Get file_name, which will be pulled from database or S3 for
-        # each analysis
         file_name = row["file_name"]
-        logger.info(f"file_name: {file_name}")
+
         # Get associated system ID
         system_id = row["system_id"]
+
         # Get all of the associated metadata for the particular file based
         # on its system ID. This metadata will be passed in via kwargs for
         # any necessary arguments
-        associated_metadata = dict(
+        associated_metadata: dict[str, Any] = dict(
             system_metadata_df[
                 system_metadata_df["system_id"] == system_id
             ].iloc[0]
         )
+
+        logger.info(f"processing file {index + 1} of {total_number_of_files}")
+        try:
+            # Get file_name, which will be pulled from database or S3 for
+            # each analysis
+            (
+                data_outputs,
+                function_run_time,
+            ) = run_submission(
+                file_name,
+                data_dir,
+                associated_metadata,
+                config_data,
+                submission_function,
+                function_parameters,
+                row,
+            )
+
+        except Exception as e:
+            logger.error(f"error running function {function_name}: {e}")
+            number_of_errors += 1
+            continue
+
         # Get the ground truth scalars that we will compare to
         ground_truth_dict = dict()
         if config_data["comparison_type"] == "scalar":
@@ -479,44 +477,6 @@ def run(  # noqa: C901
             ground_truth_dict["time_series"] = ground_truth_series
 
         ground_truth_file_length = len(ground_truth_series)
-        # Create master dictionary of all possible function kwargs
-        kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
-        # Filter out to only allowable args for the function
-        kwargs_dict = {
-            key: kwargs_dict[key] for key in config_data["allowable_kwargs"]
-        }
-        # Now that we've collected all of the information associated with the
-        # test, let's read in the file as a pandas dataframe (this data
-        # would most likely be stored in an S3 bucket)
-        time_series_df: pd.DataFrame = pd.read_csv(
-            os.path.join(data_dir + "/file_data/", file_name),
-            index_col=0,
-            parse_dates=True,
-        )
-
-        time_series: pd.Series = time_series_df.asfreq(
-            str(row["data_sampling_frequency"]) + "min"
-        ).squeeze()
-
-        # Filter the kwargs dictionary based on required function params
-        kwargs = dict(
-            (k, kwargs_dict[k])
-            for k in function_parameters
-            if k in kwargs_dict
-        )
-
-        # Run the routine (timed)
-        logger.info(f"running function {function_name} with kwargs {kwargs}")
-
-        try:
-            data_outputs, function_run_time = run_user_submission(
-                function, time_series, **kwargs
-            )
-
-        except Exception as e:
-            logger.error(f"error running function {function_name}: {e}")
-            number_of_errors += 1
-            continue
 
         file_submission_result_length = len(data_outputs)
         if file_submission_result_length != ground_truth_file_length:
@@ -669,6 +629,79 @@ def run(  # noqa: C901
     )
 
     return public_metrics_dict
+
+
+def run_submission(
+    file_name: str,
+    data_dir: str,
+    associated_metadata: dict[str, Any],
+    config_data: dict[str, Any],
+    submission_function: Callable,
+    function_parameters: list[str],
+    row: pd.Series,
+):
+
+    logger.info(f"file_name: {file_name}")
+
+    # Create master dictionary of all possible function kwargs
+    kwargs = prepare_kwargs_for_submission_function(
+        config_data, function_parameters, row, associated_metadata
+    )
+
+    # Now that we've collected all of the information associated with the
+    # test, let's read in the file as a pandas dataframe (this data
+    # would most likely be stored in an S3 bucket)
+    time_series = prepare_time_series(data_dir, file_name, row)
+
+    # Run the routine (timed)
+    logger.info(
+        f"running function {submission_function.__name__} with kwargs {kwargs}"
+    )
+
+    data_outputs, function_run_time = run_user_submission(
+        submission_function, time_series, **kwargs
+    )
+
+    return (
+        data_outputs,
+        function_run_time,
+    )
+
+
+def prepare_kwargs_for_submission_function(
+    config_data: dict[str, Any],
+    function_parameters: list[str],
+    row: pd.Series,
+    associated_metadata: dict[str, Any],
+):
+    kwargs_dict = dict(ChainMap(dict(row), associated_metadata))
+    # Filter out to only allowable args for the function
+    kwargs_dict = {
+        key: kwargs_dict[key] for key in config_data["allowable_kwargs"]
+    }
+
+    # Filter the kwargs dictionary based on required function params
+    kwargs: dict[str, Any] = dict(
+        (k, kwargs_dict[k]) for k in function_parameters if k in kwargs_dict
+    )
+
+    return kwargs
+
+
+def prepare_time_series(
+    data_dir: str, file_name: str, row: pd.Series
+) -> pd.Series:
+    time_series_df: pd.DataFrame = pd.read_csv(
+        os.path.join(data_dir + "/file_data/", file_name),
+        index_col=0,
+        parse_dates=True,
+    )
+
+    time_series: pd.Series = time_series_df.asfreq(
+        str(row["data_sampling_frequency"]) + "min"
+    ).squeeze()
+
+    return time_series
 
 
 if __name__ == "__main__":
