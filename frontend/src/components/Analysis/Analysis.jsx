@@ -91,6 +91,7 @@ export default function Analysis() {
   const handleUpload = async () => {
     try {
       const response = await AnalysisService.uploadAlgorithm(analysisId, user.token, file);
+      console.log('response:', response);
       if (response.status === 200) {
         setUploadSuccess(true);
       } else {
