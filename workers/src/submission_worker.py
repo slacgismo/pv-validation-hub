@@ -86,13 +86,16 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
     if IS_LOCAL:
         with open(local_file_path, "rb") as f:
             file_content = f.read()
+            logger.info(
+                f"Sending emulator PUT request to {s3_file_full_path} with file content: {file_content}"
+            )
             r = requests.put(s3_file_full_path, data=file_content)
+            logger.info(f"Received S3 emulator response: {r.status_code}")
             if not r.ok:
                 raise WorkerException(
-                    1, f"Error uploading file to s3: {r.content}"
+                    1, f"Error uploading file to s3 emulator: {r.content}"
                 )
-            data: dict[str, Any] = r.json()
-            return data
+            return {"status": "success"}
     else:
         s3 = boto3.client("s3")
         try:
@@ -540,7 +543,7 @@ def post_error_to_api(
     error_type: str,
     error_rate: float | None = None,
 ):
-    api_route = f"http://{API_BASE_URL}/error/error_report/"
+    api_route = f"http://{API_BASE_URL}/error/error_report"
 
     body = {
         "submission": submission_id,
@@ -551,14 +554,23 @@ def post_error_to_api(
     if error_rate is not None:
         body["error_rate"] = error_rate
 
+    logger.info(f"Sending POST request to {api_route} with body: {body}")
+
     r = requests.post(
         api_route,
-        data=body,
+        json=body,
     )
+
+    logger.info(f"Received response: {r.text}")
+
     if not r.ok:
         raise WorkerException(1, "Error posting error report to Django API")
 
-    data: dict[str, Any] = r.json()
+    try:
+        data: dict[str, Any] = r.json()
+    except json.JSONDecodeError:
+        raise WorkerException(1, "Django API did not return a JSON response")
+
     return data
 
 
@@ -579,7 +591,6 @@ def handle_error(
 
 @timing(verbose=True, logger=logger)
 def main():
-    # killer = GracefulKiller()
     logger.info(
         f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
@@ -726,8 +737,6 @@ def main():
             is_finished = True
             break
 
-        # if killer.kill_now:
-        #     break
         time.sleep(0.1)
 
 

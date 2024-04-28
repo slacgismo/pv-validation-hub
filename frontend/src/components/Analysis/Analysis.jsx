@@ -41,6 +41,8 @@ export default function Analysis() {
   const [rulesetDescription, setRulesetDescription] = useState('');
   const [coverImageDir, setCoverImageDir] = useState('');
 
+  const [file, setFile] = useState(null);
+
   useEffect(() => {
     console.log('analysis', analysisId, typeof analysisId);
     if (analysisId !== undefined && analysisId !== null
@@ -82,8 +84,6 @@ export default function Analysis() {
   // lmao, you can't use "tar.gz", only "gz", anything after the last "." works
   const fileTypes = ['ZIP', 'GZ'];
 
-  const [file, setFile] = useState(null);
-
   const uploadFile = (fileObject) => {
     setFile(fileObject);
   };
@@ -94,6 +94,7 @@ export default function Analysis() {
       console.log('response:', response);
       if (response.status === 200) {
         setUploadSuccess(true);
+        setFile(null);
       } else {
         setUploadSuccess(false);
       }
@@ -102,6 +103,8 @@ export default function Analysis() {
       setUploadSuccess(false);
     }
   };
+
+  const handleActive = () => file !== null;
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -256,7 +259,7 @@ export default function Analysis() {
                 />
               </Box>
               <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
-                {file ? `File name: ${file.name}` : 'No files uploaded yet.'}
+                {file ? `File name: ${file.name}` : 'No files staged for upload yet.'}
               </Typography>
               {uploadSuccess === true && (
               <Typography color="green" variant="body1">
@@ -273,7 +276,7 @@ export default function Analysis() {
                 .
               </Typography>
               )}
-              <Button variant="contained" onClick={handleUpload}>Upload</Button>
+              <Button disabled={!handleActive()} variant="contained" onClick={handleUpload}>Upload</Button>
             </Box>
           </ReactModal>
         </Container>

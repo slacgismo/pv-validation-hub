@@ -23,6 +23,8 @@ from rest_framework import status
 
 from pathlib import Path
 
+import logging
+
 # ...
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -93,46 +95,6 @@ class ErrorReportList(generics.ListCreateAPIView):
     queryset = ErrorReport.objects.all()
     serializer_class = ErrorReportSerializer
 
-    def post(self, request: Request, *args, **kwargs):
-        # Custom POST logic here
-        # ...
-        try:
-            modified_data = request.data.copy()
-
-            error_code = modified_data.get("error_code")
-            error_rate = modified_data.get("error_rate", None)
-
-            if error_rate is not None:
-                modified_data["error_rate"] = error_rate
-
-            if error_code is None:
-                return Response(
-                    {"error": "error_code is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            error_message = get_error_message(error_code)
-
-            modified_data["error_message"] = error_message
-
-            print(modified_data)
-
-            serializer = self.get_serializer(data=modified_data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED,
-                headers=headers,
-            )
-        except Exception as e:
-            print(e)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
 
 class ErrorReportDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = ErrorReport.objects.all()
@@ -146,6 +108,53 @@ class ErrorReportLeaderboard(generics.ListAPIView):
         #        return ErrorReport.objects.order_by('-score')[:10]
         # Placeholder return value
         return round(random.uniform(1, 100), 2)
+
+
+@api_view(["POST"])
+@csrf_exempt
+def ErrorReport(request: Request, *args, **kwargs):
+    try:
+        modified_data = request.data.copy()
+
+        logging.info(f"Received request data: {modified_data}")
+
+        error_code = modified_data.get("error_code")
+        error_rate = modified_data.get("error_rate", None)
+
+        if error_rate is not None:
+            modified_data["error_rate"] = error_rate
+
+        if error_code is None:
+            return JsonResponse(
+                {"error": "error_code is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        error_message = get_error_message(error_code)
+
+        modified_data["error_message"] = error_message
+
+        logging.info(f"Modified request data: {modified_data}")
+
+        serializer = ErrorReportSerializer(data=modified_data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(
+                serializer.data,
+                status=status.HTTP_201_CREATED,
+                safe=False,
+            )
+        else:
+            return JsonResponse(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    except Exception as e:
+        logging.error(f"Error processing request: {str(e)}")
+        return JsonResponse(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
 
 @api_view(["GET"])
