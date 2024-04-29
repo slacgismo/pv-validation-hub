@@ -37,6 +37,7 @@ import boto3
 from logger import setup_logging
 from utility import RunnerException, pull_from_s3, timing, is_local
 
+FAILED = "failed"
 
 setup_logging()
 
@@ -51,7 +52,13 @@ S3_BUCKET_NAME = "pv-validation-hub-bucket"
 API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
 
 
-def push_to_s3(local_file_path, s3_file_path):
+def push_to_s3(
+    local_file_path,
+    s3_file_path,
+    analysis_id,
+    submission_id,
+    update_submission_status,
+):
     if s3_file_path.startswith("/"):
         s3_file_path = s3_file_path[1:]
 
@@ -70,6 +77,8 @@ def push_to_s3(local_file_path, s3_file_path):
                 logger.error(
                     f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}"
                 )
+                logger.info(f"update submission status to {FAILED}")
+                update_submission_status(analysis_id, submission_id, FAILED)
     else:
         s3 = boto3.client("s3")
         s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
@@ -261,6 +270,9 @@ def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
 def run(  # noqa: C901
     s3_submission_zip_file_path: str,
     file_metadata_df: pd.DataFrame,
+    update_submission_status,
+    analysis_id,
+    submission_id,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ) -> dict[str, Any]:
@@ -338,6 +350,8 @@ def run(  # noqa: C901
         logger.info("submission dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
         logger.error("error installing submission dependencies:", e)
+        logger.info(f"update submission status to {FAILED}")
+        update_submission_status(analysis_id, submission_id, FAILED)
         raise RunnerException(
             2, "error installing python submission dependencies"
         )
@@ -360,6 +374,8 @@ def run(  # noqa: C901
         logger.error(
             f"Failed to get system metadata from {smd_url}: {system_metadata_response.content}"
         )
+        logger.info(f"update submission status to {FAILED}")
+        update_submission_status(analysis_id, submission_id, FAILED)
         raise RunnerException(3, "Failed to get system metadata information")
 
     # Convert the responses to DataFrames
@@ -371,12 +387,16 @@ def run(  # noqa: C901
 
     if system_metadata_df.empty:
         logger.error("System metadata is empty")
+        logger.info(f"update submission status to {FAILED}")
+        update_submission_status(analysis_id, submission_id, FAILED)
         raise RunnerException(4, "No system metadata returned from API")
 
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json")) as f:
         if not f:
             logger.error("config.json not found")
+            logger.info(f"update submission status to {FAILED}")
+            update_submission_status(analysis_id, submission_id, FAILED)
             raise RunnerException(
                 5, "config.json not found in current evaluation directory"
             )
@@ -400,6 +420,8 @@ def run(  # noqa: C901
         logger.error(
             f"function {function_name} not found in module {module_name}"
         )
+        logger.info(f"update submission status to {FAILED}")
+        update_submission_status(analysis_id, submission_id, FAILED)
         raise RunnerException(
             6, f"function {function_name} not found in module {module_name}"
         )

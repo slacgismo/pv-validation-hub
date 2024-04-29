@@ -9,13 +9,15 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import ErrorIcon from '@mui/icons-material/Error';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
+import DoneIcon from '@mui/icons-material/Done';
 import Checkbox from '@mui/material/Checkbox';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import Toolbar from '@mui/material/Toolbar';
 import Grid from '@mui/material/Grid';
 import SummarizeIcon from '@mui/icons-material/Summarize';
-import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
-import DoneIcon from '@mui/icons-material/Done';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
@@ -54,7 +56,7 @@ export default function DeveloperHome() {
       handler: () => { handleNavClick('home'); },
     },
     {
-      title: 'Available Analyses',
+      title: 'Request Logs',
       icon: <AssessmentIcon />,
       handler: () => {},
     },
@@ -115,6 +117,22 @@ function Home({ onClick }) {
     fetchSubmissions();
   }, []);
 
+  const getIcon = (status) => {
+    console.log(status);
+    switch (status) {
+      case 'submitted':
+        return <CheckCircleOutlineIcon />;
+      case 'running':
+        return <QueryBuilderIcon />;
+      case 'failed':
+        return <ErrorIcon />;
+      case 'finished':
+        return <DoneIcon />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
       {submissions.sort(
@@ -134,7 +152,7 @@ function Home({ onClick }) {
                 />
               </ListItemIcon>
               <ListItemIcon>
-                {submission.status === 'finished' ? <DoneIcon /> : <QueryBuilderIcon />}
+                {getIcon(submission.status)}
               </ListItemIcon>
               <ListItemText id={labelId} primary={`Submission ${submission.submission_id}`} />
               <ListItemIcon onClick={() => onClick(submission.submission_id)}>

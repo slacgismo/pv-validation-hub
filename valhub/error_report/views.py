@@ -1,6 +1,19 @@
 from math import e
 from rest_framework import generics
-from .models import ErrorReport
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+    authentication_classes,
+)
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+
+from .models import ErrorReport as ErrorReportModel
 from .serializers import ErrorReportSerializer
 import random
 import json
@@ -9,6 +22,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from pathlib import Path
+
+import logging
 
 # ...
 
@@ -77,52 +92,12 @@ def get_error_message(error_code: str) -> str:
 
 
 class ErrorReportList(generics.ListCreateAPIView):
-    queryset = ErrorReport.objects.all()
+    queryset = ErrorReportModel.objects.all()
     serializer_class = ErrorReportSerializer
-
-    def post(self, request: Request, *args, **kwargs):
-        # Custom POST logic here
-        # ...
-        try:
-            modified_data = request.data.copy()
-
-            error_code = modified_data.get("error_code")
-            error_rate = modified_data.get("error_rate", None)
-
-            if error_rate is not None:
-                modified_data["error_rate"] = error_rate
-
-            if error_code is None:
-                return Response(
-                    {"error": "error_code is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            error_message = get_error_message(error_code)
-
-            modified_data["error_message"] = error_message
-
-            print(modified_data)
-
-            serializer = self.get_serializer(data=modified_data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED,
-                headers=headers,
-            )
-        except Exception as e:
-            print(e)
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
 
 class ErrorReportDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = ErrorReport.objects.all()
+    queryset = ErrorReportModel.objects.all()
     serializer_class = ErrorReportSerializer
 
 
@@ -135,15 +110,85 @@ class ErrorReportLeaderboard(generics.ListAPIView):
         return round(random.uniform(1, 100), 2)
 
 
-class ErrorReportPrivateList(generics.ListAPIView):
+@api_view(["POST"])
+@csrf_exempt
+def ErrorReport(request: Request, *args, **kwargs):
+    try:
+        modified_data = request.data.copy()
+
+        logging.info(f"Received request data: {modified_data}")
+
+        error_code = modified_data.get("error_code")
+        error_rate = modified_data.get("error_rate", None)
+
+        if error_rate is not None:
+            modified_data["error_rate"] = error_rate
+
+        if error_code is None:
+            return JsonResponse(
+                {"error": "error_code is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        error_message = get_error_message(error_code)
+
+        modified_data["error_message"] = error_message
+
+        logging.info(f"Modified request data: {modified_data}")
+
+        serializer = ErrorReportSerializer(data=modified_data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(
+                serializer.data,
+                status=status.HTTP_201_CREATED,
+                safe=False,
+            )
+        else:
+            return JsonResponse(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    except Exception as e:
+        logging.error(f"Error processing request: {str(e)}")
+        return JsonResponse(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+@api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+@csrf_exempt
+def ErrorReportPrivateList(request, pk):
+    try:
+        error_reports = ErrorReportModel.objects.filter(submission=pk)
+        serializer = ErrorReportSerializer(error_reports, many=True)
+        return JsonResponse(
+            serializer.data, safe=False, status=status.HTTP_200_OK
+        )
+    except ErrorReportModel.DoesNotExist:
+        return JsonResponse(
+            {"error": "Error report not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+
+# @authentication_classes([TokenAuthentication])
+# @permission_classes([IsAuthenticated])
+@api_view(["POST"])
+@csrf_exempt
+def ErrorReportNew(request, pk):
     #    queryset = ErrorReport.objects.all()
     #    serializer_class = ErrorReportSerializer
-    def get_queryset(self):
-        #        return ErrorReport.objects.filter(submission__user=self.request.user)
-        # Placeholder return value
-        return {
-            "error_code": "Error123",
-            "error_type": "TypeError",
-            "error_message": "Data is of the type: NoneType, Expected: int",
-            "error_rate": 12.34,
-        }
+
+    #        return ErrorReport.objects.filter(submission__user=self.request.user)
+    # Placeholder return value
+    ret = {
+        "error_code": "Error123",
+        "error_type": "TypeError",
+        "error_message": "Data is of the type: NoneType, Expected: int",
+        "error_rate": 12.34,
+    }
+    return JsonResponse(ret, status=status.HTTP_200_OK)

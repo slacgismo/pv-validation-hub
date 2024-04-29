@@ -33,7 +33,7 @@ const AnalysisService = {
   },
   uploadAlgorithm(analysisId, token, file) {
     if (analysisId !== null && analysisId !== undefined
-            && file !== null && file !== undefined) {
+          && file !== null && file !== undefined) {
       const url = `/submissions/analysis/${analysisId}/submission`;
       const formData = new FormData();
 
@@ -44,13 +44,15 @@ const AnalysisService = {
       formData.append('algorithm', file);
       formData.append('analysis_id', analysisId);
 
-      client.post(url, formData, {
+      // Return the Promise from client.post
+      return client.post(url, formData, {
         Accept: '*/*',
         'content-type': 'multipart/form-data',
-      }).then((response) => {
-        console.log(response);
       });
     }
+
+    // If analysisId or file is null or undefined, return a rejected Promise
+    return Promise.reject(new Error('analysisId and file cannot be null or undefined'));
   },
 };
 

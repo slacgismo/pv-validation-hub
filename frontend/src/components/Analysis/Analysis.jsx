@@ -3,7 +3,6 @@ import {
   Box, Grid, Button, Tab, Tabs, Typography, CircularProgress,
 } from '@mui/material';
 import { Container } from '@mui/system';
-import CancelIcon from '@mui/icons-material/Cancel';
 import ReactModal from 'react-modal';
 import Cookies from 'universal-cookie';
 import { FileUploader } from 'react-drag-drop-files';
@@ -27,6 +26,7 @@ export default function Analysis() {
   const user = cookies.get('user');
 
   const [value, setValue] = useState(0);
+  const [uploadSuccess, setUploadSuccess] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +40,8 @@ export default function Analysis() {
   const [longDescription, setLongDescription] = useState('');
   const [rulesetDescription, setRulesetDescription] = useState('');
   const [coverImageDir, setCoverImageDir] = useState('');
+
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
     console.log('analysis', analysisId, typeof analysisId);
@@ -72,26 +74,39 @@ export default function Analysis() {
 
   const closeModal = () => {
     setIsOpen(false);
+    setUploadSuccess('emptyDisplay');
   };
 
   const openModal = () => {
     setIsOpen(true);
   };
 
-  const fileTypes = ['ZIP', 'tar.gz'];
-
-  const [file, setFile] = useState(null);
+  // lmao, you can't use "tar.gz", only "gz", anything after the last "." works
+  const fileTypes = ['ZIP', 'GZ'];
 
   const uploadFile = (fileObject) => {
     setFile(fileObject);
   };
 
-  const handleUpload = () => {
-    // Used for side effect of uploading file
-    // eslint-disable-next-line no-unused-vars
-    const response = AnalysisService.uploadAlgorithm(analysisId, user.token, file);
-    closeModal();
+  const handleUpload = async () => {
+    try {
+      const response = await AnalysisService.uploadAlgorithm(analysisId, user.token, file);
+      console.log('response:', response);
+      if (response.status === 200) {
+        setUploadSuccess(true);
+        setFile(null);
+      } else {
+        setUploadSuccess(false);
+      }
+    } catch (errorCode) {
+      console.error('Upload failed:', errorCode);
+      setUploadSuccess(false);
+    }
   };
+
+  const handleActive = () => file !== null;
+
+  const handleClear = () => setFile(null);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -200,6 +215,7 @@ export default function Analysis() {
                         }
             </TabPanel>
             {/*
+            Disabled until discussions properly implemented
             <TabPanel value={value} index={5}>
               {user === undefined || user == null
                 ? <BlurryPage />
@@ -233,16 +249,7 @@ export default function Analysis() {
                   </Typography>
                 </Grid>
                 <Grid item xs={1}>
-                  <CancelIcon
-                    sx={{
-                      '&:hover': {
-                        color: '#ADD8E6',
-                        cursor: 'pointer',
-                      },
-                      color: '#18A0FB',
-                    }}
-                    onClick={() => closeModal()}
-                  />
+                  <Button onClick={closeModal}>Exit</Button>
                 </Grid>
               </Grid>
               <Box sx={{ marginTop: 2, marginBottom: 2 }}>
@@ -254,9 +261,25 @@ export default function Analysis() {
                 />
               </Box>
               <Typography sx={{ marginLeft: 20 }} color="gray" variant="body1">
-                {file ? `File name: ${file.name}` : 'No files uploaded yet.'}
+                {file ? `File name: ${file.name}` : 'No files staged for upload yet.'}
               </Typography>
-              <Button variant="contained" onClick={handleUpload}>Upload</Button>
+              {uploadSuccess === true && (
+              <Typography color="green" variant="body1">
+                Upload Successful! Please check your developer page for the status of
+                your upload, or upload another file.
+              </Typography>
+              )}
+              {uploadSuccess === false && (
+              <Typography color="red" variant="body1">
+                Upload failed. Please reload the page and try again. If you continue
+                to receive issues with the upload, please file an issue at our github page,
+                {' '}
+                <a href="https://github.com/slacgismo/pv-validation-hub">https://github.com/slacgismo/pv-validation-hub</a>
+                .
+              </Typography>
+              )}
+              <Button disabled={!handleActive()} variant="contained" onClick={handleUpload}>Upload</Button>
+              <Button disabled={!handleActive()} variant="contained" onClick={handleClear}>Clear</Button>
             </Box>
           </ReactModal>
         </Container>

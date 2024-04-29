@@ -376,7 +376,9 @@ def get_submission_results(request, submission_id):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         file_list = response.json()
-        base_url = urljoin(static_endpoint_url, f"static/{bucket_name}/")
+        base_url = urljoin(
+            static_endpoint_url, f"static/{bucket_name}/{results_directory}"
+        )
     else:
         # get the list of files in the results directory
         s3 = boto3.client("s3")
