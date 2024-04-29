@@ -62,6 +62,7 @@ def update_submission_status(
 # base
 BASE_TEMP_DIR = tempfile.mkdtemp()
 # Set to folder where the evaluation scripts are stored
+logger.info(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +70,9 @@ LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
 CURRENT_EVALUATION_DIR = os.path.abspath(
     os.path.join(FILE_DIR, "..", "current_evaluation")
 )
+logger.info(f"FILE_DIR: {FILE_DIR}")
+logger.info(f"LOG_FILE_DIR: {LOG_FILE_DIR}")
+logger.info(f"CURRENT_EVALUATION_DIR: {CURRENT_EVALUATION_DIR}")
 
 
 def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
@@ -312,7 +316,9 @@ def create_current_evaluation_dir(directory_path: str):
     return current_evaluation_dir
 
 
-def load_analysis(analysis_id: int, current_evaluation_dir: str) -> tuple[
+def load_analysis(
+    analysis_id: int, submission_id: int, current_evaluation_dir: str
+) -> tuple[
     Callable[
         [str, pd.DataFrame, Callable, int, int, Optional[str], Optional[str]],
         dict[str, Any],
@@ -375,13 +381,15 @@ def process_submission_message(
     )
 
     analysis_function, function_parameters, file_metadata_df = load_analysis(
-        analysis_id, current_evaluation_dir
+        analysis_id, submission_id, current_evaluation_dir
     )
     logger.info(f"function parameters returns {function_parameters}")
 
     # execute the runner script
     # assume ret indicates the directory of result of the runner script
+
     s3_submission_zip_file_path = f"{S3_BUCKET_NAME}/submission_files/submission_user_{user_id}/submission_{submission_id}/{submission_filename}"
+
     logger.info(
         f"execute runner module function with argument {s3_submission_zip_file_path}"
     )
@@ -610,12 +618,24 @@ def main():
 
             json_message: dict[str, Any] = json.loads(message.body)
 
-            analysis_id: str | None = json_message.get("analysis_pk", None)
-            submission_id: str | None = json_message.get("submission_pk", None)
+            analysis_id_str: str | None = json_message.get("analysis_pk", None)
+            submission_id_str: str | None = json_message.get(
+                "submission_pk", None
+            )
             user_id: str | None = json_message.get("user_pk", None)
             submission_filename: str | None = json_message.get(
                 "submission_filename", None
             )
+
+            if analysis_id_str is None:
+                logger.error("analysis_id is None")
+                raise ValueError("analysis_id is None")
+            if submission_id_str is None:
+                logger.error("submission_id is None")
+                raise ValueError("submission_id is None")
+
+            analysis_id = int(analysis_id_str)
+            submission_id = int(submission_id_str)
 
             logger.info(f"update submission status to {RUNNING}")
             update_submission_status(analysis_id, submission_id, RUNNING)
