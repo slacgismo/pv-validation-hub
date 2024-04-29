@@ -126,8 +126,19 @@ def pull_from_s3(
     else:
         s3 = boto3.client("s3")
 
+        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
+        # if so, remove it
+        s3_file_path = s3_file_path.replace("pv-validation-hub-bucket/", "")
+        logger.info(
+            f"dir after removing pv-validation-hub-bucket/ returns {s3_file_path}"
+        )
+
         try:
+            logger.info(
+                f"Downloading from {S3_BUCKET_NAME} at {s3_file_path} to {target_file_path}"
+            )
             s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
+
         except botocore.exceptions.ClientError as e:
             logger.error(f"Error: {e}")
             raise requests.HTTPError(

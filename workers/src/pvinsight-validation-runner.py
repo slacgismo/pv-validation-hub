@@ -270,9 +270,9 @@ def run_user_submission(fn: Callable, *args: Any, **kwargs: Any) -> Any:
 def run(  # noqa: C901
     s3_submission_zip_file_path: str,
     file_metadata_df: pd.DataFrame,
-    update_submission_status,
-    analysis_id,
-    submission_id,
+    update_submission_status: Callable,
+    analysis_id: int,
+    submission_id: int,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ) -> dict[str, Any]:
