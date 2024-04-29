@@ -104,9 +104,11 @@ def pull_from_s3(
         s3_file_path = s3_file_path[1:]
 
     if IS_LOCAL:
+        logger.info("running locally")
         s3_file_full_path = "http://s3:5000/get_object/" + s3_file_path
         # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
     else:
+        logger.info("running in ecs")
         s3_file_full_path = "s3://" + s3_file_path
 
     target_file_path = os.path.join(
@@ -127,6 +129,9 @@ def pull_from_s3(
         s3 = boto3.client("s3")
 
         try:
+            logger.info(
+                f"Downloading {s3_file_path} from {S3_BUCKET_NAME} to {target_file_path}"
+            )
             s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
         except botocore.exceptions.ClientError as e:
             logger.error(f"Error: {e}")
