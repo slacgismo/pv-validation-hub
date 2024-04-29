@@ -62,8 +62,9 @@ def leaderboard(request, analysis_id):
         response_data = {"error": "analysis does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    submission_list = Submission.objects.filter(analysis=_analysis)
-    # Replace above later, submission_list = Submission.objects.filter(analysis=_analysis).prefetch_related('error_report')
+    submission_list = Submission.objects.filter(
+        analysis=_analysis, mae__isnull=False, status=Submission.FINISHED
+    )
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 
     return Response(serializer.data, status=status.HTTP_200_OK)

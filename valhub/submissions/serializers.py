@@ -31,6 +31,12 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["submitted_at"] = instance.submitted_at
         data["result"] = instance.result
         data["status"] = instance.status
+        error_report = ErrorReport.objects.filter(submission=instance).first()
+        data["error_rate"] = (
+            error_report.error_rate
+            if error_report and error_report.error_rate is not None
+            else 0
+        )
         return data
 
 
@@ -54,10 +60,6 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "data_requirements",
         )
 
-    #    def get_error_report(self, obj):
-    #        error_report = ErrorReport.objects.filter(submission=obj).first()
-    #        return ErrorReportLeaderboardSerializer(error_report).data if error_report else None
-
     def to_representation(self, instance):
         data = super(SubmissionDetailSerializer, self).to_representation(
             instance
@@ -66,5 +68,10 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "uuid": instance.created_by.uuid,
             "username": instance.created_by.username,
         }
-        data["error_rate"] = 12.31  # Placeholder value
+        error_report = ErrorReport.objects.filter(submission=instance).first()
+        data["error_rate"] = (
+            error_report.error_rate
+            if error_report and error_report.error_rate is not None
+            else 0
+        )
         return data
