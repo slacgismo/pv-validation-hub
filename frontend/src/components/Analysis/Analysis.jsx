@@ -106,6 +106,8 @@ export default function Analysis() {
 
   const handleActive = () => file !== null;
 
+  const handleClear = () => setFile(null);
+
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
@@ -277,6 +279,7 @@ export default function Analysis() {
               </Typography>
               )}
               <Button disabled={!handleActive()} variant="contained" onClick={handleUpload}>Upload</Button>
+              <Button disabled={!handleActive()} variant="contained" onClick={handleClear}>Clear</Button>
             </Box>
           </ReactModal>
         </Container>

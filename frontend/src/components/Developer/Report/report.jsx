@@ -13,13 +13,26 @@ import SubmissionService from '../../../services/submission_service.js';
 export default function SubmissionReport({ submissionId }) {
   const [imageUrls, setImageUrls] = useState([]);
   const [errorData, setErrorData] = useState([]);
+  const [displayErrorDetails, setDisplayErrorDetails] = useState(false);
 
   useEffect(() => {
     const fetchSubmissionErrors = async () => {
       try {
         const errors = await SubmissionService.getSubmissionErrors(submissionId);
-        setErrorData(errors);
         console.log('Error data:', errors);
+        if (errors.length === 0) {
+          setErrorData({ error_rate: '0%' });
+          setDisplayErrorDetails(false);
+        } else if (errors.length > 0) {
+          let tempErrorData = errors[0];
+          if (tempErrorData.error_type.toLowerCase().includes('operation'.toLowerCase())
+            || tempErrorData.error_type.toLowerCase().includes('wrapper'.toLowerCase())
+            || tempErrorData.error_type.toLowerCase().includes('worker'.toLowerCase())) {
+            tempErrorData = { ...tempErrorData, error_rate: 'N/A' };
+          }
+          setErrorData(tempErrorData);
+          setDisplayErrorDetails(true);
+        }
       } catch (error) {
         console.error('Error fetching submission results:', error);
       }
@@ -47,22 +60,26 @@ export default function SubmissionReport({ submissionId }) {
             {' '}
             {errorData.error_rate}
           </Typography>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Error Code:
-            {' '}
-            {errorData.error_code}
-          </Typography>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Error Type:
-            {' '}
-            {errorData.error_type}
-          </Typography>
+          {displayErrorDetails && (
+          <>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Error Code:
+              {' '}
+              {errorData.error_code}
+            </Typography>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Error Type:
+              {' '}
+              {errorData.error_type}
+            </Typography>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              Error Message:
+              {' '}
+              {errorData.error_message}
+            </Typography>
+          </>
+          )}
         </AppBar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Error Message: WHYY
-          {' '}
-          {errorData.error_message}
-        </Typography>
       </Box>
 
       <List>

@@ -56,7 +56,7 @@ export default function DeveloperHome() {
       handler: () => { handleNavClick('home'); },
     },
     {
-      title: 'Available Analyses',
+      title: 'Request Logs',
       icon: <AssessmentIcon />,
       handler: () => {},
     },

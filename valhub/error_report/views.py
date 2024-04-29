@@ -13,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 
-from .models import ErrorReport
+from .models import ErrorReport as ErrorReportModel
 from .serializers import ErrorReportSerializer
 import random
 import json
@@ -92,12 +92,12 @@ def get_error_message(error_code: str) -> str:
 
 
 class ErrorReportList(generics.ListCreateAPIView):
-    queryset = ErrorReport.objects.all()
+    queryset = ErrorReportModel.objects.all()
     serializer_class = ErrorReportSerializer
 
 
 class ErrorReportDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = ErrorReport.objects.all()
+    queryset = ErrorReportModel.objects.all()
     serializer_class = ErrorReportSerializer
 
 
@@ -162,18 +162,17 @@ def ErrorReport(request: Request, *args, **kwargs):
 @permission_classes([IsAuthenticated])
 @csrf_exempt
 def ErrorReportPrivateList(request, pk):
-    #    queryset = ErrorReport.objects.all()
-    #    serializer_class = ErrorReportSerializer
-
-    #        return ErrorReport.objects.filter(submission__user=self.request.user)
-    # Placeholder return value
-    ret = {
-        "error_code": "Error123",
-        "error_type": "TypeError",
-        "error_message": "Data is of the type: NoneType, Expected: int",
-        "error_rate": 12.34,
-    }
-    return JsonResponse(ret, status=status.HTTP_200_OK)
+    try:
+        error_reports = ErrorReportModel.objects.filter(submission=pk)
+        serializer = ErrorReportSerializer(error_reports, many=True)
+        return JsonResponse(
+            serializer.data, safe=False, status=status.HTTP_200_OK
+        )
+    except ErrorReportModel.DoesNotExist:
+        return JsonResponse(
+            {"error": "Error report not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
 
 # @authentication_classes([TokenAuthentication])
