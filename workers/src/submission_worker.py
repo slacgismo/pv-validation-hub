@@ -394,8 +394,6 @@ def process_submission_message(
         f"execute runner module function with argument {s3_submission_zip_file_path}"
     )
 
-    # argument is the s3 file path. All pull from s3 calls CANNOT use the bucket name in the path.
-    # bucket name must be passed seperately to boto3 calls.
     ret = analysis_function(
         s3_submission_zip_file_path,
         file_metadata_df,
