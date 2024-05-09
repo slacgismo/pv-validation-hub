@@ -1,12 +1,17 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from dask.delayed import delayed
+from dask.distributed import Client
+
+from concurrent.futures import ProcessPoolExecutor, as_completed, thread
 from functools import wraps
 from logging import Logger
-from time import perf_counter
+from time import perf_counter, sleep
 import os
-from typing import Callable, Tuple, TypeVar, Union
+from typing import Any, Callable, Tuple, TypeVar, Union
 
 import boto3
 import botocore.exceptions
+from distributed import LocalCluster
+from matplotlib.pylab import f
 import requests
 
 
@@ -42,8 +47,9 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
 
 
 def multiprocess(
-    func: Callable[..., T], data: list, n_processes: int, logger: Logger
+    func: Callable[..., T], data: list, n_processes: int, logger: Logger | None
 ) -> list[T]:
+    log = logger or print
     with ProcessPoolExecutor(max_workers=n_processes) as executor:
         futures = {executor.submit(func, d): d for d in data}
         results: list[T] = []
@@ -51,7 +57,65 @@ def multiprocess(
             try:
                 results.append(future.result())
             except Exception as e:
-                logger.error(f"Error: {e}")
+                log.error(f"Error: {e}")
+    return results
+
+
+def dask_multiprocess(
+    func: Callable[..., T],
+    func_arguments: list[tuple[Any, ...]],
+    n_workers: int | None = None,
+    threads_per_worker: int | None = None,
+    memory_limit: str | float | int | None = None,
+    logger: Logger | None = None,
+) -> T | list[T] | tuple[T, ...]:
+
+    # if n_workers is None:
+    #     n_workers = os.cpu_count()
+    #     if n_workers is None:
+    #         msg = (
+    #             "Could not determine number of CPUs. Defaulting to 4 workers."
+    #         )
+    #         if logger:
+    #             logger.warning(msg)
+    #         else:
+    #             print(msg)
+    #         n_workers = 4
+
+    # if threads_per_worker is None:
+    #     threads_per_worker = None
+
+    client = Client(
+        n_workers=n_workers,
+        threads_per_worker=threads_per_worker,
+        memory_limit=memory_limit,
+    )
+
+    # LocalCluster()
+
+    if logger is not None:
+        print(f"logger name: {logger.name}")
+        logger.info(f"Forwarding logging to dask client")
+        client.forward_logging(logger.name)
+
+    if logger is not None:
+        logger.info(f"Created dask client")
+        logger.info(f"Client: {client}")
+    else:
+        print(f"Created dask client")
+        print(f"Client: {client}")
+
+    lazy_results = []
+    for args in func_arguments:
+        lazy_result = delayed(func)(*args)
+        lazy_results.append(lazy_result)
+
+    futures = client.compute(lazy_results)
+
+    results = client.gather(futures)
+
+    client.close()
+
     return results
 
 
@@ -148,3 +212,25 @@ def pull_from_s3(
             )
 
     return target_file_path
+
+
+if __name__ == "__main__":
+
+    def expensive_function(x):
+        print(x)
+        sleep(2)
+        return x**2
+
+    data = list(range(10))
+    func_args = [(d,) for d in data]
+    n_processes = 2
+    threads_per_worker = 1
+    logger = None
+    results = dask_multiprocess(
+        expensive_function,
+        [(d,) for d in data],
+        n_workers=n_processes,
+        threads_per_worker=threads_per_worker,
+        logger=logger,
+    )
+    print(results)

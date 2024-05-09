@@ -91,7 +91,7 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
         with open(local_file_path, "rb") as f:
             file_content = f.read()
             logger.info(
-                f"Sending emulator PUT request to {s3_file_full_path} with file content: {file_content}"
+                f"Sending emulator PUT request to {s3_file_full_path} with file content (100 chars): {file_content[:100]}"
             )
             r = requests.put(s3_file_full_path, data=file_content)
             logger.info(f"Received S3 emulator response: {r.status_code}")
@@ -393,6 +393,14 @@ def process_submission_message(
     logger.info(
         f"execute runner module function with argument {s3_submission_zip_file_path}"
     )
+
+    logger.debug(f"s3_submission_zip_file_path: {s3_submission_zip_file_path}")
+    logger.debug(f"file_metadata_df: {file_metadata_df}")
+    logger.debug(f"update_submission_status: {update_submission_status}")
+    logger.debug(f"analysis_id: {analysis_id}")
+    logger.debug(f"submission_id: {submission_id}")
+    logger.debug(f"current_evaluation_dir: {current_evaluation_dir}")
+    logger.debug(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
 
     ret = analysis_function(
         s3_submission_zip_file_path,
