@@ -7,7 +7,7 @@ from logging import Logger
 from time import perf_counter, sleep
 import os
 from typing import Any, Callable, Tuple, TypeVar, Union
-
+import logging
 import boto3
 import botocore.exceptions
 from distributed import LocalCluster
@@ -96,7 +96,7 @@ def dask_multiprocess(
     if logger is not None:
         print(f"logger name: {logger.name}")
         logger.info(f"Forwarding logging to dask client")
-        client.forward_logging(logger.name)
+        client.forward_logging(logger.name, level=logging.INFO)
 
     if logger is not None:
         logger.info(f"Created dask client")
