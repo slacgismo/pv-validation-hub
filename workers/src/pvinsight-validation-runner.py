@@ -667,9 +667,6 @@ def run_submission(
     function_parameters: list[str],
     row: pd.Series,
 ):
-
-    logger.info(f"file_name: {file_name}")
-
     # Create master dictionary of all possible function kwargs
     kwargs = prepare_kwargs_for_submission_function(
         config_data, function_parameters, row, associated_metadata
@@ -722,9 +719,9 @@ def loop_over_files_and_generate_results(
     results = dask_multiprocess(
         run_submission_and_generate_performance_metrics,
         func_arguments_list,
-        n_workers=2,
-        threads_per_worker=1,
-        memory_limit="16GiB",
+        # n_workers=2,
+        # threads_per_worker=1,
+        # memory_limit="16GiB",
         logger=logger,
     )
     return results
@@ -801,7 +798,6 @@ def generate_performance_metrics_for_submission(
                     np.abs(output_dictionary[val] - ground_truth_dict[val])
                 )
                 results_dictionary[metric + "_" + val] = error
-    logger.info(f"results_dictionary: {results_dictionary}")
     return results_dictionary
 
 
@@ -818,8 +814,8 @@ def run_submission_and_generate_performance_metrics(
     performance_metrics: list[str],
     file_number: int,
 ):
-    logger.info(f"{file_number} - running submission for file {file_name}")
     try:
+        logger.info(f"{file_number} - running submission for file {file_name}")
         # Get file_name, which will be pulled from database or S3 for
         # each analysis
         (
