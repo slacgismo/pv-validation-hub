@@ -80,7 +80,7 @@ services:
   react-client:
     stdin_open: true
     build:
-      context: ./frontend
+      context: ./pv-validation-hub-client
       dockerfile: Dockerfile
     environment:
       HOST: 0.0.0.0
@@ -91,7 +91,7 @@ services:
       - s3
     volumes:
       - type: bind
-        source: ./frontend
+        source: ./pv-validation-hub-client
         target: /app
 
   sqs:
