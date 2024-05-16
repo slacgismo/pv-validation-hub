@@ -16,7 +16,9 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
+from email import errors
 from multiprocessing.spawn import prepare
+import re
 from typing import Any, Callable, cast
 import pandas as pd
 import os
@@ -440,26 +442,19 @@ def run(  # noqa: C901
     total_number_of_files = len(file_metadata_df)
     logger.info(f"total_number_of_files: {total_number_of_files}")
 
-    number_of_errors = 0
-
-    FAILURE_CUTOFF = 3
-
-    def current_error_rate(number_of_errors: int, index: int):
-        return (number_of_errors / (index + 1)) * 100
-
     # Loop through each file and generate predictions
 
-    results_list = loop_over_files_and_generate_results(
+    results_list, number_of_errors = loop_over_files_and_generate_results(
         file_metadata_df,
         system_metadata_df,
         data_dir,
         config_data,
         submission_function,
         function_parameters,
-        number_of_errors,
         function_name,
         performance_metrics,
     )
+
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
     results_df = pd.DataFrame(results_list)
@@ -574,7 +569,6 @@ def create_function_args_for_file(
     config_data: dict[str, Any],
     submission_function: Callable[..., pd.Series],
     function_parameters: list[str],
-    number_of_errors: int,
     function_name: str,
     performance_metrics: list[str],
     file_number: int,
@@ -602,7 +596,6 @@ def create_function_args_for_file(
         submission_function,
         function_parameters,
         file_metadata_row,
-        number_of_errors,
         function_name,
         performance_metrics,
         file_number,
@@ -618,7 +611,6 @@ def prepare_function_args_for_parallel_processing(
     config_data: dict[str, Any],
     submission_function: Callable[..., pd.Series],
     function_parameters: list[str],
-    number_of_errors: int,
     function_name: str,
     performance_metrics: list[str],
 ):
@@ -648,7 +640,6 @@ def prepare_function_args_for_parallel_processing(
             config_data,
             submission_function,
             function_parameters,
-            number_of_errors,
             function_name,
             performance_metrics,
             file_number,
@@ -699,10 +690,9 @@ def loop_over_files_and_generate_results(
     config_data: dict[str, Any],
     submission_function: Callable[..., pd.Series],
     function_parameters: list[str],
-    number_of_errors: int,
     function_name: str,
     performance_metrics: list[str],
-):
+) -> tuple[list[dict[str, Any]], int]:
 
     func_arguments_list = prepare_function_args_for_parallel_processing(
         file_metadata_df,
@@ -711,20 +701,63 @@ def loop_over_files_and_generate_results(
         config_data,
         submission_function,
         function_parameters,
-        number_of_errors,
         function_name,
         performance_metrics,
     )
 
-    results = dask_multiprocess(
+    NUM_FILES_TO_TEST = 3
+
+    test_func_argument_list, rest_func_argument_list = (
+        func_arguments_list[:NUM_FILES_TO_TEST],
+        func_arguments_list[NUM_FILES_TO_TEST:],
+    )
+
+    results: list[dict[str, Any]] = []
+    number_of_errors = 0
+
+    # Test the first two files
+    logger.info(f"Testing the first {NUM_FILES_TO_TEST} files...")
+    test_results = dask_multiprocess(
         run_submission_and_generate_performance_metrics,
-        func_arguments_list,
+        test_func_argument_list,
+        n_workers=NUM_FILES_TO_TEST,
+        threads_per_worker=1,
+        # memory_limit="16GiB",
+        logger=logger,
+    )
+    errors = [error for _, error in test_results]
+    number_of_errors += sum(errors)
+
+    if number_of_errors == NUM_FILES_TO_TEST:
+        logger.error(
+            f"Too many errors ({number_of_errors}) occurred in the first {NUM_FILES_TO_TEST} files. Exiting."
+        )
+        raise RunnerException(
+            7,
+            f"Too many errors ({number_of_errors}) occurred in the first {NUM_FILES_TO_TEST} files. Exiting.",
+        )
+
+    # Test the rest of the files
+
+    logger.info(f"Testing the rest of the files...")
+    rest_results = dask_multiprocess(
+        run_submission_and_generate_performance_metrics,
+        rest_func_argument_list,
         # n_workers=4,
         threads_per_worker=1,
         # memory_limit="16GiB",
         logger=logger,
     )
-    return results
+    errors = [error for _, error in rest_results]
+    number_of_errors += sum(errors)
+
+    test_results = [result for result, _ in test_results if result is not None]
+    rest_results = [result for result, _ in rest_results if result is not None]
+
+    results.extend(test_results)
+    results.extend(rest_results)
+
+    return results, number_of_errors
 
 
 def generate_performance_metrics_for_submission(
@@ -814,6 +847,8 @@ def run_submission_and_generate_performance_metrics(
     performance_metrics: list[str],
     file_number: int,
 ):
+
+    error = False
     try:
         logger.info(f"{file_number} - running submission for file {file_name}")
         # Get file_name, which will be pulled from database or S3 for
@@ -831,23 +866,24 @@ def run_submission_and_generate_performance_metrics(
             file_metadata_row,
         )
 
+        results_dictionary = generate_performance_metrics_for_submission(
+            data_outputs,
+            function_run_time,
+            file_name,
+            data_dir,
+            associated_system_metadata,
+            config_data,
+            function_parameters,
+            number_of_errors,
+            performance_metrics,
+        )
+
+        return results_dictionary, error
     except Exception as e:
         logger.error(f"error running function {function_name}: {e}")
         number_of_errors += 1
-
-    results_dictionary = generate_performance_metrics_for_submission(
-        data_outputs,
-        function_run_time,
-        file_name,
-        data_dir,
-        associated_system_metadata,
-        config_data,
-        function_parameters,
-        number_of_errors,
-        performance_metrics,
-    )
-
-    return results_dictionary
+        error = True
+        return None, error
 
 
 def prepare_kwargs_for_submission_function(

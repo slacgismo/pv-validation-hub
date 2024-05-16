@@ -359,6 +359,7 @@ def load_analysis(
     return analysis_function, function_parameters, file_metadata_df
 
 
+@timing(verbose=True, logger=logger)
 def process_submission_message(
     analysis_id: int,
     submission_id: int,
@@ -666,11 +667,15 @@ def main():
             t.start()
 
             try:
-                process_submission_message(
+                _, execution_time = process_submission_message(
                     int(analysis_id),
                     int(submission_id),
                     int(user_id),
                     submission_filename,
+                )
+
+                logger.info(
+                    f"Submission Worker took {execution_time:.3f} seconds to process submission_id={submission_id} and analysis_id={analysis_id}"
                 )
             except (
                 WorkerException,
@@ -769,5 +774,6 @@ if __name__ == "__main__":
     # Set to folder where the evaluation scripts are stored
     logger.info(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
     _, execution_time = main()
-    logger.info(f"Submission Worker took {execution_time:.3f} seconds to run")
-    logger.info(f"Submission Worker finished.")
+    logger.info(
+        f"Shutting down Submission Worker. Runtime: {execution_time:.3f} seconds."
+    )

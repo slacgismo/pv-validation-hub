@@ -216,7 +216,7 @@ def dask_multiprocess(
     memory_per_run: float | int | None = None,
     logger: Logger | None = None,
     **kwargs,
-):
+) -> list[T]:
     memory_per_run = memory_per_run or MEMORY_PER_RUN
 
     cpu_count = os.cpu_count()
@@ -246,7 +246,7 @@ def dask_multiprocess(
     logger_if_able(f"threads_per_worker: {total_threads}", logger, "INFO")
     logger_if_able(f"memory per worker: {memory_per_worker}", logger, "INFO")
 
-    results = []
+    results: list[T] = []
 
     with Client(
         n_workers=total_workers,
@@ -264,7 +264,7 @@ def dask_multiprocess(
 
         futures = client.compute(lazy_results)
 
-        results = client.gather(futures)
+        results = client.gather(futures)  # type: ignore
 
     return results
 
