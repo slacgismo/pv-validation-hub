@@ -719,8 +719,8 @@ def loop_over_files_and_generate_results(
     results = dask_multiprocess(
         run_submission_and_generate_performance_metrics,
         func_arguments_list,
-        # n_workers=2,
-        # threads_per_worker=1,
+        # n_workers=4,
+        threads_per_worker=1,
         # memory_limit="16GiB",
         logger=logger,
     )
