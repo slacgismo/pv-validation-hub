@@ -36,8 +36,24 @@ def register(request):
         lastName=_lastName,
     )
 
-    serializer = AccountSerializer(account)
-    return JsonResponse(serializer.data)
+    # Automatically log the user in after registration
+    user = auth.authenticate(request, username=_username, password=_password)
+
+    logging.error(f"uuid: {user.uuid}")
+
+    if user is not None:
+        auth.login(request, user)
+
+        # get or create login token for the user
+        token, _ = Token.objects.get_or_create(user=user)
+        data = {
+            "token": str(token.key),
+            "user": AccountSerializer(account).data,
+        }
+
+        return JsonResponse(data, status=201)
+
+    return JsonResponse({"error": "Invalid credentials"}, status=400)
 
 
 @csrf_exempt
@@ -62,7 +78,7 @@ def login(request):
         dump = json.dumps(data)
         return HttpResponse(dump, content_type="application/json", status=200)
     else:
-        return HttpResponse("wrong password", status=400)
+        return HttpResponse("Invalid credentials", status=400)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
