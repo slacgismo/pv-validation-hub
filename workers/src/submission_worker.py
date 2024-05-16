@@ -59,12 +59,6 @@ def update_submission_status(
     return data
 
 
-# base
-BASE_TEMP_DIR = tempfile.mkdtemp()
-# Set to folder where the evaluation scripts are stored
-logger.info(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
-
-
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
 CURRENT_EVALUATION_DIR = os.path.abspath(
@@ -769,6 +763,11 @@ def main():
 
 if __name__ == "__main__":
     logger.info(f"Starting Submission Worker.")
+
+    # base
+    BASE_TEMP_DIR = tempfile.mkdtemp()
+    # Set to folder where the evaluation scripts are stored
+    logger.info(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
     _, execution_time = main()
     logger.info(f"Submission Worker took {execution_time:.3f} seconds to run")
     logger.info(f"Submission Worker finished.")

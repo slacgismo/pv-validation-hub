@@ -30,9 +30,9 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
     def decorator(func: Callable[..., T]):
         @wraps(func)
         def wrapper(*args, **kwargs) -> Tuple[T, float]:
-            start_time = time()
+            start_time = perf_counter()
             result = func(*args, **kwargs)
-            end_time = time()
+            end_time = perf_counter()
             execution_time = end_time - start_time
             if verbose:
                 msg = (
@@ -69,7 +69,7 @@ def dask_multiprocess(
     func_arguments: list[tuple[Any, ...]],
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
-    memory_limit: float | int | None = None,
+    memory_per_run: float | int | None = None,
     logger: Logger | None = None,
     **kwargs,
 ) -> T | list[T] | tuple[T, ...]:
@@ -97,7 +97,7 @@ def dask_multiprocess(
     #     config.set({'distributed.worker.memory.spill': True})
     #     print(f"Memory per worker exceeds system memory ({memory_limit} GB), activating memory spill\n")
 
-    memory_limit = memory_limit or 7.0
+    memory_per_run = memory_per_run or 7.0
 
     cpu_count = os.cpu_count()
     # memory limit in GB
@@ -111,15 +111,15 @@ def dask_multiprocess(
             raise Exception(
                 f"workers and threads exceed local resources, {cpu_count} cores present"
             )
-        if memory_limit * n_workers * threads_per_worker > sys_memory:
+        if memory_per_run * n_workers * threads_per_worker > sys_memory:
             config.set({"distributed.worker.memory.spill": True})
             print(
-                f"Memory per worker exceeds system memory ({memory_limit} GB), activating memory spill\n"
+                f"Memory per worker exceeds system memory ({memory_per_run} GB), activating memory spill\n"
             )
 
     if n_workers is not None and threads_per_worker is None:
         threads_per_worker = int(
-            math.floor(sys_memory / (memory_limit * n_workers))
+            math.floor(sys_memory / (memory_per_run * n_workers))
         )
         if threads_per_worker == 0:
             print(
@@ -129,56 +129,70 @@ def dask_multiprocess(
 
     if n_workers is None and threads_per_worker is not None:
         n_workers = int(
-            math.floor(sys_memory / (memory_limit * threads_per_worker))
+            math.floor(sys_memory / (memory_per_run * threads_per_worker))
         )
         if n_workers == 0:
             print("Not enough memory for a worker, defaulting to 1 worker")
             n_workers = 1
 
     if n_workers is None and threads_per_worker is None:
-        if memory_limit == 0:
+        if memory_per_run == 0:
             raise Exception("Memory limit cannot be 0")
-        thread_worker_total = sys_memory / memory_limit
+        thread_worker_total = math.floor(sys_memory / memory_per_run)
         if thread_worker_total < 2:
             print(
                 "Not enough memory for a worker, defaulting to 1 worker and 1 thread per worker"
             )
             n_workers = 1
             threads_per_worker = 1
-            if memory_limit * n_workers > sys_memory:
+            if memory_per_run * n_workers > sys_memory:
                 config.set({"distributed.worker.memory.spill": True})
                 print(
-                    f"Memory per worker exceeds system memory ({memory_limit} GB), activating memory spill\n"
+                    f"Memory per worker exceeds system memory ({memory_per_run} GB), activating memory spill\n"
                 )
         else:
             print(f"thread_worker_total: {thread_worker_total}")
-            n_workers = int(math.floor(thread_worker_total / 2))
+            n_workers = int(math.ceil(thread_worker_total / 2))
             threads_per_worker = int(math.floor(thread_worker_total / 2))
+            if n_workers + threads_per_worker != thread_worker_total:
+                print(
+                    f"n_workers: {n_workers}, threads_per_worker: {threads_per_worker}, thread_worker_total: {thread_worker_total}"
+                )
+                raise Exception(
+                    "Could not determine number of workers and threads"
+                )
 
     # config.set({"distributed.worker.memory.spill": True})
     config.set({"distributed.worker.memory.pause": True})
     config.set({"distributed.worker.memory.target": 0.95})
     config.set({"distributed.worker.memory.terminate": False})
 
+    if threads_per_worker is None:
+        threads_per_worker = 1
+
+    memory_per_worker = memory_per_run * threads_per_worker
+
     print(f"cpu count: {cpu_count}")
     print(f"memory: {sys_memory}")
-    print(f"memory limit per worker: {memory_limit}")
+    print(f"memory per run: {memory_per_run}")
     print(f"n_workers: {n_workers}")
     print(f"threads_per_worker: {threads_per_worker}")
+    print(f"memory per worker: {memory_per_worker}")
 
     client = Client(
         n_workers=n_workers,
         threads_per_worker=threads_per_worker,
-        memory_limit=f"{memory_limit}GiB",
+        memory_limit=f"{memory_per_worker}GiB",
         **kwargs,
     )
+    # client = LocalCluster()
 
     # LocalCluster()
 
-    if logger is not None:
-        print(f"logger name: {logger.name}")
-        logger.info(f"Forwarding logging to dask client")
-        client.forward_logging(logger.name, level=logging.INFO)
+    # if logger is not None:
+    #     print(f"logger name: {logger.name}")
+    #     logger.info(f"Forwarding logging to dask client")
+    #     client.forward_logging(logger.name, level=logging.INFO)
 
     if logger is not None:
         logger.info(f"Created dask client")
