@@ -64,9 +64,6 @@ LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
 CURRENT_EVALUATION_DIR = os.path.abspath(
     os.path.join(FILE_DIR, "..", "current_evaluation")
 )
-logger.info(f"FILE_DIR: {FILE_DIR}")
-logger.info(f"LOG_FILE_DIR: {LOG_FILE_DIR}")
-logger.info(f"CURRENT_EVALUATION_DIR: {CURRENT_EVALUATION_DIR}")
 
 
 def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
@@ -771,6 +768,9 @@ if __name__ == "__main__":
 
     # base
     BASE_TEMP_DIR = tempfile.mkdtemp()
+    logger.info(f"FILE_DIR: {FILE_DIR}")
+    logger.info(f"LOG_FILE_DIR: {LOG_FILE_DIR}")
+    logger.info(f"CURRENT_EVALUATION_DIR: {CURRENT_EVALUATION_DIR}")
     # Set to folder where the evaluation scripts are stored
     logger.info(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
     _, execution_time = main()

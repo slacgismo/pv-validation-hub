@@ -768,7 +768,6 @@ def generate_performance_metrics_for_submission(
     associated_metadata: dict[str, Any],
     config_data: dict[str, Any],
     function_parameters: list[str],
-    number_of_errors: int,
     performance_metrics: list[str],
 ):
     # Get the ground truth scalars that we will compare to
@@ -792,7 +791,6 @@ def generate_performance_metrics_for_submission(
             f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
         )
 
-        number_of_errors += 1
         raise RunnerException(
             100,
             f"submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}",
@@ -842,7 +840,6 @@ def run_submission_and_generate_performance_metrics(
     submission_function: Callable[..., pd.Series],
     function_parameters: list[str],
     file_metadata_row: pd.Series,
-    number_of_errors: int,
     function_name: str,
     performance_metrics: list[str],
     file_number: int,
@@ -874,14 +871,12 @@ def run_submission_and_generate_performance_metrics(
             associated_system_metadata,
             config_data,
             function_parameters,
-            number_of_errors,
             performance_metrics,
         )
 
         return results_dictionary, error
     except Exception as e:
         logger.error(f"error running function {function_name}: {e}")
-        number_of_errors += 1
         error = True
         return None, error
 
