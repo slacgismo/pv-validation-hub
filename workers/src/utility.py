@@ -1,9 +1,14 @@
-import sys
+import json
 from dask.delayed import delayed
 from dask.distributed import Client
 from dask import config
 
-from concurrent.futures import ProcessPoolExecutor, as_completed, thread
+from concurrent.futures import (
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+    thread,
+)
 from functools import wraps
 from logging import Logger
 from time import perf_counter, sleep, time
@@ -13,6 +18,7 @@ import logging
 import boto3
 import botocore.exceptions
 from distributed import LocalCluster
+from matplotlib.pylab import f
 import psutil
 import requests
 import math
@@ -22,46 +28,10 @@ WORKER_ERROR_PREFIX = "wr"
 RUNNER_ERROR_PREFIX = "op"
 SUBMISSION_ERROR_PREFIX = "sb"
 
+
 T = TypeVar("T")
 
-
-def timing(verbose: bool = True, logger: Union[Logger, None] = None):
-    @wraps(timing)
-    def decorator(func: Callable[..., T]):
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Tuple[T, float]:
-            start_time = perf_counter()
-            result = func(*args, **kwargs)
-            end_time = perf_counter()
-            execution_time = end_time - start_time
-            if verbose:
-                msg = (
-                    f"{func.__name__} took {execution_time:.3f} seconds to run"
-                )
-                if logger:
-                    logger.info(msg)
-                else:
-                    print(msg)
-            return result, execution_time
-
-        return wrapper
-
-    return decorator
-
-
-def multiprocess(
-    func: Callable[..., T], data: list, n_processes: int, logger: Logger | None
-) -> list[T]:
-    log = logger or print
-    with ProcessPoolExecutor(max_workers=n_processes) as executor:
-        futures = {executor.submit(func, d): d for d in data}
-        results: list[T] = []
-        for future in as_completed(futures):
-            try:
-                results.append(future.result())
-            except Exception as e:
-                log.error(f"Error: {e}")
-    return results
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def logger_if_able(
@@ -88,7 +58,100 @@ def logger_if_able(
         print(message)
 
 
-MEMORY_PER_RUN = 7.0  # in GB
+def get_error_codes_dict(
+    dir: str, prefix: str, logger: Logger | None
+) -> dict[str, str]:
+    try:
+        with open(
+            os.path.join(dir, "errorcodes.json"), "r"
+        ) as error_codes_file:
+            error_codes = json.load(error_codes_file)
+            if prefix not in error_codes:
+                logger_if_able(
+                    f"Error prefix {prefix} not found in error codes file",
+                    logger,
+                    "ERROR",
+                )
+
+                raise KeyError(
+                    f"Error prefix {prefix} not found in error codes file"
+                )
+            return error_codes[prefix]
+    except FileNotFoundError:
+        logger_if_able("Error codes file not found", logger, "ERROR")
+        raise FileNotFoundError("Error codes file not found")
+    except KeyError:
+        logger_if_able(
+            f"Error prefix {prefix} not found in error codes file",
+            logger,
+            "ERROR",
+        )
+        raise KeyError(f"Error prefix {prefix} not found in error codes file")
+    except Exception as e:
+        logger_if_able(f"Error loading error codes: {e}", logger, "ERROR")
+        raise e
+
+
+submission_error_codes = get_error_codes_dict(
+    FILE_DIR, SUBMISSION_ERROR_PREFIX, None
+)
+
+
+def timing(verbose: bool = True, logger: Union[Logger, None] = None):
+    @wraps(timing)
+    def decorator(func: Callable[..., T]):
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Tuple[T, float]:
+            start_time = perf_counter()
+            result = func(*args, **kwargs)
+            end_time = perf_counter()
+            execution_time = end_time - start_time
+            if verbose:
+                msg = (
+                    f"{func.__name__} took {execution_time:.3f} seconds to run"
+                )
+                logger_if_able(msg, logger)
+            return result, execution_time
+
+        return wrapper
+
+    return decorator
+
+
+def multiprocess(
+    func: Callable[..., T], data: list, n_processes: int, logger: Logger | None
+) -> list[T]:
+    log = logger or print
+    with ProcessPoolExecutor(max_workers=n_processes) as executor:
+        futures = {executor.submit(func, d): d for d in data}
+        results: list[T] = []
+        for future in as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                log.error(f"Error: {e}")
+    return results
+
+
+def timeout(seconds: int, logger: Union[Logger, None] = None):
+    def decorator(func: Callable[..., T]):
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> T:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(func, *args, **kwargs)
+                try:
+                    return future.result(timeout=seconds)
+                except TimeoutError:
+                    error_code = 1
+                    raise SubmissionException(
+                        *get_error_by_code(
+                            error_code, submission_error_codes, logger
+                        )
+                    )
+
+        return wrapper
+
+    return decorator
 
 
 def set_workers_and_threads(
@@ -115,12 +178,13 @@ def set_workers_and_threads(
     total_threads: int = 1
 
     if cpu_count is None:
-        raise Exception("Could not determine number of CPUs.")
+        raise Exception(10, "Could not determine number of CPUs.")
 
     if n_workers is not None and threads_per_worker is not None:
         if n_workers * threads_per_worker > cpu_count:
             raise Exception(
-                f"workers and threads exceed local resources, {cpu_count} cores present"
+                9,
+                f"workers and threads exceed local resources, {cpu_count} cores present",
             )
         handle_exceeded_resources(
             n_workers, threads_per_worker, memory_per_run, sys_memory
@@ -164,7 +228,7 @@ def set_workers_and_threads(
     if n_workers is None and threads_per_worker is None:
 
         thread_worker_total = math.floor(sys_memory / memory_per_run)
-        if thread_worker_total < 2:
+        if thread_worker_total < 1:
             logger_if_able(
                 "Not enough memory for a worker, defaulting to 1 worker and 1 thread per worker",
                 logger,
@@ -198,13 +262,24 @@ def set_workers_and_threads(
                     "ERROR",
                 )
                 raise Exception(
-                    "Could not determine number of workers and threads"
+                    9, "Could not determine number of workers and threads"
                 )
             handle_exceeded_resources(
                 n_workers, threads_per_worker, memory_per_run, sys_memory
             )
 
             total_workers, total_threads = n_workers, threads_per_worker
+
+    while total_workers * total_threads > cpu_count:
+        if total_workers > 1:
+            total_workers -= 1
+        elif total_threads > 1:
+            total_threads -= 1
+        else:
+            raise Exception(
+                9, "Could not determine number of workers and threads"
+            )
+
     return total_workers, total_threads
 
 
@@ -217,6 +292,9 @@ def dask_multiprocess(
     logger: Logger | None = None,
     **kwargs,
 ) -> list[T]:
+
+    MEMORY_PER_RUN = 7.0  # in GB
+
     memory_per_run = memory_per_run or MEMORY_PER_RUN
 
     cpu_count = os.cpu_count()
@@ -362,6 +440,23 @@ def pull_from_s3(
             )
 
     return target_file_path
+
+
+def get_error_by_code(
+    error_code: int, error_codes_dict: dict[str, str], logger: Logger | None
+) -> tuple[int, str]:
+    if error_codes_dict is None:
+        logger_if_able("Error codes dictionary is None", logger, "ERROR")
+        raise ValueError("Error codes dictionary is None")
+    error_code_str = str(error_code)
+    if error_code_str not in error_codes_dict:
+        logger_if_able(
+            f"Error code {error_code} not found in error codes",
+            logger,
+            "ERROR",
+        )
+        raise KeyError(f"Error code {error_code} not found in error codes")
+    return error_code, error_codes_dict[error_code_str]
 
 
 if __name__ == "__main__":

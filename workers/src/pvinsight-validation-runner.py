@@ -16,9 +16,6 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from email import errors
-from multiprocessing.spawn import prepare
-import re
 from typing import Any, Callable, cast
 import pandas as pd
 import os
@@ -39,9 +36,14 @@ import logging
 import boto3
 from logger import setup_logging
 from utility import (
+    RUNNER_ERROR_PREFIX,
     RunnerException,
+    SubmissionException,
     dask_multiprocess,
+    get_error_by_code,
+    get_error_codes_dict,
     pull_from_s3,
+    timeout,
     timing,
     is_local,
 )
@@ -59,6 +61,15 @@ IS_LOCAL = is_local()
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
 API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+runner_error_codes = get_error_codes_dict(
+    FILE_DIR, RUNNER_ERROR_PREFIX, logger
+)
+
+SUBMISSION_TIMEOUT = 30 * 60  # seconds
 
 
 def push_to_s3(
@@ -365,8 +376,9 @@ def run(  # noqa: C901
         logger.error("error installing submission dependencies:", e)
         logger.info(f"update submission status to {FAILED}")
         update_submission_status(analysis_id, submission_id, FAILED)
+        error_code = 2
         raise RunnerException(
-            2, "error installing python submission dependencies"
+            *get_error_by_code(error_code, runner_error_codes, logger)
         )
 
     shutil.move(
@@ -389,7 +401,10 @@ def run(  # noqa: C901
         )
         logger.info(f"update submission status to {FAILED}")
         update_submission_status(analysis_id, submission_id, FAILED)
-        raise RunnerException(3, "Failed to get system metadata information")
+        error_code = 3
+        raise RunnerException(
+            *get_error_by_code(error_code, runner_error_codes, logger)
+        )
 
     # Convert the responses to DataFrames
 
@@ -402,7 +417,10 @@ def run(  # noqa: C901
         logger.error("System metadata is empty")
         logger.info(f"update submission status to {FAILED}")
         update_submission_status(analysis_id, submission_id, FAILED)
-        raise RunnerException(4, "No system metadata returned from API")
+        error_code = 4
+        raise RunnerException(
+            *get_error_by_code(error_code, runner_error_codes, logger)
+        )
 
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json")) as f:
@@ -410,8 +428,9 @@ def run(  # noqa: C901
             logger.error("config.json not found")
             logger.info(f"update submission status to {FAILED}")
             update_submission_status(analysis_id, submission_id, FAILED)
+            error_code = 5
             raise RunnerException(
-                5, "config.json not found in current evaluation directory"
+                *get_error_by_code(error_code, runner_error_codes, logger)
             )
         config_data: dict[str, Any] = json.load(f)
 
@@ -435,8 +454,9 @@ def run(  # noqa: C901
         )
         logger.info(f"update submission status to {FAILED}")
         update_submission_status(analysis_id, submission_id, FAILED)
+        error_code = 6
         raise RunnerException(
-            6, f"function {function_name} not found in module {module_name}"
+            *get_error_by_code(error_code, runner_error_codes, logger)
         )
 
     total_number_of_files = len(file_metadata_df)
@@ -614,18 +634,6 @@ def prepare_function_args_for_parallel_processing(
     function_name: str,
     performance_metrics: list[str],
 ):
-    # logger.debug(
-    #     f"index: {index}, FAILURE_CUTOFF: {FAILURE_CUTOFF}, number_of_errors: {number_of_errors}"
-    # )
-    # if index <= FAILURE_CUTOFF:
-    #     if number_of_errors == FAILURE_CUTOFF:
-    #         raise RunnerException(
-    #             7,
-    #             f"Too many errors ({number_of_errors}) occurred in the first {FAILURE_CUTOFF} files. Exiting.",
-    #             current_error_rate(number_of_errors, index),
-    #         )
-
-    # logger.info(f"processing file {index + 1} of {total_number_of_files}")
 
     function_args_list: list[tuple] = []
 
@@ -732,22 +740,40 @@ def loop_over_files_and_generate_results(
         logger.error(
             f"Too many errors ({number_of_errors}) occurred in the first {NUM_FILES_TO_TEST} files. Exiting."
         )
+        error_code = 7
         raise RunnerException(
-            7,
-            f"Too many errors ({number_of_errors}) occurred in the first {NUM_FILES_TO_TEST} files. Exiting.",
+            *get_error_by_code(error_code, runner_error_codes, logger)
         )
 
     # Test the rest of the files
 
     logger.info(f"Testing the rest of the files...")
-    rest_results = dask_multiprocess(
-        run_submission_and_generate_performance_metrics,
-        rest_func_argument_list,
-        # n_workers=4,
-        threads_per_worker=1,
-        # memory_limit="16GiB",
-        logger=logger,
-    )
+    rest_results = []
+    try:
+        rest_results = dask_multiprocess(
+            run_submission_and_generate_performance_metrics,
+            rest_func_argument_list,
+            # n_workers=4,
+            threads_per_worker=1,
+            # memory_limit="16GiB",
+            logger=logger,
+        )
+    except SubmissionException as e:
+        logger.error(f"Submission error: {e}")
+        raise e
+    except RunnerException as e:
+        logger.error(f"Runner error: {e}")
+        raise e
+    except Exception as e:
+        if e.args:
+            if len(e.args) == 2:
+                logger.error(f"Submission error: {e}")
+
+                raise RunnerException(*e.args)
+        logger.error(f"Submission error: {e}")
+        raise RunnerException(
+            *get_error_by_code(500, runner_error_codes, logger)
+        )
     errors = [error for _, error in rest_results]
     number_of_errors += sum(errors)
 
@@ -790,10 +816,10 @@ def generate_performance_metrics_for_submission(
         logger.error(
             f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
         )
+        error_code = 8
 
         raise RunnerException(
-            100,
-            f"submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}",
+            *get_error_by_code(error_code, runner_error_codes, logger)
         )
 
     # Convert the data outputs to a dictionary identical to the
@@ -832,6 +858,7 @@ def generate_performance_metrics_for_submission(
     return results_dictionary
 
 
+@timeout(SUBMISSION_TIMEOUT)
 def run_submission_and_generate_performance_metrics(
     file_name: str,
     data_dir: str,

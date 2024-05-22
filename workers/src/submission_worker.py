@@ -1,6 +1,5 @@
 from importlib import import_module
 from typing import Any, Callable, Optional
-from matplotlib.pylab import f
 import requests
 import sys
 import os
@@ -22,6 +21,8 @@ from utility import (
     RunnerException,
     SubmissionException,
     WorkerException,
+    get_error_by_code,
+    get_error_codes_dict,
     pull_from_s3,
     timing,
     is_local,
@@ -52,8 +53,10 @@ def update_submission_status(
     api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
     r = requests.put(api_route, data={"status": new_status})
     if not r.ok:
+        logger.error(f"Error updating submission status to {new_status}")
+        error_code = 5
         raise WorkerException(
-            5, f"Error updating submission status to {new_status}"
+            *get_error_by_code(error_code, worker_error_codes, logger),
         )
     data: dict[str, Any] = r.json()
     return data
@@ -87,8 +90,10 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
             r = requests.put(s3_file_full_path, data=file_content)
             logger.info(f"Received S3 emulator response: {r.status_code}")
             if not r.ok:
+                logger.error(f"S3 emulator error: {r.content}")
+                error_code = 1
                 raise WorkerException(
-                    1, f"Error uploading file to s3 emulator: {r.content}"
+                    *get_error_by_code(error_code, worker_error_codes, logger),
                 )
             return {"status": "success"}
     else:
@@ -99,7 +104,10 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
             logger.error(f"Error: {e}")
             logger.info(f"update submission status to {FAILED}")
             update_submission_status(analysis_id, submission_id, FAILED)
-            raise WorkerException(1, f"Error uploading file to s3")
+            error_code = 1
+            raise WorkerException(
+                *get_error_by_code(error_code, worker_error_codes, logger)
+            )
 
 
 def list_s3_bucket(s3_dir: str):
@@ -151,8 +159,10 @@ def update_submission_result(
     api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}"
     r = requests.put(api_route, json=result_json, headers=headers)
     if not r.ok:
+        logger.error(f"Error updating submission result to Django API")
+        error_code = 4
         raise WorkerException(
-            4, "Error updating submission result to Django API"
+            *get_error_by_code(error_code, worker_error_codes, logger),
         )
     data: dict[str, Any] = r.json()
     return data
@@ -231,9 +241,12 @@ def extract_analysis_data(  # noqa: C901
         )
         response = requests.get(fmd_url)
         if not response.ok:
+            error_code = 7
+            logger.error(
+                f"File metadata for file id {file_id} not found in Django API"
+            )
             raise requests.exceptions.HTTPError(
-                7,
-                f"File metadata for file id {file_id} not found in Django API",
+                *get_error_by_code(error_code, worker_error_codes, logger),
             )
         file_metadata_list.append(response.json())
 
@@ -241,9 +254,12 @@ def extract_analysis_data(  # noqa: C901
     file_metadata_df = pd.DataFrame(file_metadata_list)
 
     if file_metadata_df.empty:
+        logger.error(
+            f"File metadata DataFrame is empty for analysis {analysis_id}"
+        )
+        error_code = 8
         raise WorkerException(
-            8,
-            f"No file metadata found in Django API for analysis {analysis_id}",
+            *get_error_by_code(error_code, worker_error_codes, logger),
         )
 
     files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
@@ -327,6 +343,12 @@ def load_analysis(
     shutil.copy(
         os.path.join("/root/worker/src", "pvinsight-validation-runner.py"),
         os.path.join(current_evaluation_dir, "pvinsight-validation-runner.py"),
+    )
+
+    # Copy the error codes file into the current evaluation directory
+    shutil.copy(
+        os.path.join("/root/worker/src", "errorcodes.json"),
+        os.path.join(current_evaluation_dir, "errorcodes.json"),
     )
 
     # import analysis runner as a module
@@ -571,12 +593,20 @@ def post_error_to_api(
     logger.info(f"Received response: {r.text}")
 
     if not r.ok:
-        raise WorkerException(1, "Error posting error report to Django API")
+        logger.error("Error posting error report to API")
+        cur_error_code = 12
+        raise WorkerException(
+            *get_error_by_code(cur_error_code, worker_error_codes, logger)
+        )
 
     try:
         data: dict[str, Any] = r.json()
     except json.JSONDecodeError:
-        raise WorkerException(1, "Django API did not return a JSON response")
+        logger.error("Django API did not return a JSON response")
+        cur_error_code = 13
+        raise WorkerException(
+            *get_error_by_code(cur_error_code, worker_error_codes, logger)
+        )
 
     return data
 
@@ -773,6 +803,11 @@ if __name__ == "__main__":
     logger.info(f"CURRENT_EVALUATION_DIR: {CURRENT_EVALUATION_DIR}")
     # Set to folder where the evaluation scripts are stored
     logger.info(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
+
+    worker_error_codes = get_error_codes_dict(
+        FILE_DIR, WORKER_ERROR_PREFIX, logger
+    )
+
     _, execution_time = main()
     logger.info(
         f"Shutting down Submission Worker. Runtime: {execution_time:.3f} seconds."
