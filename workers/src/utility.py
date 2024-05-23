@@ -459,6 +459,102 @@ def get_error_by_code(
     return error_code, error_codes_dict[error_code_str]
 
 
+# API Utility Functions
+
+IS_LOCAL = is_local()
+
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+
+
+def method_request(
+    method: str,
+    url: str,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
+):
+    print(f"{method} request to {url}")
+    print(f"Headers: {headers}")
+    print(f"Data: {data}")
+
+    base_headers = {
+        "Content-Type": "application/json",
+    }
+
+    all_headers = {**base_headers, **headers} if headers else base_headers
+
+    body = json.dumps(data) if data else None
+
+    response = requests.request(method, url, headers=all_headers, data=body)
+    print(response.status_code)
+    print(response.text)
+
+    return response
+
+
+def login(username: str, password: str):
+
+    login_url = f"{API_BASE_URL}/login"
+    r = method_request(
+        "POST", login_url, {"username": username, "password": password}
+    )
+    if not r.ok:
+        print(r.text)
+        raise Exception("Login failed")
+    json_body: dict[str, Any] = json.loads(r.text)
+    if "token" not in json_body:
+        print(json_body)
+        raise Exception("Token not in response")
+    token: str = json_body["token"]
+    return token
+
+
+def with_credentials():
+
+    username = os.environ.get("admin_username")
+    password = os.environ.get("admin_password")
+
+    if not username or not password:
+        raise Exception("Missing admin credentials")
+
+    api_auth_token = None
+    headers = {}
+
+    def decorator(func: Callable[..., T]):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            nonlocal api_auth_token
+            if not api_auth_token:
+                print("No token found, logging in")
+                api_auth_token = login(username, password)
+                headers["Authorization"] = f"Token {api_auth_token}"
+            kwargs["headers"] = headers
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+@with_credentials()
+def get_data_from_api(
+    method: str,
+    endpoint: str,
+    data: dict[str, Any] | None = None,
+    **kwargs: Any,
+):
+    data_url = f"{API_BASE_URL}/{endpoint}"
+    headers: dict[str, str] | None = (
+        kwargs["headers"] if "headers" in kwargs else None
+    )
+
+    r = method_request(method, data_url, headers=headers, data=data)
+    if not r.ok:
+        print(r.text)
+        raise Exception("Failed to get data")
+    json_body: dict[str, Any] = json.loads(r.text)
+    return json_body
+
+
 if __name__ == "__main__":
 
     def expensive_function(x):
