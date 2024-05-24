@@ -51,7 +51,8 @@
                 "stdout",
                 "file",
                 "json_file"
-            ]
+            ],
+            "propagate": false
         }
     }
 }
