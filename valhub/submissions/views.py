@@ -5,6 +5,7 @@ from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -154,6 +155,8 @@ def analysis_submission(request, analysis_id):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def submission_detail(request, analysis_id, submission_id):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
@@ -175,6 +178,8 @@ def submission_detail(request, analysis_id, submission_id):
 
 @api_view(["PUT"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def change_submission_status(request, analysis_id, submission_id):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
@@ -195,6 +200,8 @@ def change_submission_status(request, analysis_id, submission_id):
 
 @api_view(["PUT"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def update_submission_result(request, analysis_id, submission_id):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
@@ -221,16 +228,17 @@ def update_submission_result(request, analysis_id, submission_id):
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
-def user_submission(request):
+def user_submission(request: Request, user_id: str):
     """Get all the submissions of a user"""
     # get user account
     try:
-        user = Account.objects.get(id=user_id)
+        user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
         response_data = {"error": "User account does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     submissions = Submission.objects.filter(created_by=user)
+    serializer = SubmissionSerializer(submissions, many=True)
 
     return Response(serializer.data)
     # response_data = serializers.serialize('json', submissions)
@@ -260,6 +268,8 @@ def analysis_user_submission(request, analysis_id):
 @api_view(["PUT", "POST"])
 @csrf_exempt
 @parser_classes([JSONParser])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def leaderboard_update(request):
     if request.method in ["PUT", "POST"]:
         submission_id = request.data.get("submission_id")
@@ -304,6 +314,8 @@ def leaderboard_update(request):
 # Preloader route is not for regular use. It is meant only to create examples quickly for demonstration purposes.
 @api_view(["POST"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def preload_submissions(request):
     data = request.data
     if not isinstance(data, list):
@@ -344,6 +356,8 @@ def preload_submissions(request):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def get_submission_results(request, submission_id):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
@@ -445,6 +459,8 @@ def get_submission_results(request, submission_id):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def get_user_submissions(request, user_id):
     try:
         user = Account.objects.get(uuid=user_id)

@@ -24,6 +24,7 @@ from utility import (
     get_error_by_code,
     get_error_codes_dict,
     pull_from_s3,
+    request_to_API_w_credentials,
     timing,
     is_local,
 )
@@ -50,16 +51,20 @@ def update_submission_status(
     analysis_id: int, submission_id: int, new_status: str
 ):
     # route needs to be a string stored in a variable, cannot parse in deployed environment
-    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
-    r = requests.put(api_route, data={"status": new_status})
-    if not r.ok:
+    api_route = f"submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
+
+    try:
+        data = request_to_API_w_credentials(
+            "PUT", api_route, {"status": new_status}
+        )
+        return data
+    except Exception as e:
         logger.error(f"Error updating submission status to {new_status}")
+        logger.exception(e)
         error_code = 5
         raise WorkerException(
             *get_error_by_code(error_code, worker_error_codes, logger),
         )
-    data: dict[str, Any] = r.json()
-    return data
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))

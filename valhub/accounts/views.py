@@ -9,14 +9,16 @@ from rest_framework.decorators import (
     permission_classes,
 )
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 
 from .serializers import AccountSerializer
 from .models import Account
 import json
 import logging
+
+logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
@@ -28,7 +30,7 @@ def register(request):
     _firstName = request.data["firstName"]
     _lastName = request.data["lastName"]
 
-    account = Account.objects.create_user(
+    account = Account.objects.create(
         username=_username,
         email=_useremail,
         password=_password,
@@ -48,9 +50,8 @@ def login(request):
 
     user = auth.authenticate(request, username=_username, password=_password)
 
-    logging.error(f"uuid: {user.uuid}")
-
     if user is not None:
+        logger.info("User is authenticated")
         auth.login(request, user)
 
         # get or create login token for the user

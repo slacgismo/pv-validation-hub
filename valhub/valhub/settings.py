@@ -18,6 +18,8 @@ from botocore.exceptions import ClientError
 import json
 from botocore.config import Config
 import mimetypes
+from base.logger import setup_logging
+
 
 # Add css mimetype
 mimetypes.add_type("text/css", ".css", True)
@@ -28,6 +30,8 @@ config = Config(
     read_timeout=2,
     retries={"max_attempts": 10, "mode": "standard"},
 )
+
+setup_logging()
 
 
 def get_secret(secret_name):

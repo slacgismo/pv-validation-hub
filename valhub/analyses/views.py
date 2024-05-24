@@ -1,3 +1,4 @@
+from venv import logger
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
@@ -21,18 +22,24 @@ from accounts.models import Account
 from error_report.models import ErrorReport
 import logging
 
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+
+
+logger = logging.getLogger(__name__)
+
 # Create your views here.
-
-
-@api_view(["POST"])
-@csrf_exempt
-def create_analysis(request):
-    # dead route, replaced. Needs full cleansing later.
-    return Response("dead route.", status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def list_analysis(request):
     analyses = Analysis.objects.all()
     # print(analyses)
@@ -44,6 +51,8 @@ def list_analysis(request):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def analysis_detail(request, analysis_id):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
     # print(analysis)
@@ -55,6 +64,8 @@ def analysis_detail(request, analysis_id):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def leaderboard(request, analysis_id):
     _analysis = Analysis.objects.get(analysis_id=analysis_id)
 
@@ -72,6 +83,8 @@ def leaderboard(request, analysis_id):
 
 # Update this later to only accept route calls from within localhost or own container
 @api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def create_new_analysis(request):
     # Remove user_id related code
     serializer = AnalysisSerializer(data=request.data)

@@ -25,6 +25,8 @@ from pathlib import Path
 
 import logging
 
+logger = logging.getLogger(__name__)
+
 # ...
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,9 +35,9 @@ error_codes_file = BASE_DIR / "base" / "errorcodes.json"
 
 # Now you can use `error_codes` in your views
 
-valid_prefixes = ["op", "wr", "sb"]
+VALID_ERROR_PREFIXES = ["op", "wr", "sb"]
 
-unhandled_error_codes = [400, 500]
+UNHANDLED_ERROR_CODES = [400, 500]
 
 
 def parse_error_code(error_code: str) -> tuple[str, str]:
@@ -46,8 +48,10 @@ def parse_error_code(error_code: str) -> tuple[str, str]:
             "Error code must have at least 2 parts separated by an underscore"
         )
     prefix = error_code_parts[0]
-    if prefix not in valid_prefixes:
-        raise ValueError(f"Error code prefix must be one of {valid_prefixes}")
+    if prefix not in VALID_ERROR_PREFIXES:
+        raise ValueError(
+            f"Error code prefix must be one of {VALID_ERROR_PREFIXES}"
+        )
     error_number = error_code_parts[1]
     if not error_number.isdigit():
         raise ValueError("Error number must be a positive integer")
@@ -58,9 +62,9 @@ def parse_error_code(error_code: str) -> tuple[str, str]:
 def get_error_message(error_code: str) -> str:
     prefix, error_number = parse_error_code(error_code)
 
-    print(prefix, error_number)
+    logger.info(f"Error code prefix: {prefix}, error number: {error_number}")
 
-    if error_number in unhandled_error_codes:
+    if error_number in UNHANDLED_ERROR_CODES:
         if error_number == 400:
             return "Bad request"
         if error_number == 500:
@@ -80,7 +84,7 @@ def get_error_message(error_code: str) -> str:
 
     specific_error_codes = error_codes_dict[prefix]
 
-    print(specific_error_codes)
+    logger.info(f"Specific error codes: {specific_error_codes}")
 
     error_message = specific_error_codes.get(error_number)
     if error_message is None:
@@ -112,11 +116,27 @@ class ErrorReportLeaderboard(generics.ListAPIView):
 
 @api_view(["POST"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def ErrorReport(request: Request, *args, **kwargs):
     try:
-        modified_data = request.data.copy()
+        request_data = request.data
 
-        logging.info(f"Received request data: {modified_data}")
+        if not request_data:
+            return JsonResponse(
+                {"error": "Request data is empty"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(request_data, dict):
+            return JsonResponse(
+                {"error": "Request data must be a json object"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        modified_data = request_data.copy()
+
+        logger.info(f"Received request data: {modified_data}")
 
         error_code = modified_data.get("error_code")
         error_rate = modified_data.get("error_rate", None)
@@ -134,7 +154,7 @@ def ErrorReport(request: Request, *args, **kwargs):
 
         modified_data["error_message"] = error_message
 
-        logging.info(f"Modified request data: {modified_data}")
+        logger.info(f"Modified request data: {modified_data}")
 
         serializer = ErrorReportSerializer(data=modified_data)
         if serializer.is_valid():
@@ -150,7 +170,7 @@ def ErrorReport(request: Request, *args, **kwargs):
                 status=status.HTTP_400_BAD_REQUEST,
             )
     except Exception as e:
-        logging.error(f"Error processing request: {str(e)}")
+        logger.error(f"Error processing request: {str(e)}")
         return JsonResponse(
             {"error": str(e)},
             status=status.HTTP_400_BAD_REQUEST,
@@ -179,6 +199,8 @@ def ErrorReportPrivateList(request, pk):
 # @permission_classes([IsAuthenticated])
 @api_view(["POST"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def ErrorReportNew(request, pk):
     #    queryset = ErrorReport.objects.all()
     #    serializer_class = ErrorReportSerializer

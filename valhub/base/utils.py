@@ -1,3 +1,5 @@
+from logging import Logger
+import logging
 from django.utils.deconstruct import deconstructible
 from urllib.parse import urljoin
 
@@ -90,11 +92,13 @@ def upload_to_s3_bucket(bucket_name, local_path, upload_path):
 
 
 def rsa_signer(message):
+
     with open("/root/.pem/private-key.pem", "rb") as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(), password=None, backend=default_backend()
         )
-    signature = private_key.sign(message, padding.PKCS1v15(), hashes.SHA1())
+
+    signature = private_key.sign(message, padding.PKCS1v15(), hashes.SHA1())  # type: ignore
     return signature
 
 
@@ -113,3 +117,27 @@ def create_cloudfront_url(directory_path):
     )
 
     return signed_url
+
+
+def logger_if_able(
+    message: str, logger: Logger | None = None, level: str = "INFO"
+):
+    if logger is not None:
+        levels_dict = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+        }
+
+        level = level.upper()
+
+        if level not in levels_dict:
+            raise Exception(f"Invalid log level: {level}")
+
+        log_level = levels_dict[level]
+
+        logger.log(log_level, message)
+    else:
+        print(message)
