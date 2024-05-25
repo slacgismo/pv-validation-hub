@@ -10,13 +10,10 @@ import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import TabPanel from '../GlobalComponents/TabPanel/TabPanel.jsx';
 import Data from './Data/Data.jsx';
-// import { CommentProvider } from './Discussion/CommentContext.js';
-// import Discussion from './Discussion/Discussion.jsx';
 import Leaderboard from './Leaderboard/Leaderboard.jsx';
 import Overview from './Overview/Overview.jsx';
 import Rules from './Rules/Rules.jsx';
 import Submission from './Submissions/Submission.jsx';
-import BlurryPage from '../GlobalComponents/BlurryPage/blurryPage.jsx';
 import AnalysisService from '../../services/analysis_service.js';
 import replaceImagePaths from '../../config/mdurl.js';
 

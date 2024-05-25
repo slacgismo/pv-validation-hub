@@ -33,7 +33,9 @@ if __name__ == "__main__":
 
         config_file_path = config["config_file_path"]
         file_data_folder_path = config["file_data_folder_path"]
-        evaluation_scripts_folder_path = config["evaluation_scripts_folder_path"]
+        evaluation_scripts_folder_path = config[
+            "evaluation_scripts_folder_path"
+        ]
         sys_metadata_file_path = config["sys_metadata_file_path"]
         file_metadata_file_path = config["file_metadata_file_path"]
         validation_data_folder_path = config["validation_data_folder_path"]
@@ -42,7 +44,9 @@ if __name__ == "__main__":
         print(f"s3_url: {s3_url}")
         print(f"config_file_path: {config_file_path}")
         print(f"file_data_folder_path: {file_data_folder_path}")
-        print(f"evaluation_scripts_folder_path: {evaluation_scripts_folder_path}")
+        print(
+            f"evaluation_scripts_folder_path: {evaluation_scripts_folder_path}"
+        )
         print(f"sys_metadata_file_path: {sys_metadata_file_path}")
         print(f"file_metadata_file_path: {file_metadata_file_path}")
         print(f"validation_data_folder_path: {validation_data_folder_path}")

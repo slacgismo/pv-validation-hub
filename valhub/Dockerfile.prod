@@ -1,5 +1,5 @@
 # Stage 1: Build the Django application and Nginx
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 WORKDIR /root
 
@@ -52,7 +52,7 @@ RUN apt-get update -qq && \
     apt-get install -y libpq-dev python3-psycopg2 mariadb-client postgresql-client supervisor
 
 # Install Python dependencies
-RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential && \
+RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential pkg-config && \
     python3 -m pip install --upgrade pip && \
     python3 -m pip install -r requirements.txt
 

@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base
+FROM python:3.11-slim as base
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
@@ -28,7 +28,7 @@ RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2
 # RUN apt-get --assume-yes install python3-pip
 RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client 
-RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential
+RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential pkg-config
 RUN python3 -m pip install --upgrade pip
 WORKDIR /root/valhub
 RUN python3 -m pip install -r requirements.txt

@@ -27,6 +27,10 @@ def register(request):
     _password = request.data["password"]
     _firstName = request.data["firstName"]
     _lastName = request.data["lastName"]
+    _acceptTerms = request.data["acceptTerms"]
+
+    if _acceptTerms is not True:
+        return JsonResponse({"error": "You must accept the terms"}, status=400)
 
     account = Account.objects.create_user(
         username=_username,
@@ -34,6 +38,7 @@ def register(request):
         password=_password,
         firstName=_firstName,
         lastName=_lastName,
+        acceptTerms=_acceptTerms,
     )
 
     # Automatically log the user in after registration

@@ -81,16 +81,24 @@ services:
       context: ./pv-validation-hub-client
       dockerfile: Dockerfile
     environment:
-      HOST: 0.0.0.0
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      - "HOST=0.0.0.0"
     ports:
       - "3000:3000"
     depends_on:
       - api
       - s3
-    volumes:
-      - type: bind
-        source: ./pv-validation-hub-client
-        target: /app
+    develop:
+      watch:
+        - action: sync
+          path: ./pv-validation-hub-client
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
 
   sqs:
     image: softwaremill/elasticmq:latest
@@ -124,3 +132,4 @@ services:
 
 volumes:
   valhub:
+  node_modules:
