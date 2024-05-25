@@ -28,7 +28,10 @@ from rest_framework.decorators import (
     permission_classes,
 )
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import (
+    TokenAuthentication,
+    SessionAuthentication,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 @api_view(["GET"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def list_analysis(request):
     analyses = Analysis.objects.all()
