@@ -1,3 +1,4 @@
+from boto3 import Session
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -11,7 +12,10 @@ from rest_framework.decorators import (
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import (
+    TokenAuthentication,
+    SessionAuthentication,
+)
 
 from .serializers import AccountSerializer
 from .models import Account
@@ -66,13 +70,12 @@ def login(request):
         return HttpResponse("wrong password", status=400)
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class AccountDetail(APIView):
     """
     Retrieve, update or delete a user.
     """
 
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
     @csrf_exempt
@@ -101,7 +104,7 @@ class AccountDetail(APIView):
 
 
 @api_view(["GET"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def get_user_id(request):
     user = request.user

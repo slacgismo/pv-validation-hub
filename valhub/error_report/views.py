@@ -7,7 +7,10 @@ from rest_framework.decorators import (
     permission_classes,
     authentication_classes,
 )
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import (
+    TokenAuthentication,
+    SessionAuthentication,
+)
 from rest_framework.permissions import IsAuthenticated
 
 from django.views.decorators.csrf import csrf_exempt
@@ -116,7 +119,7 @@ class ErrorReportLeaderboard(generics.ListAPIView):
 
 @api_view(["POST"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def ErrorReport(request: Request, *args, **kwargs):
     try:
@@ -178,7 +181,7 @@ def ErrorReport(request: Request, *args, **kwargs):
 
 
 @api_view(["GET"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
 def ErrorReportPrivateList(request, pk):
@@ -199,7 +202,7 @@ def ErrorReportPrivateList(request, pk):
 # @permission_classes([IsAuthenticated])
 @api_view(["POST"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def ErrorReportNew(request, pk):
     #    queryset = ErrorReport.objects.all()

@@ -19,6 +19,7 @@ import json
 from botocore.config import Config
 import mimetypes
 from base.logger import setup_logging
+import logging
 
 
 # Add css mimetype
@@ -33,70 +34,76 @@ config = Config(
 
 setup_logging()
 
+logger = logging.getLogger(__name__)
 
-def get_secret(secret_name):
+
+def get_secret(secret_name: str):
     region_name = "us-west-2"
-    print("Start of get secret")
+    logger.info("Start of get secret")
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
     client = session.client(
         service_name="secretsmanager", region_name=region_name, config=config
     )
-    print("Session started")
+    logger.info("Session started")
 
     # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
     # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
     # We rethrow the exception by default.
 
     try:
-        print("Retrieving secrets")
+        logger.info("Retrieving secrets")
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-        print("Retrieved secrets")
+        logger.info("Retrieved secrets")
     except ClientError as e:
-        if e.response["Error"]["Code"] == "DecryptionFailureException":
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+        if error_code == "DecryptionFailureException":
             # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
             # Deal with the exception here, and/or rethrow at your discretion.
-            print("Error retrieving secrets 1:", e)
-            raise e
-        elif e.response["Error"]["Code"] == "InternalServiceErrorException":
+            logger.error("Error retrieving secrets 1:", e)
+
+        elif error_code == "InternalServiceErrorException":
             # An error occurred on the server side.
             # Deal with the exception here, and/or rethrow at your discretion.
-            print("Error retrieving secrets 2:", e)
-            raise e
-        elif e.response["Error"]["Code"] == "InvalidParameterException":
+            logger.error("Error retrieving secrets 2:", e)
+
+        elif error_code == "InvalidParameterException":
             # You provided an invalid value for a parameter.
             # Deal with the exception here, and/or rethrow at your discretion.
-            print("Error retrieving secrets 3:", e)
-            raise e
-        elif e.response["Error"]["Code"] == "InvalidRequestException":
+            logger.error("Error retrieving secrets 3:", e)
+
+        elif error_code == "InvalidRequestException":
             # You provided a parameter value that is not valid for the current state of the resource.
             # Deal with the exception here, and/or rethrow at your discretion.
-            print("Error retrieving secrets 4:", e)
-            raise e
-        elif e.response["Error"]["Code"] == "ResourceNotFoundException":
+            logger.error("Error retrieving secrets 4:", e)
+
+        elif error_code == "ResourceNotFoundException":
             # We can't find the resource that you asked for.
             # Deal with the exception here, and/or rethrow at your discretion.
-            print("Error retrieving secrets 5:", e)
-            raise e
+            logger.error("Error retrieving secrets 5:", e)
+
         else:
-            print("Error retrieving secrets 6:", e)
-            raise e
+            logger.error("Error retrieving secrets 6:", e)
+    except Exception as e:
+        logger.error("Error retrieving secrets 7:", e)
+
     else:
         # Decrypts secret using the associated KMS key.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
-        print("Else block")
         if "SecretString" in get_secret_value_response:
-            secret = get_secret_value_response["SecretString"]
-            secret = json.loads(secret)
+            secret_string = get_secret_value_response["SecretString"]
+            secret: dict[str, str] = json.loads(secret_string)
             return secret
-        else:
+        elif "SecretBinary" in get_secret_value_response:
             decoded_binary_secret = base64.b64decode(
                 get_secret_value_response["SecretBinary"]
             )
             return decoded_binary_secret
+        else:
+            raise ValueError("Secret not found")
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -108,7 +115,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 try:
-    SECRET_KEY = get_secret("DjangoSecretKey")["DJANGO_SECRET_KEY"]
+    secret = get_secret("DjangoSecretKey")
+    if secret is None:
+        raise Exception("Secret is None")
+
+    if not isinstance(secret, dict):
+        raise Exception("Secret is not a dictionary")
+
+    if "DJANGO_SECRET_KEY" not in secret:
+        raise Exception("DJANGO_SECRET_KEY not in secret")
+    SECRET_KEY = secret["DJANGO_SECRET_KEY"]
+
+
 except:
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
@@ -197,19 +215,25 @@ WSGI_APPLICATION = "valhub.wsgi.application"
 
 try:
     db_secrets = get_secret("pvinsight-db")
-    print("Retrieved secrets")
-except Exception as e:
-    print("Error retrieving secrets:", e)
-    hostname = None
-else:
-    db_name = "postgres"
-    db_identifier = db_secrets["dbInstanceIdentifier"]
-    username = db_secrets["username"]
-    password = db_secrets["password"]
-    hostname = db_secrets["proxy"]
-    port = db_secrets["port"]
 
-if hostname is not None:
+    if db_secrets is None:
+        raise Exception("Database secrets are None")
+
+    if not isinstance(db_secrets, dict):
+        raise Exception("Database secrets are not a dictionary")
+
+    logger.info("Retrieved secrets")
+
+    db_name = "postgres"
+    db_identifier = db_secrets.get("dbInstanceIdentifier", None)
+    username = db_secrets.get("username", None)
+    password = db_secrets.get("password", None)
+    hostname = db_secrets.get("proxy", None)
+    port = db_secrets.get("port", None)
+
+    if None in [db_name, username, password, hostname, port]:
+        raise Exception("One or more database secrets are missing")
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",
@@ -220,7 +244,13 @@ if hostname is not None:
             "PORT": port,
         }
     }
-else:
+
+except Exception as e:
+    logger.error(
+        "Error retrieving secrets from AWS Secrets Manager, using default values"
+    )
+    logger.exception(e)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql_psycopg2",

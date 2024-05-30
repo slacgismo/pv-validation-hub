@@ -54,7 +54,7 @@ def list_analysis(request):
 
 @api_view(["GET"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def analysis_detail(request, analysis_id):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
@@ -67,7 +67,7 @@ def analysis_detail(request, analysis_id):
 
 @api_view(["GET"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def leaderboard(request, analysis_id):
     _analysis = Analysis.objects.get(analysis_id=analysis_id)
@@ -86,7 +86,7 @@ def leaderboard(request, analysis_id):
 
 # Update this later to only accept route calls from within localhost or own container
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def create_new_analysis(request):
     # Remove user_id related code

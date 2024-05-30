@@ -539,8 +539,8 @@ def with_credentials(logger: Logger | None = None):
 def request_to_API_w_credentials(
     method: str,
     endpoint: str,
-    headers: dict[str, Any] | None = None,
     data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
     logger: Logger | None = None,
     **kwargs: Any,
 ):
