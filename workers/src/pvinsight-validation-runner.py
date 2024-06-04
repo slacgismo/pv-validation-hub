@@ -43,6 +43,7 @@ from utility import (
     get_error_by_code,
     get_error_codes_dict,
     pull_from_s3,
+    request_to_API_w_credentials,
     timeout,
     timing,
     is_local,
@@ -98,7 +99,7 @@ def push_to_s3(
                     f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}"
                 )
                 logger.info(f"update submission status to {FAILED}")
-                update_submission_status(analysis_id, submission_id, FAILED)
+                update_submission_status(submission_id, FAILED)
     else:
         s3 = boto3.client("s3")
         s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
@@ -294,8 +295,7 @@ def run_user_submission(
 def run(  # noqa: C901
     s3_submission_zip_file_path: str,
     file_metadata_df: pd.DataFrame,
-    update_submission_status: Callable,
-    analysis_id: int,
+    update_submission_status: Callable[[int, str], dict[str, Any]],
     submission_id: int,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
@@ -375,7 +375,7 @@ def run(  # noqa: C901
     except subprocess.CalledProcessError as e:
         logger.error("error installing submission dependencies:", e)
         logger.info(f"update submission status to {FAILED}")
-        update_submission_status(analysis_id, submission_id, FAILED)
+        update_submission_status(submission_id, FAILED)
         error_code = 2
         raise RunnerException(
             *get_error_by_code(error_code, runner_error_codes, logger)
@@ -392,15 +392,18 @@ def run(  # noqa: C901
 
     # Make GET requests to the Django API to get the system metadata
     # http://api.pv-validation-hub.org/system_metadata/systemmetadata/
-    smd_url = f"http://{API_BASE_URL}/system_metadata/systemmetadata/"
-    system_metadata_response = requests.get(smd_url)
+    smd_url = f"system_metadata/systemmetadata/"
+    system_metadata_json = {}
 
-    if not system_metadata_response.ok:
-        logger.error(
-            f"Failed to get system metadata from {smd_url}: {system_metadata_response.content}"
-        )
+    try:
+        system_metadata_json = request_to_API_w_credentials("GET", smd_url)
+
+    except Exception as e:
+        logger.error(f"Failed to get system metadata from API")
+        logger.exception(e)
+
         logger.info(f"update submission status to {FAILED}")
-        update_submission_status(analysis_id, submission_id, FAILED)
+        update_submission_status(submission_id, FAILED)
         error_code = 3
         raise RunnerException(
             *get_error_by_code(error_code, runner_error_codes, logger)
@@ -411,12 +414,12 @@ def run(  # noqa: C901
     # System metadata: This CSV represents the system_metadata table, which is
     # a master table for associated system metadata (system_id, name, azimuth,
     # tilt, etc.)
-    system_metadata_df = pd.DataFrame(system_metadata_response.json())
+    system_metadata_df = pd.DataFrame(system_metadata_json)
 
     if system_metadata_df.empty:
         logger.error("System metadata is empty")
         logger.info(f"update submission status to {FAILED}")
-        update_submission_status(analysis_id, submission_id, FAILED)
+        update_submission_status(submission_id, FAILED)
         error_code = 4
         raise RunnerException(
             *get_error_by_code(error_code, runner_error_codes, logger)
@@ -427,7 +430,7 @@ def run(  # noqa: C901
         if not f:
             logger.error("config.json not found")
             logger.info(f"update submission status to {FAILED}")
-            update_submission_status(analysis_id, submission_id, FAILED)
+            update_submission_status(submission_id, FAILED)
             error_code = 5
             raise RunnerException(
                 *get_error_by_code(error_code, runner_error_codes, logger)
@@ -453,7 +456,7 @@ def run(  # noqa: C901
             f"function {function_name} not found in module {module_name}"
         )
         logger.info(f"update submission status to {FAILED}")
-        update_submission_status(analysis_id, submission_id, FAILED)
+        update_submission_status(submission_id, FAILED)
         error_code = 6
         raise RunnerException(
             *get_error_by_code(error_code, runner_error_codes, logger)

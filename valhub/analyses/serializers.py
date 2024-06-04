@@ -11,7 +11,7 @@ class AnalysisSerializer(serializers.ModelSerializer):
         model = Analysis
         fields = ("analysis_id", "analysis_name")
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data["analysis_id"] = instance.analysis_id
-        return data
+    # def to_representation(self, instance):
+    #     data = super().to_representation(instance)
+    #     data["analysis_id"] = instance.analysis_id
+    #     return data

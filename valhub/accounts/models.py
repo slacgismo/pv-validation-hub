@@ -13,6 +13,7 @@ class Account(AbstractUser):
     email = models.EmailField(max_length=128, unique=True)
     acceptTerms = models.BooleanField(default=False)
     githubLink = models.URLField(max_length=200, blank=True)
+    webLinks = models.JSONField(default=dict, blank=True)
 
     def __str__(self) -> str:
         return self.username

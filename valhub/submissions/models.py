@@ -47,4 +47,4 @@ class Submission(models.Model):
 
     mae = models.FloatField(null=True, blank=True)
     mrt = models.FloatField(null=True, blank=True)
-    data_requirements = models.JSONField(null=True, blank=True)
+    data_requirements = models.TextField(null=True, blank=True)

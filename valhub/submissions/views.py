@@ -1,10 +1,11 @@
+from typing import Any, cast
+from venv import logger
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
-from django.http import JsonResponse, HttpResponse
-from django.core.files.storage import default_storage
+from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -13,7 +14,10 @@ from rest_framework.decorators import (
     authentication_classes,
 )
 from rest_framework.parsers import JSONParser
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import (
+    TokenAuthentication,
+    SessionAuthentication,
+)
 from rest_framework.permissions import IsAuthenticated
 
 import requests
@@ -31,6 +35,9 @@ from urllib.parse import urljoin
 
 from .serializers import SubmissionSerializer, SubmissionDetailSerializer
 from .models import Submission
+
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -53,12 +60,24 @@ is_s3_emulation = is_local()
 
 
 @api_view(["POST"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
-def analysis_submission(request, analysis_id):
-    logging.info(f"request.data = {request.data}")
+def analysis_submission(request: Request, analysis_id: str):
     """API Endpoint for making a submission to a analysis"""
+
+    data = request.data
+    if data is None:
+        logger.error("No data provided")
+        response_data = {"error": "No data provided"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    user: Account = request.user
+    if user is None:
+        logger.error("No user provided")
+        response_data = {"error": "No user provided"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
     # check if the analysis exists or not
     # print("analysis_id: {}".format(analysis_id))
     try:
@@ -92,17 +111,31 @@ def analysis_submission(request, analysis_id):
         response_data = {"error": "Queue does not exist"}
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    user = request.user
-    serializer = SubmissionSerializer(data=request.data)
+    serializer = SubmissionSerializer(data=data)
 
     if serializer.is_valid():
         logging.info("serializer is valid")
         serializer.save(analysis=analysis, created_by=user)
-        submission_id = int(serializer.instance.submission_id)
-        # print("submission_id: {}".format(submission_id))
 
-        # upload package to s3 and upload evaluation_script_path
-        submission_path = serializer.instance.algorithm.path
+        submission_instance = serializer.instance
+
+        if not isinstance(submission_instance, Submission):
+            response_data = {
+                "error": "submission_instance is not an instance of Submission"
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        submission_id = submission_instance.submission_id
+        submission_path = submission_instance.algorithm.path
+
+        if None in [submission_id, submission_path]:
+            response_data = {
+                "error": "submission_id and algorithm are required"
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info(f"submission_id = {submission_id}")
+        logger.info(f"submission_path = {submission_path}")
         # print("submission_path: {}".format(submission_path))
         bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
@@ -154,7 +187,9 @@ def analysis_submission(request, analysis_id):
 
 @api_view(["GET"])
 @csrf_exempt
-def submission_detail(request, analysis_id, submission_id):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def submission_detail(request: Request, submission_id):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
@@ -164,7 +199,7 @@ def submission_detail(request, analysis_id, submission_id):
         data={
             "submission_id": str(submission.submission_id),
             "analysis_id": str(submission.analysis.analysis_id),
-            "user_id": str(submission.created_by.id),
+            "user_id": str(submission.created_by.uuid),
             "algorithm": str(submission.algorithm),
             "result": str(submission.result),
             "status": str(submission.status),
@@ -175,33 +210,67 @@ def submission_detail(request, analysis_id, submission_id):
 
 @api_view(["PUT"])
 @csrf_exempt
-def change_submission_status(request, analysis_id, submission_id):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def change_submission_status(request: Request, submission_id: str):
+
+    data = cast(dict[str, Any], request.data)
+
+    logger.info(f"data = {data}")
+
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
-    submission.status = request.data["status"]
+
+    new_status = data.get("status", None)
+
+    if new_status is None:
+        response_data = {"error": "status is required"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    logger.info(f"new_status = {new_status}")
+
+    submission.status = new_status
     try:
         submission.save()
     except ValidationError as e:
         response_data = {"error": "invalid submission status"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
     response_data = {
-        "success": f"submission {submission_id} status changed to {request.data['status']}"
+        "success": f"submission {submission_id} status changed to {new_status}"
     }
     return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(["PUT"])
 @csrf_exempt
-def update_submission_result(request, analysis_id, submission_id):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def update_submission_result(request: Request, submission_id: str):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
     results = request.data
+
+    if results is None or not isinstance(results, dict):
+        response_data = {"error": "results are required"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    required_fields = [
+        "mean_mean_absolute_error",
+        "mean_run_time",
+        "function_parameters",
+    ]
+
+    if not all(field in results for field in required_fields):
+        response_data = {"error": "missing required fields"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
     logging.info(f"results = {results}")
     submission.mae = float(results["mean_mean_absolute_error"])
     submission.mrt = float(results["mean_run_time"])
@@ -218,19 +287,20 @@ def update_submission_result(request, analysis_id, submission_id):
 
 
 @api_view(["GET"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
-def user_submission(request):
+def user_submission(request: Request, user_id: str):
     """Get all the submissions of a user"""
     # get user account
     try:
-        user = Account.objects.get(id=user_id)
+        user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
         response_data = {"error": "User account does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
     submissions = Submission.objects.filter(created_by=user)
+    serializer = SubmissionSerializer(submissions, many=True)
 
     return Response(serializer.data)
     # response_data = serializers.serialize('json', submissions)
@@ -239,7 +309,7 @@ def user_submission(request):
 
 
 @api_view(["GET"])
-@authentication_classes([TokenAuthentication])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
 def analysis_user_submission(request, analysis_id):
@@ -260,12 +330,31 @@ def analysis_user_submission(request, analysis_id):
 @api_view(["PUT", "POST"])
 @csrf_exempt
 @parser_classes([JSONParser])
-def leaderboard_update(request):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def leaderboard_update(request: Request):
     if request.method in ["PUT", "POST"]:
-        submission_id = request.data.get("submission_id")
-        mae = request.data.get("mae")
-        mrt = request.data.get("mrt")
-        data_requirements = request.data.get("data_requirements")
+
+        required_fields = ["submission_id", "mae", "mrt", "data_requirements"]
+
+        if request.data is None or not isinstance(request.data, dict):
+            return Response(
+                {"error": "Request data must be a json object"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not all(field in request.data for field in required_fields):
+            return Response(
+                {"error": "missing required fields"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        body: dict[str, str] = request.data
+
+        submission_id = body.get("submission_id", None)
+        mae = body.get("mae", None)
+        mrt = body.get("mrt", None)
+        data_requirements = body.get("data_requirements", None)
 
         if not submission_id:
             return Response(
@@ -282,10 +371,10 @@ def leaderboard_update(request):
             )
 
         if mae is not None:
-            submission.mae = mae
+            submission.mae = float(mae)
 
         if mrt is not None:
-            submission.mrt = mrt
+            submission.mrt = float(mrt)
 
         if data_requirements is not None:
             submission.data_requirements = data_requirements
@@ -304,7 +393,9 @@ def leaderboard_update(request):
 # Preloader route is not for regular use. It is meant only to create examples quickly for demonstration purposes.
 @api_view(["POST"])
 @csrf_exempt
-def preload_submissions(request):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def preload_submissions(request: Request):
     data = request.data
     if not isinstance(data, list):
         return JsonResponse(
@@ -344,7 +435,9 @@ def preload_submissions(request):
 
 @api_view(["GET"])
 @csrf_exempt
-def get_submission_results(request, submission_id):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_submission_results(request: Request, submission_id: str):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
@@ -375,7 +468,7 @@ def get_submission_results(request, submission_id):
                 {"error": "Error retrieving results list"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        file_list = response.json()
+        file_list: list[str] = response.json()
         base_url = urljoin(
             static_endpoint_url, f"static/{bucket_name}/{results_directory}"
         )
@@ -387,16 +480,30 @@ def get_submission_results(request, submission_id):
             Bucket=bucket_name, Prefix=results_directory
         )
         logging.info(f"post-list_objects_v2")
-        if "Contents" not in response or not response["Contents"]:
+        if "Contents" not in response or response["Contents"] is None:
             return JsonResponse(
                 {"error": "No files found in the results directory"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        files = response.get("Contents", [])
+
+        first_file = files[0]
+
+        first_file_key = first_file.get("Key", "")
+
         # remove the first entry if it is the same as results_directory
-        if response["Contents"][0]["Key"] == results_directory:
-            file_list = [file["Key"] for file in response["Contents"][1:]]
+        if first_file_key == results_directory:
+            file_list = [
+                cast(str, file.get("Key"))
+                for file in files[1:]
+                if file.get("Key", None) is not None
+            ]
         else:
-            file_list = [file["Key"] for file in response["Contents"]]
+            file_list = [
+                cast(str, file.get("Key"))
+                for file in files
+                if file.get("Key", None) is not None
+            ]
         base_url = (
             f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
         )
@@ -445,7 +552,9 @@ def get_submission_results(request, submission_id):
 
 @api_view(["GET"])
 @csrf_exempt
-def get_user_submissions(request, user_id):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_user_submissions(request: Request, user_id: str):
     try:
         user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
