@@ -1,25 +1,16 @@
-from venv import logger
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
 )
-from rest_framework.parsers import JSONParser
-
-import boto3
-import os
 
 from .models import Analysis
 from submissions.models import Submission
 from submissions.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
-from base.utils import upload_to_s3_bucket
-from accounts.models import Account
-from error_report.models import ErrorReport
 import logging
 
 from rest_framework.decorators import (
@@ -43,7 +34,7 @@ logger = logging.getLogger(__name__)
 @csrf_exempt
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def list_analysis(request):
+def list_analysis(request: Request):
     analyses = Analysis.objects.all()
     # print(analyses)
     # response_data = serializers.serialize('json', analyses)
@@ -88,7 +79,7 @@ def leaderboard(request, analysis_id):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def create_new_analysis(request):
+def create_new_analysis(request: Request):
     # Remove user_id related code
     serializer = AnalysisSerializer(data=request.data)
     if serializer.is_valid():

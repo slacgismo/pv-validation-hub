@@ -1,7 +1,5 @@
-from boto3 import Session
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 import django.contrib.auth as auth
 
 from rest_framework.decorators import (
@@ -9,6 +7,7 @@ from rest_framework.decorators import (
     authentication_classes,
     permission_classes,
 )
+from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
@@ -27,7 +26,21 @@ logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @api_view(["POST"])
-def register(request):
+def register(request: Request):
+    required_fields = [
+        "username",
+        "email",
+        "password",
+        "firstName",
+        "lastName",
+    ]
+
+    if request.data is None or not isinstance(request.data, dict):
+        return HttpResponse("missing request data", status=400)
+
+    if not all(field in request.data for field in required_fields):
+        return HttpResponse("missing required fields", status=400)
+
     _username = request.data["username"]
     _useremail = request.data["email"]
     _password = request.data["password"]
@@ -48,7 +61,16 @@ def register(request):
 
 @csrf_exempt
 @api_view(["POST"])
-def login(request):
+def login(request: Request):
+
+    if request.data is None or not isinstance(request.data, dict):
+        return HttpResponse("missing request data", status=400)
+
+    required_fields = ["username", "password"]
+
+    if not all(field in request.data for field in required_fields):
+        return HttpResponse("missing required fields", status=400)
+
     _username = request.data["username"]
     _password = request.data["password"]
 
@@ -56,7 +78,8 @@ def login(request):
 
     if user is not None:
         logger.info("User is authenticated")
-        auth.login(request, user)
+
+        auth.login(request._request, user)
 
         # get or create login token for the user
         token = Token.objects.get_or_create(user=user)
@@ -79,25 +102,24 @@ class AccountDetail(APIView):
     permission_classes = [IsAuthenticated]
 
     @csrf_exempt
-    def get(self, request):
+    def get(self, request: Request):
         serializer = AccountSerializer(request.user)
         return JsonResponse(serializer.data)
 
     @csrf_exempt
-    def put(self, request):
+    def put(self, request: Request):
         account = request.user
+        data = request.data
 
         # update origin account
-        serializer = AccountSerializer(
-            account, data=request.data, partial=True
-        )
+        serializer = AccountSerializer(account, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return JsonResponse(serializer.data)
         return JsonResponse(serializer.errors, status=400)
 
     @csrf_exempt
-    def delete(self, request):
+    def delete(self, request: Request):
         account = request.user
         account.delete()
         return HttpResponse(status=204)
@@ -106,6 +128,13 @@ class AccountDetail(APIView):
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def get_user_id(request):
+def get_user_id(request: Request):
     user = request.user
-    return JsonResponse({"user_id": user.uuid})
+    if user is None:
+        return JsonResponse({"error": "user not found"}, status=404)
+
+    if "uuid" not in user:
+        return JsonResponse({"error": "user id not found"}, status=404)
+
+    user_id = user.uuid
+    return JsonResponse({"user_id": user_id}, status=200)

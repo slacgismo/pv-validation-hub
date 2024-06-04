@@ -1,7 +1,7 @@
-from boto3 import Session
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.request import Request
 from .models import SystemMetadata
 from .serializers import SystemMetadataSerializer
 
@@ -33,7 +33,7 @@ class SystemMetadataDetail(generics.RetrieveUpdateDestroyAPIView):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def bulk_systemmetadata_create(request):
+def bulk_systemmetadata_create(request: Request):
     serializer = SystemMetadataSerializer(data=request.data, many=True)
     if serializer.is_valid():
         serializer.save()

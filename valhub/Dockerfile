@@ -28,7 +28,7 @@ RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2
 # RUN apt-get --assume-yes install python3-pip
 RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client 
-RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential
+RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential pkg-config
 RUN python3 -m pip install --upgrade pip
 WORKDIR /root/valhub
 RUN python3 -m pip install -r requirements.txt

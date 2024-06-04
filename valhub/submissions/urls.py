@@ -9,7 +9,7 @@ urlpatterns = [
         name="analysis_submission",
     ),
     path(
-        "analysis/<int:analysis_id>/submission/<int:submission_id>",
+        "submission/<int:submission_id>",
         views.submission_detail,
         name="submission_detail",
     ),

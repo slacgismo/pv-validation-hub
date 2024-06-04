@@ -1,8 +1,5 @@
 from django.db import models
 
-from base.utils import RandomFileName
-from accounts.models import Account
-
 
 class Analysis(models.Model):
     analysis_id = models.AutoField(primary_key=True)

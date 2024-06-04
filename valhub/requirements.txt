@@ -1,5 +1,5 @@
-Django==4.2
-mysqlclient==2.1.1
+Django
+mysqlclient
 boto3
 requests
 djangorestframework

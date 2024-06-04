@@ -1,6 +1,6 @@
-from math import e
 from rest_framework import generics
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -184,7 +184,7 @@ def ErrorReport(request: Request, *args, **kwargs):
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 @csrf_exempt
-def ErrorReportPrivateList(request, pk):
+def ErrorReportPrivateList(request: Request, pk):
     try:
         error_reports = ErrorReportModel.objects.filter(submission=pk)
         serializer = ErrorReportSerializer(error_reports, many=True)
@@ -204,7 +204,7 @@ def ErrorReportPrivateList(request, pk):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def ErrorReportNew(request, pk):
+def ErrorReportNew(request: Request, pk):
     #    queryset = ErrorReport.objects.all()
     #    serializer_class = ErrorReportSerializer
 

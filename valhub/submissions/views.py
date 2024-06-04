@@ -2,7 +2,6 @@ from typing import Any, cast
 from venv import logger
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError
 
 from rest_framework.response import Response
@@ -190,7 +189,7 @@ def analysis_submission(request: Request, analysis_id: str):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def submission_detail(request, analysis_id, submission_id):
+def submission_detail(request: Request, submission_id):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
@@ -213,7 +212,7 @@ def submission_detail(request, analysis_id, submission_id):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def change_submission_status(request: Request, submission_id):
+def change_submission_status(request: Request, submission_id: str):
 
     data = cast(dict[str, Any], request.data)
 
@@ -249,13 +248,29 @@ def change_submission_status(request: Request, submission_id):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def update_submission_result(request, submission_id):
+def update_submission_result(request: Request, submission_id: str):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
     results = request.data
+
+    if results is None or not isinstance(results, dict):
+        response_data = {"error": "results are required"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    required_fields = [
+        "mean_mean_absolute_error",
+        "mean_run_time",
+        "function_parameters",
+    ]
+
+    if not all(field in results for field in required_fields):
+        response_data = {"error": "missing required fields"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
     logging.info(f"results = {results}")
     submission.mae = float(results["mean_mean_absolute_error"])
     submission.mrt = float(results["mean_run_time"])
@@ -317,12 +332,29 @@ def analysis_user_submission(request, analysis_id):
 @parser_classes([JSONParser])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def leaderboard_update(request):
+def leaderboard_update(request: Request):
     if request.method in ["PUT", "POST"]:
-        submission_id = request.data.get("submission_id")
-        mae = request.data.get("mae")
-        mrt = request.data.get("mrt")
-        data_requirements = request.data.get("data_requirements")
+
+        required_fields = ["submission_id", "mae", "mrt", "data_requirements"]
+
+        if request.data is None or not isinstance(request.data, dict):
+            return Response(
+                {"error": "Request data must be a json object"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not all(field in request.data for field in required_fields):
+            return Response(
+                {"error": "missing required fields"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        body: dict[str, str] = request.data
+
+        submission_id = body.get("submission_id", None)
+        mae = body.get("mae", None)
+        mrt = body.get("mrt", None)
+        data_requirements = body.get("data_requirements", None)
 
         if not submission_id:
             return Response(
@@ -339,10 +371,10 @@ def leaderboard_update(request):
             )
 
         if mae is not None:
-            submission.mae = mae
+            submission.mae = float(mae)
 
         if mrt is not None:
-            submission.mrt = mrt
+            submission.mrt = float(mrt)
 
         if data_requirements is not None:
             submission.data_requirements = data_requirements
@@ -363,7 +395,7 @@ def leaderboard_update(request):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def preload_submissions(request):
+def preload_submissions(request: Request):
     data = request.data
     if not isinstance(data, list):
         return JsonResponse(
@@ -405,7 +437,7 @@ def preload_submissions(request):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def get_submission_results(request, submission_id):
+def get_submission_results(request: Request, submission_id: str):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
     except Submission.DoesNotExist:
@@ -522,7 +554,7 @@ def get_submission_results(request, submission_id):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def get_user_submissions(request, user_id):
+def get_user_submissions(request: Request, user_id: str):
     try:
         user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
