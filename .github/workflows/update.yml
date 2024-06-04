@@ -1,9 +1,9 @@
 name: Update submodules
 
 on:
-  push:
-    branches-ignore:
-      - main
+#  push:
+#    branches-ignore:
+#      - main
   workflow_dispatch:
 
 jobs:
