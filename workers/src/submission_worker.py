@@ -1,4 +1,5 @@
 from importlib import import_module
+from logging import exception
 from typing import Any, Callable, Optional
 import requests
 import sys
@@ -24,6 +25,7 @@ from utility import (
     get_error_by_code,
     get_error_codes_dict,
     pull_from_s3,
+    request_to_API_w_credentials,
     timing,
     is_local,
 )
@@ -46,20 +48,22 @@ FAILED = "failed"
 FINISHED = "finished"
 
 
-def update_submission_status(
-    analysis_id: int, submission_id: int, new_status: str
-):
+def update_submission_status(submission_id: int, new_status: str):
     # route needs to be a string stored in a variable, cannot parse in deployed environment
-    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/change_submission_status/{submission_id}"
-    r = requests.put(api_route, data={"status": new_status})
-    if not r.ok:
+    api_route = f"submissions/change_submission_status/{submission_id}"
+
+    try:
+        data = request_to_API_w_credentials(
+            "PUT", api_route, data={"status": new_status}
+        )
+        return data
+    except Exception as e:
         logger.error(f"Error updating submission status to {new_status}")
+        logger.exception(e)
         error_code = 5
         raise WorkerException(
             *get_error_by_code(error_code, worker_error_codes, logger),
         )
-    data: dict[str, Any] = r.json()
-    return data
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -103,7 +107,7 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
         except botocore.exceptions.ClientError as e:
             logger.error(f"Error: {e}")
             logger.info(f"update submission status to {FAILED}")
-            update_submission_status(analysis_id, submission_id, FAILED)
+            update_submission_status(submission_id, FAILED)
             error_code = 1
             raise WorkerException(
                 *get_error_by_code(error_code, worker_error_codes, logger)
@@ -152,20 +156,21 @@ def list_s3_bucket(s3_dir: str):
     return all_files
 
 
-def update_submission_result(
-    analysis_id: int, submission_id: int, result_json: dict[str, Any]
-):
-    headers = {"Content-Type": "application/json"}
-    api_route = f"http://{API_BASE_URL}/submissions/analysis/{analysis_id}/update_submission_result/{submission_id}"
-    r = requests.put(api_route, json=result_json, headers=headers)
-    if not r.ok:
+def update_submission_result(submission_id: int, result_json: dict[str, Any]):
+    api_route = f"submissions/update_submission_result/{submission_id}"
+
+    try:
+
+        data = request_to_API_w_credentials("PUT", api_route, data=result_json)
+        return data
+
+    except Exception as e:
         logger.error(f"Error updating submission result to Django API")
+        logger.exception(e)
         error_code = 4
         raise WorkerException(
             *get_error_by_code(error_code, worker_error_codes, logger),
         )
-    data: dict[str, Any] = r.json()
-    return data
 
 
 def extract_analysis_data(  # noqa: C901
@@ -236,19 +241,22 @@ def extract_analysis_data(  # noqa: C901
     # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
     file_metadata_list: list[dict[str, Any]] = []
     for file_id in unique_file_ids:
-        fmd_url = (
-            f"http://{API_BASE_URL}/file_metadata/filemetadata/{file_id}/"
-        )
-        response = requests.get(fmd_url)
-        if not response.ok:
+        fmd_url = f"file_metadata/filemetadata/{file_id}/"
+
+        try:
+
+            data = request_to_API_w_credentials("GET", fmd_url)
+            file_metadata_list.append(data)
+
+        except exception as e:
             error_code = 7
             logger.error(
                 f"File metadata for file id {file_id} not found in Django API"
             )
+            logger.exception(e)
             raise requests.exceptions.HTTPError(
                 *get_error_by_code(error_code, worker_error_codes, logger),
             )
-        file_metadata_list.append(response.json())
 
     # Convert the list of file metadata to a DataFrame
     file_metadata_df = pd.DataFrame(file_metadata_list)
@@ -327,7 +335,7 @@ def load_analysis(
     analysis_id: int, submission_id: int, current_evaluation_dir: str
 ) -> tuple[
     Callable[
-        [str, pd.DataFrame, Callable, int, int, Optional[str], Optional[str]],
+        [str, pd.DataFrame, Callable, int, Optional[str], Optional[str]],
         dict[str, Any],
     ],
     list,
@@ -371,7 +379,7 @@ def load_analysis(
             f"Runner module {runner_module_name} does not have a 'run' function"
         )
         logger.info(f"update submission status to {FAILED}")
-        update_submission_status(analysis_id, submission_id, FAILED)
+        update_submission_status(submission_id, FAILED)
         raise AttributeError(
             11, "Runner module does not have a 'run' function"
         )
@@ -420,7 +428,6 @@ def process_submission_message(
         s3_submission_zip_file_path,
         file_metadata_df,
         update_submission_status,
-        analysis_id,
         submission_id,
         current_evaluation_dir,
         BASE_TEMP_DIR,
@@ -428,12 +435,12 @@ def process_submission_message(
     logger.info(f"runner module function returns {ret}")
 
     logger.info(f"update submission status to {FINISHED}")
-    update_submission_status(analysis_id, submission_id, FINISHED)
+    update_submission_status(submission_id, FINISHED)
 
     # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ['time_series', 'latitude', 'longitude', 'data_sampling_frequency']}
     res_json = ret
     logger.info(f"update submission result to {res_json}")
-    update_submission_result(analysis_id, submission_id, res_json)
+    update_submission_result(submission_id, res_json)
 
     logger.info(f"upload result files to s3")
 
@@ -572,7 +579,7 @@ def post_error_to_api(
     error_type: str,
     error_rate: float | None = None,
 ):
-    api_route = f"http://{API_BASE_URL}/error/error_report"
+    api_route = f"error/error_report"
 
     body = {
         "submission": submission_id,
@@ -585,30 +592,16 @@ def post_error_to_api(
 
     logger.info(f"Sending POST request to {api_route} with body: {body}")
 
-    r = requests.post(
-        api_route,
-        json=body,
-    )
-
-    logger.info(f"Received response: {r.text}")
-
-    if not r.ok:
+    try:
+        data = request_to_API_w_credentials("POST", api_route, data=body)
+        return data
+    except Exception as e:
         logger.error("Error posting error report to API")
+        logger.exception(e)
         cur_error_code = 12
         raise WorkerException(
             *get_error_by_code(cur_error_code, worker_error_codes, logger)
         )
-
-    try:
-        data: dict[str, Any] = r.json()
-    except json.JSONDecodeError:
-        logger.error("Django API did not return a JSON response")
-        cur_error_code = 13
-        raise WorkerException(
-            *get_error_by_code(cur_error_code, worker_error_codes, logger)
-        )
-
-    return data
 
 
 def handle_error(
@@ -620,7 +613,7 @@ def handle_error(
     error_rate: float | None = None,
 ):
 
-    update_submission_status(analysis_id, submission_id, submission_status)
+    update_submission_status(submission_id, submission_status)
     post_error_to_api(submission_id, error_code, error_type, error_rate)
 
     # Send the error message to the submission
@@ -668,7 +661,7 @@ def main():
             submission_id = int(submission_id_str)
 
             logger.info(f"update submission status to {RUNNING}")
-            update_submission_status(analysis_id, submission_id, RUNNING)
+            update_submission_status(submission_id, RUNNING)
 
             if (
                 not analysis_id
@@ -680,7 +673,7 @@ def main():
                     f"Missing required fields in submission message: analysis_id={analysis_id}, submission_id={submission_id}, user_id={user_id}, submission_filename={submission_filename}"
                 )
                 logger.info(f"update submission status to {FAILED}")
-                update_submission_status(analysis_id, submission_id, FAILED)
+                update_submission_status(submission_id, FAILED)
                 raise ValueError(
                     "Missing required fields in submission message"
                 )
@@ -714,7 +707,7 @@ def main():
                     f'Error processing message from submission queue with error code {e.code} and message "{e.message}"'
                 )
                 logger.info(f"update submission status to {FAILED}")
-                update_submission_status(analysis_id, submission_id, FAILED)
+                update_submission_status(submission_id, FAILED)
                 logger.exception(e)
                 handle_error(
                     int(analysis_id),

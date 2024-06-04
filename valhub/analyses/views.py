@@ -1,39 +1,40 @@
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
 )
-from rest_framework.parsers import JSONParser
-
-import boto3
-import os
 
 from .models import Analysis
 from submissions.models import Submission
 from submissions.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
-from base.utils import upload_to_s3_bucket
-from accounts.models import Account
-from error_report.models import ErrorReport
 import logging
+
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import (
+    TokenAuthentication,
+    SessionAuthentication,
+)
+
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
 
-@api_view(["POST"])
-@csrf_exempt
-def create_analysis(request):
-    # dead route, replaced. Needs full cleansing later.
-    return Response("dead route.", status=status.HTTP_400_BAD_REQUEST)
-
-
 @api_view(["GET"])
 @csrf_exempt
-def list_analysis(request):
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def list_analysis(request: Request):
     analyses = Analysis.objects.all()
     # print(analyses)
     # response_data = serializers.serialize('json', analyses)
@@ -44,6 +45,8 @@ def list_analysis(request):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def analysis_detail(request, analysis_id):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
     # print(analysis)
@@ -55,6 +58,8 @@ def analysis_detail(request, analysis_id):
 
 @api_view(["GET"])
 @csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
 def leaderboard(request, analysis_id):
     _analysis = Analysis.objects.get(analysis_id=analysis_id)
 
@@ -72,7 +77,9 @@ def leaderboard(request, analysis_id):
 
 # Update this later to only accept route calls from within localhost or own container
 @api_view(["POST"])
-def create_new_analysis(request):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def create_new_analysis(request: Request):
     # Remove user_id related code
     serializer = AnalysisSerializer(data=request.data)
     if serializer.is_valid():

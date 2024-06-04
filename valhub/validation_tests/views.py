@@ -1,4 +1,3 @@
-from django.views.generic import ListView, DetailView
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from .models import ValidationTests
 from .serializers import ValidationTestsSerializer

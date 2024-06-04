@@ -4,11 +4,15 @@ from . import views
 
 urlpatterns = [
     path("error_report", views.ErrorReport, name="error_report"),
-    path("error_report/list", views.ErrorReportList, name="error_report_list"),
+    path(
+        "error_report/list",
+        views.ErrorReportList.as_view(),
+        name="error_report_list",
+    ),
     path("error_report/new", views.ErrorReportNew, name="error_report_new"),
     path(
         "error_report/<int:pk>",
-        views.ErrorReportDetail,
+        views.ErrorReportDetail.as_view(),
         name="error_report_detail",
     ),
     path(
