@@ -68,8 +68,15 @@ def prepare_json_for_marimo_args(json_data: dict[str, Any]):
     return args_list
 
 
-def main():
+def main(command: str = "export"):
+    command = command.lower()
+
+    if command not in ["export", "edit", "run"]:
+        raise ValueError("Unsupported command")
+
     data_file_path = os.path.join(os.path.dirname(__file__), "data.json")
+
+    html_file_path = os.path.join(os.path.dirname(__file__), "template.html")
 
     json_data: dict[str, Any] = {}
 
@@ -85,8 +92,38 @@ def main():
 
     json.loads(json.dumps(json_data))
 
+    cli_command = {
+        "export": [
+            "marimo",
+            "export",
+            "html",
+            "template.py",
+            "-o",
+            f"{html_file_path}",
+            "--no-include-code",
+            "--",
+            *data_as_args,
+        ],
+        "edit": [
+            "marimo",
+            "edit",
+            "template.py",
+            "--",
+            *data_as_args,
+        ],
+        "run": [
+            "marimo",
+            "run",
+            "template.py",
+            "--",
+            *data_as_args,
+        ],
+    }
+
     subprocess.run(
-        ["marimo", "edit", "template.py", "--", *data_as_args],
+        [
+            *cli_command[command],
+        ],
         check=True,
         # stdout=subprocess.PIPE,
         # stderr=subprocess.PIPE,
@@ -95,4 +132,4 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    main(command="export")
