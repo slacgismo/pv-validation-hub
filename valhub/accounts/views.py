@@ -33,6 +33,7 @@ def register(request: Request):
         "password",
         "firstName",
         "lastName",
+        "acceptTerms",
     ]
 
     if request.data is None or not isinstance(request.data, dict):
@@ -51,19 +52,23 @@ def register(request: Request):
     if _acceptTerms is not True:
         return JsonResponse({"error": "You must accept the terms"}, status=400)
 
-    account = Account.objects.create(
+    account = Account(
         username=_username,
         email=_useremail,
-        password=_password,
         firstName=_firstName,
         lastName=_lastName,
         acceptTerms=_acceptTerms,
     )
+    account.set_password(_password)
+    account.save()
 
     # Automatically log the user in after registration
     user = auth.authenticate(request, username=_username, password=_password)
 
-    logging.error(f"uuid: {user.uuid}")
+    if user is not None:
+        logging.error(f"uuid: {user.uuid}")
+    else:
+        logging.error("user is None")
 
     if user is not None:
         auth.login(request, user)
