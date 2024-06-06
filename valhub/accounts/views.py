@@ -151,6 +151,7 @@ class AccountDetail(APIView):
         return HttpResponse(status=204)
 
 
+# Users on the client use Token Auth w/ a generated session Token, not Django Session Auth
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
@@ -159,7 +160,7 @@ def get_user_id(request: Request):
     if user is None:
         return JsonResponse({"error": "user not found"}, status=404)
 
-    if "uuid" not in user:
+    if not hasattr(user, "uuid"):
         return JsonResponse({"error": "user id not found"}, status=404)
 
     user_id = user.uuid
