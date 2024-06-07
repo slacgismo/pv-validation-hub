@@ -40,6 +40,7 @@ from utility import (
     RunnerException,
     SubmissionException,
     dask_multiprocess,
+    generate_private_report_for_submission,
     get_error_by_code,
     get_error_codes_dict,
     pull_from_s3,
@@ -426,7 +427,7 @@ def run(  # noqa: C901
         )
 
     # Read in the configuration JSON for the particular run
-    with open(os.path.join(current_evaluation_dir, "config.json")) as f:
+    with open(os.path.join(current_evaluation_dir, "config.json"), "r") as f:
         if not f:
             logger.error("config.json not found")
             logger.info(f"update submission status to {FAILED}")
@@ -521,14 +522,37 @@ def run(  # noqa: C901
     # type of analysis being run as results will be color-coded by certain
     # parameters. These params will be available as columns in the
     # 'associated_files' dataframe
-    results_df_private = pd.merge(results_df, file_metadata_df, on="file_name")
-    # Filter to only the necessary columns (available via the config)
-    results_df_private = results_df_private[
-        config_data["private_results_columns"]
-    ]
-    results_df_private.to_csv(
-        os.path.join(results_dir, module_name + "_full_results.csv")
+    results_df_private_all = pd.merge(
+        results_df, file_metadata_df, on="file_name"
     )
+
+    private_results_columns: list[str] = config_data["private_results_columns"]
+
+    # Filter to only the necessary columns (available via the config)
+    results_df_private = results_df_private_all[private_results_columns]
+
+    results_file_name = module_name + "_full_results.csv"
+
+    private_results_file_name = "private_results.html"
+
+    results_df_private.to_csv(os.path.join(results_dir, results_file_name))
+
+    try:
+        logger.info(f"Generating private report for submission...")
+
+        generate_private_report_for_submission(
+            results_df_private,
+            "export",
+            os.path.join(current_evaluation_dir, "template.py"),
+            os.path.join(results_dir, private_results_file_name),
+            logger,
+        )
+
+        logger.info("Private report generated successfully.")
+    except Exception as e:
+        logger.error("Error generating private report for submission.")
+        logger.exception(e)
+
     # Loop through all of the plot dictionaries and generate plots and
     # associated tables for reporting
     for plot in config_data["plots"]:

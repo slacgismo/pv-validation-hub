@@ -1,155 +1,265 @@
 import marimo
 
-__generated_with = "0.1.0"
+__generated_with = "0.6.16"
 app = marimo.App()
 
 
 @app.cell
 def __(mo):
-    mo.md("# The Mandelbrot Set")
+    mo.md("# Private Report: Time Shift Data Results")
     return
 
 
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        This program computes uses an iterative algorithm to visualize the
-        [_Mandelbrot set_](https://mathworld.wolfram.com/MandelbrotSet.html),
-        the set of complex numbers $c$ for which the sequence defined by the
-        iteration
-
-        \[
-        z_n = z_{n-1}^2 + c, \quad z_0 = 0
-        \]
-
-        is bounded in absolute value.
+def __(create_df_from_cli_args, generatePlots):
+    results_df = create_df_from_cli_args()
+    plotting = generatePlots(results_df)
+    return plotting, results_df
 
 
-        In the visualization, every point not in the set is colored by the
-        number of iterations the algorithm required to disprove its membership in
-        the set. In any iteration, points in the darkest region may
-        be in the computed set; once the number of iterations is very high, we
-        can be confident that the dark region is the desired Mandelbrot set.
-        """
-    )
+@app.cell
+def __(mo, plotting):
+    if plotting is not None:
+        median_run_time = round(plotting.results_df.run_time.median(), 2)
+        mean_run_time = round(plotting.results_df.run_time.mean(), 2)
+        max_run_time = round(plotting.results_df.run_time.max(), 2)
+        min_run_time = round(plotting.results_df.run_time.min(), 2)
+        _fig = mo.md(
+            f"""
+                     First, we visualize the distribution of run times. 
+
+                     Median run time: """
+            + str(median_run_time)
+            + """ seconds
+
+                     Mean run time: """
+            + str(mean_run_time)
+            + """ seconds
+
+                     Max run time: """
+            + str(max_run_time)
+            + """ seconds
+
+                     Min run time: """
+            + str(min_run_time)
+            + """ seconds
+                     """
+        )
+    else:
+        _fig = None
+    _fig
+    return max_run_time, mean_run_time, median_run_time, min_run_time
+
+
+@app.cell
+def __(plotting):
+    if plotting is not None:
+        _fig = plotting.plot_run_times()
+    else:
+        _fig = None
+    _fig
     return
 
 
 @app.cell
-def __(mo, n_max):
-    mo.md(
-        f"""
-        You can play with the number of iterations to see when points are 
-        eliminated from the set:
+def __(mo, plotting):
+    if plotting is not None:
+        median_mae = round(
+            plotting.results_df["Time Series-Level MAE"].median(), 2
+        )
+        mean_mae = round(
+            plotting.results_df["Time Series-Level MAE"].mean(), 2
+        )
+        _fig = mo.md(
+            f"""
+                     Next, we visualize the mean absolute error distribution, color-coded by issues present in the time series.
 
-        - _Number of iterations_: {n_max}
-        """
-    )
+                     Median time series MAE: """
+            + str(median_mae)
+            + """ minutes
+
+                     Mean time series MAE: """
+            + str(mean_mae)
+            + """ minutes
+                     """
+        )
+    else:
+        _fig = None
+    _fig
+    return mean_mae, median_mae
+
+
+@app.cell
+def __(plotting):
+    if plotting is not None:
+        _fig = plotting.plot_mae_by_issue()
+    else:
+        _fig = None
+    _fig
     return
 
 
 @app.cell
-def __(mo, reset_plot_scale, x_offset, y_offset, zoom):
-    mo.md(
-        f"""
-        **Plot controls.**
-
-        Here are some controls to play with the plot. ( {reset_plot_scale} )
-
-        - _Zoom_: {zoom}
-        - _Pan left/right_: {x_offset}
-        - _Pan down/up_: {y_offset}
-        """
-    )
+def __(mo, plotting):
+    if plotting is not None:
+        _fig = mo.md(
+            f"""
+                     Mean of Time Series-Level MAE, by Issue Type
+                     """
+        )
+    else:
+        _fig = None
+    _fig
     return
 
 
 @app.cell
-def __(compute_mandelbrot, n_max, x_offset, y_offset, zoom):
-    compute_mandelbrot(
-        n_max.value,
-        2.0,
-        601,
-        401,
-        zoom=zoom.value,
-        x_offset=x_offset.value,
-        y_offset=y_offset.value,
-    )
+def __(plotting):
+    if plotting is not None:
+        _fig = plotting.dataframe_mae_by_issue_type()
+    else:
+        _fig = None
+    _fig
     return
 
 
 @app.cell
-def __(mo):
-    n_max = mo.ui.slider(2, 256, step=1, value=30)
-    return (n_max,)
+def __(mo, plotting):
+    if plotting is not None:
+        _fig = mo.md(
+            f"""
+                     We then visualize the mean absolute error distribution, color-coded by data sampling frequency.
+                     """
+        )
+    else:
+        _fig = None
+    _fig
+    return
 
 
 @app.cell
-def __(mo):
-    reset_plot_scale = mo.ui.button(label="Click to reset")
-    return (reset_plot_scale,)
+def __(plotting):
+    if plotting is not None:
+        _fig = plotting.plot_mae_by_sampling_frequency()
+    else:
+        _fig = None
+    _fig
+    return
 
 
 @app.cell
-def __(mo, reset_plot_scale):
-    reset_plot_scale
-
-    zoom = mo.ui.slider(1, 10, step=0.1)
-    x_offset = mo.ui.slider(-3, 3, value=0, step=0.01)
-    y_offset = mo.ui.slider(-3, 3, value=0, step=0.01)
-    return x_offset, y_offset, zoom
+def __(mo, plotting):
+    if plotting is not None:
+        _fig = mo.md(
+            f"""
+                     Mean of Time Series-Level MAE, by Data Sampling Frequency
+                     """
+        )
+    else:
+        _fig = None
+    _fig
+    return
 
 
 @app.cell
-def __(np, plt):
-    import functools
+def __(plotting):
+    if plotting is not None:
+        _fig = plotting.dataframe_mae_by_sampling()
+    else:
+        _fig = None
+    _fig
+    return
 
-    @functools.cache
-    def compute_mandelbrot(
-        N_max, some_threshold, nx, ny, zoom=1, x_offset=0, y_offset=0
-    ):
-        # A grid of c-values
-        x = np.linspace((-2) / zoom, (1) / zoom, nx)
-        y = np.linspace((-1.5) / zoom, (1.5) / zoom, ny)
 
-        c = x[:, np.newaxis] + 1j * y[np.newaxis, :] + x_offset + 1j * y_offset
+@app.cell
+def __(pd, sns):
+    class generatePlots:
 
-        # Mandelbrot iteration
-        z = c
-        mandelbrot_set = np.zeros(z.shape)
-        for j in range(N_max):
-            z = np.where(
-                np.abs(z) > some_threshold, some_threshold + 1, z**2 + c
+        def __init__(self, results_df):
+            """Create plotting class."""
+            self.results_df = results_df
+            self.results_df = self.results_df.rename(
+                columns={
+                    "issue": "Data Issue Type",
+                    "mean_absolute_error_time_series": "Time Series-Level MAE",
+                    "data_sampling_frequency": "Data Sampling Frequency (minutes)",
+                }
             )
 
-            mask = (abs(z) > some_threshold) * (mandelbrot_set == 0)
-            mandelbrot_set[mask] = j ** (1 / 3)
+        def plot_run_times(self):
+            fig = sns.histplot(self.results_df, x="run_time", bins=40)
+            fig.set(xlabel="Run Time (seconds)", ylabel="Number Instances")
+            return fig
 
-        plt.imshow(
-            mandelbrot_set.T,
-            extent=[x[0], x[-1], y[0], y[-1]],
-            cmap="viridis",
-        )
-        plt.colorbar()
-        return plt.gca()
+        def plot_mae_by_issue(self):
+            fig = sns.histplot(
+                self.results_df,
+                x="Time Series-Level MAE",
+                hue="Data Issue Type",
+                bins=30,
+            )
+            fig.set(
+                xlabel="Time Series-Level MAE (minutes)",
+                ylabel="Number Instances",
+            )
+            return fig
 
-    return compute_mandelbrot, functools
+        def plot_mae_by_sampling_frequency(self):
+            fig = sns.histplot(
+                self.results_df,
+                x="Time Series-Level MAE",
+                hue="Data Sampling Frequency (minutes)",
+                bins=30,
+            )
+            fig.set(
+                xlabel="Time Series-Level MAE (minutes)",
+                ylabel="Number Instances",
+            )
+            return fig
 
+        def dataframe_mae_by_issue_type(self):
+            df = self.results_df.groupby("Data Issue Type")[
+                "Time Series-Level MAE"
+            ].mean()
+            df = pd.DataFrame(df.reset_index())
+            return df
 
-@app.cell
-def __():
-    import numpy as np
-    import matplotlib.pyplot as plt
+        def dataframe_mae_by_sampling(self):
+            df = self.results_df.groupby("Data Sampling Frequency (minutes)")[
+                "Time Series-Level MAE"
+            ].mean()
+            df = pd.DataFrame(df.reset_index())
+            return df
 
-    return np, plt
+    return (generatePlots,)
 
 
 @app.cell
 def __():
     import marimo as mo
+    import numpy as np
+    import pandas as pd
+    import json
+    import matplotlib.pyplot as plt
+    import seaborn as sns
 
-    return (mo,)
+    return json, mo, np, pd, plt, sns
+
+
+@app.cell
+def __(json, mo, pd):
+
+    def create_df_from_cli_args():
+        args = mo.cli_args().to_dict()
+        data = args.get("results_df")
+        rows = []
+        for row in data:
+            rows.append(json.loads(row))
+
+        df = pd.DataFrame.from_records(rows)
+        return df
+
+    return (create_df_from_cli_args,)
 
 
 if __name__ == "__main__":

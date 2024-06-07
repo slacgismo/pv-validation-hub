@@ -1,6 +1,7 @@
 from typing import Any, TypeVar
 import subprocess
 import json
+import pandas as pd
 from logging import Logger
 
 import logging
@@ -100,13 +101,16 @@ def prepare_json_for_marimo_args(json_data: dict[str, Any]):
 
 
 def generate_private_report_for_submission(
-    data: dict[str, Any],
+    df: pd.DataFrame,
     action: str,
+    template_file_path: str,
     html_file_path: str,
     logger: Logger | None = None,
 ):
+    json_data: dict[str, Any] = {}
+    json_data["results_df"] = df.to_dict(orient="records")
 
-    data_args_list = prepare_json_for_marimo_args(data)
+    data_args_list = prepare_json_for_marimo_args(json_data)
 
     if not data_args_list or len(data_args_list) == 0:
         raise ValueError("No data to pass to marimo")
@@ -118,7 +122,7 @@ def generate_private_report_for_submission(
             "marimo",
             "export",
             "html",
-            "template.py",
+            f"{template_file_path}",
             "-o",
             f"{html_file_path}",
             "--no-include-code",
@@ -128,14 +132,14 @@ def generate_private_report_for_submission(
         "edit": [
             "marimo",
             "edit",
-            "template.py",
+            f"{template_file_path}",
             "--",
             *data_args_list,
         ],
         "run": [
             "marimo",
             "run",
-            "template.py",
+            f"{template_file_path}",
             "--",
             *data_args_list,
         ],
@@ -148,8 +152,8 @@ def generate_private_report_for_submission(
         subprocess.run(
             cli_commands[action],
             check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # stdout=subprocess.PIPE,
+            # stderr=subprocess.PIPE,
         )
     except Exception as e:
         logger_if_able(f"Error: {e}", logger, "ERROR")

@@ -14,15 +14,20 @@ import boto3
 import sys
 import requests
 
+from utility import request_to_API_w_credentials
+
 
 # Fetch data from the remote API
 def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
-    response = requests.get(f"{api_url}{endpoint}")
-    if not response.ok:
-        raise ValueError(
-            f"Error fetching data from the API. Status code: {response.status_code} {response.content}"
-        )
-    data = response.json()
+    # response = requests.get(f"{api_url}{endpoint}")
+    # if not response.ok:
+    #     raise ValueError(
+    #         f"Error fetching data from the API. Status code: {response.status_code} {response.content}"
+    #     )
+    # data = response.json()
+
+    data = request_to_API_w_credentials("GET", endpoint=endpoint)
+
     # Check if the data is a dictionary of scalar values
     if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
         # If it is, wrap the values in lists
@@ -33,12 +38,15 @@ def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
 def post_data_to_api_to_df(
     api_url: str, endpoint: str, data: dict
 ) -> pd.DataFrame:
-    response = requests.post(f"{api_url}{endpoint}", json=data)
-    if not response.ok:
-        raise ValueError(
-            f"Error posting data to the API. Status code: {response.status_code} {response.content}"
-        )
-    data = response.json()
+    # response = requests.post(f"{api_url}{endpoint}", json=data)
+    # if not response.ok:
+    #     raise ValueError(
+    #         f"Error posting data to the API. Status code: {response.status_code} {response.content}"
+    #     )
+    # data = response.json()
+
+    data = request_to_API_w_credentials("POST", endpoint=endpoint, data=data)
+
     # Check if the data is a dictionary of scalar values
     if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
         # If it is, wrap the values in lists
@@ -197,10 +205,10 @@ class InsertAnalysis:
 
         # Fetching the data
         db_sys_metadata_df = get_data_from_api_to_df(
-            api_url, "/system_metadata/systemmetadata/"
+            api_url, "system_metadata/systemmetadata"
         )
         db_file_metadata_df = get_data_from_api_to_df(
-            api_url, "/file_metadata/filemetadata/"
+            api_url, "file_metadata/filemetadata"
         )
 
         self.config = config
@@ -285,7 +293,7 @@ class InsertAnalysis:
         List: List of all analyses.
         """
 
-        df = get_data_from_api_to_df(api_url, "/analysis/home")
+        df = get_data_from_api_to_df(api_url, "analysis/home")
 
         return df
 
@@ -483,7 +491,7 @@ class InsertAnalysis:
         """
 
         db_sys_metadata_df = get_data_from_api_to_df(
-            self.api_url, "/system_metadata/systemmetadata/"
+            self.api_url, "system_metadata/systemmetadata"
         )
 
         self.db_sys_metadata_df = db_sys_metadata_df
@@ -535,7 +543,7 @@ class InsertAnalysis:
         """
 
         db_file_metadata_df = get_data_from_api_to_df(
-            self.api_url, "/file_metadata/filemetadata/"
+            self.api_url, "file_metadata/filemetadata"
         )
 
         self.db_file_metadata_df = db_file_metadata_df
@@ -731,14 +739,18 @@ class InsertAnalysis:
         int: New system metadata ID.
         """
 
-        full_url = api_url + "/system_metadata/systemmetadata"
+        # full_url = api_url + "/system_metadata/systemmetadata"
 
-        r = requests.get(full_url)
-        if r.status_code != 200:
-            raise ValueError(
-                f"Error getting the system metadata from the API. Status code: {r.status_code}"
-            )
-        data = r.json()
+        endpoint = "system_metadata/systemmetadata"
+
+        data = request_to_API_w_credentials("GET", endpoint=endpoint)
+
+        # r = requests.get(full_url)
+        # if r.status_code != 200:
+        #     raise ValueError(
+        #         f"Error getting the system metadata from the API. Status code: {r.status_code}"
+        #     )
+        # data = r.json()
         new_system_id = len(data) + 1
 
         return new_system_id

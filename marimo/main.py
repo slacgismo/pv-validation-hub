@@ -1,6 +1,5 @@
-from typing import Any
 import os
-import json
+import pandas as pd
 from utility import (
     generate_private_report_for_submission,
 )
@@ -12,16 +11,21 @@ logger = logging.getLogger(__name__)
 def main(action: str = "export"):
     action = action.lower()
 
-    data_file_path = os.path.join(os.path.dirname(__file__), "data.json")
+    data_file_path = os.path.join(
+        os.path.dirname(__file__), "time_shifts_full_results.csv"
+    )
 
     html_file_path = os.path.join(os.path.dirname(__file__), "template.html")
+    template_file_path = os.path.join(os.path.dirname(__file__), "template.py")
 
-    json_data: dict[str, Any] = {}
+    df = pd.DataFrame()
 
     with open(data_file_path, "r") as data_file:
-        json_data = json.load(data_file)
+        df = pd.read_csv(data_file)
 
-    generate_private_report_for_submission(json_data, action, html_file_path)
+    generate_private_report_for_submission(
+        df, action, template_file_path, html_file_path
+    )
 
 
 if __name__ == "__main__":

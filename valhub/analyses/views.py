@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 @api_view(["GET"])
 @csrf_exempt
-@authentication_classes([SessionAuthentication, TokenAuthentication])
-@permission_classes([IsAuthenticated])
+# @authentication_classes([SessionAuthentication, TokenAuthentication])
+# @permission_classes([IsAuthenticated])
 def list_analysis(request: Request):
     analyses = Analysis.objects.all()
     # print(analyses)
