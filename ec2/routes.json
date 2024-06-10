@@ -14,5 +14,5 @@
     "file_metadata_file_path": "./time-shift-validation-hub/data/file_metadata.csv",
     "evaluation_scripts_folder_path": "./evaluation_scripts",
     "validation_data_folder_path": "./time-shift-validation-hub/data/validation_data",
-    "private_report_template_path": "./time-shift-validation-hub/data/private_report_template.py"
+    "private_report_template_file_path": "./time-shift-validation-hub/template.py"
 }

@@ -28,6 +28,8 @@ if __name__ == "__main__":
 
         is_local = True
 
+        force = True
+
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
 
@@ -43,8 +45,8 @@ if __name__ == "__main__":
             "private_report_template_file_path"
         ]
 
-        print(f"api_url: {api_url}")
         print(f"s3_url: {s3_url}")
+        print(f"api_url: {api_url}")
         print(f"config_file_path: {config_file_path}")
         print(f"file_data_folder_path: {file_data_folder_path}")
         print(
@@ -57,15 +59,16 @@ if __name__ == "__main__":
         # exit()
 
         r = InsertAnalysis(
-            api_url=api_url,
             config_file_path=config_file_path,
             file_data_folder_path=file_data_folder_path,
             sys_metadata_file_path=sys_metadata_file_path,
             file_metadata_file_path=file_metadata_file_path,
             validation_data_folder_path=validation_data_folder_path,
             evaluation_scripts_folder_path=evaluation_scripts_folder_path,
+            private_report_template_file_path=private_report_template_file_path,
             s3_bucket_name="pv-validation-hub-bucket",
+            api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
         )
-        r.insertData(api_url)
+        r.insertData(force)
