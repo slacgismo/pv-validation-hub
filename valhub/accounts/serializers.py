@@ -34,3 +34,13 @@ class AccountSerializer(serializers.ModelSerializer):
         instance.email = validated_data.get("email", instance.email)
         instance.save()
         return instance
+
+
+class AccountSerializerClean(AccountSerializer):
+    class Meta(AccountSerializer.Meta):
+        fields = [f for f in AccountSerializer.Meta.fields if f != "password"]
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation.pop("password", None)
+        return representation

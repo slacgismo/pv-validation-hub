@@ -4,6 +4,8 @@ including system metadata and file metadata.
 """
 
 import json
+from logging import Logger
+from re import template
 from typing import Any, cast
 import numpy as np
 import pandas as pd
@@ -14,19 +16,31 @@ import boto3
 import sys
 import requests
 
-from utility import request_to_API_w_credentials
+from utility import (
+    request_to_API_w_credentials as request_to_API_w_auth,
+    with_credentials,
+)
+
+
+def request_to_API_w_credentials(
+    api_url: str,
+    method: str,
+    endpoint: str,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
+    logger: Logger | None = None,
+    **kwargs,
+) -> dict[str, Any]:
+    request_wrapper = with_credentials(api_url)(request_to_API_w_auth)
+
+    endpoint = f"{api_url}/{endpoint}"
+    return request_wrapper(method, endpoint, data, headers, logger, **kwargs)
 
 
 # Fetch data from the remote API
 def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
-    # response = requests.get(f"{api_url}{endpoint}")
-    # if not response.ok:
-    #     raise ValueError(
-    #         f"Error fetching data from the API. Status code: {response.status_code} {response.content}"
-    #     )
-    # data = response.json()
 
-    data = request_to_API_w_credentials("GET", endpoint=endpoint)
+    data = request_to_API_w_credentials(api_url, "GET", endpoint=endpoint)
 
     # Check if the data is a dictionary of scalar values
     if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
@@ -38,14 +52,10 @@ def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
 def post_data_to_api_to_df(
     api_url: str, endpoint: str, data: dict
 ) -> pd.DataFrame:
-    # response = requests.post(f"{api_url}{endpoint}", json=data)
-    # if not response.ok:
-    #     raise ValueError(
-    #         f"Error posting data to the API. Status code: {response.status_code} {response.content}"
-    #     )
-    # data = response.json()
 
-    data = request_to_API_w_credentials("POST", endpoint=endpoint, data=data)
+    data = request_to_API_w_credentials(
+        api_url, "POST", endpoint=endpoint, data=data
+    )
 
     # Check if the data is a dictionary of scalar values
     if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
@@ -60,20 +70,6 @@ def hasAllColumns(df, cols: list):
     checking.
     """
     return all(col in df.columns for col in cols)
-
-
-# def is_local():
-#     """
-#     Checks if the application is running locally or in an Amazon ECS environment.
-
-#     Returns:
-#         bool: True if the application is running locally, False otherwise.
-#     """
-#     return (
-#         "AWS_EXECUTION_ENV" not in os.environ
-#         and "ECS_CONTAINER_METADATA_URI" not in os.environ
-#         and "ECS_CONTAINER_METADATA_URI_V4" not in os.environ
-#     )
 
 
 def upload_to_s3_bucket(
@@ -194,6 +190,7 @@ class InsertAnalysis:
         evaluation_scripts_folder_path: str,
         sys_metadata_file_path: str,
         file_metadata_file_path: str,
+        private_report_template_file_path: str,
         # validation_tests_file_path: str,
         s3_bucket_name: str,
         api_url: str,
@@ -202,22 +199,26 @@ class InsertAnalysis:
     ):
 
         config: dict[str, Any] = json.load(open(config_file_path, "r"))
+        self.config = config
+        self.is_local = is_local
+
+        self.api_url = api_url
+        self.s3_url = s3_url
 
         # Fetching the data
         db_sys_metadata_df = get_data_from_api_to_df(
-            api_url, "system_metadata/systemmetadata"
+            self.api_url, "system_metadata/systemmetadata"
         )
         db_file_metadata_df = get_data_from_api_to_df(
-            api_url, "file_metadata/filemetadata"
+            self.api_url, "file_metadata/filemetadata"
         )
 
-        self.config = config
-        self.is_local = is_local
-        self.api_url = api_url
-        self.s3_url = s3_url
         self.db_sys_metadata_df = db_sys_metadata_df
         self.db_file_metadata_df = db_file_metadata_df
         self.config_file_path = config_file_path
+        self.private_report_template_file_path = (
+            private_report_template_file_path
+        )
         self.file_data_folder_path = file_data_folder_path
         self.evaluation_scripts_folder_path = evaluation_scripts_folder_path
         # self.validation_tests_file_path = validation_tests_file_path
@@ -276,24 +277,31 @@ class InsertAnalysis:
                 "The file metadata contains files that are not in the validation data folder."
             )
 
+        template_file_exists = os.path.exists(
+            self.private_report_template_file_path
+        )
+
+        if not template_file_exists:
+            raise ValueError(
+                "The private report template file does not exist."
+            )
+
         print("All files are in the right place.")
 
         return True
 
-    def getAllAnalyses(self, api_url: str) -> pd.DataFrame:
+    def getAllAnalyses(self) -> pd.DataFrame:
         """
         Get all analyses from the API.
 
-        Parameters
-        ----------
-        api_url: String. URL to the API.
+
 
         Returns
         -------
         List: List of all analyses.
         """
 
-        df = get_data_from_api_to_df(api_url, "analysis/home")
+        df = get_data_from_api_to_df(self.api_url, "analysis/home")
 
         return df
 
@@ -302,6 +310,7 @@ class InsertAnalysis:
         self,
         db_analysis_df: pd.DataFrame,
         max_concurrent_submission_evaluation: int,
+        force: bool = False,
     ):
         """
         Create a new analysis in the API.
@@ -309,8 +318,11 @@ class InsertAnalysis:
 
         # check if the analysis already exists
 
-        if not db_analysis_df.empty and self.config["category_name"] in list(
-            db_analysis_df["analysis_name"]
+        if (
+            not db_analysis_df.empty
+            and self.config["category_name"]
+            in list(db_analysis_df["analysis_name"])
+            and not force
         ):
             db_analysis_id = cast(
                 int,
@@ -329,6 +341,10 @@ class InsertAnalysis:
             self.analysis_id = db_analysis_id
 
         else:
+
+            if force:
+                print("Force is True. Creating a new analysis.")
+
             body = {
                 "analysis_name": self.config["category_name"],
                 "max_concurrent_submission_evaluation": max_concurrent_submission_evaluation,
@@ -429,27 +445,6 @@ class InsertAnalysis:
                 upload_path,
                 self.is_local,
             )
-
-    # def createValidationData(self):
-    #     """
-    #     Upload the validation data to the API.
-
-    #     Parameters
-    #     ----------
-    #     validation_tests_df: Pandas dataframe. Dataframe of the validation
-    #         tests.
-    #     """
-    #     url = f"{self.api_url}/validation_tests/upload_csv/"
-
-    #     file = open(self.validation_tests_file_path, "r")
-
-    #     response = requests.post(url, files={"file": file})
-    #     if not response.ok:
-    #         raise ValueError(
-    #             f"Error creating validation tests. Status code: {response.status_code}. {response.content}"
-    #         )
-    #     data = response.json()
-    #     print(data)
 
     def createEvaluationScripts(self):
         """
@@ -726,24 +721,36 @@ class InsertAnalysis:
 
         return evaluation_folder_path
 
-    def getSystemMetadataIDs(self, api_url: str):
+    def prepareTemplate(self):
+        evaluation_folder_path = os.path.join(
+            self.evaluation_scripts_folder_path, str(self.analysis_id)
+        )
+        if not os.path.exists(evaluation_folder_path):
+            os.makedirs(evaluation_folder_path)
+        # Drop the config JSON into the new folder
+
+        shutil.copy(
+            self.private_report_template_file_path, evaluation_folder_path
+        )
+
+        return evaluation_folder_path
+
+    def getSystemMetadataIDs(self):
         """
         Get the system metadata IDs from the API.
 
-        Parameters
-        ----------
-        api_url: String. URL to the API.
+
 
         Returns
         -------
         int: New system metadata ID.
         """
 
-        # full_url = api_url + "/system_metadata/systemmetadata"
-
         endpoint = "system_metadata/systemmetadata"
 
-        data = request_to_API_w_credentials("GET", endpoint=endpoint)
+        data = request_to_API_w_credentials(
+            self.api_url, "GET", endpoint=endpoint
+        )
 
         # r = requests.get(full_url)
         # if r.status_code != 200:
@@ -777,13 +784,13 @@ class InsertAnalysis:
         )
         return file_test_link_path
 
-    def insertData(self, api_url: str):
+    def insertData(self, force=False):
         """
         Insert all the data into the API and S3.
         """
 
-        db_analyses_df = self.getAllAnalyses(api_url)
-        self.createAnalysis(db_analyses_df, 100)
+        db_analyses_df = self.getAllAnalyses()
+        self.createAnalysis(db_analyses_df, 100, force)
 
         if not self.analysis_id:
             raise ValueError("Analysis ID not found or created.")
@@ -799,6 +806,7 @@ class InsertAnalysis:
 
         self.prepareFileTestLinker()
         self.prepareConfig()
+        self.prepareTemplate()
         self.createEvaluationScripts()
 
 
@@ -819,17 +827,21 @@ if __name__ == "__main__":
         sys_metadata_file_path = config["sys_metadata_file_path"]
         file_metadata_file_path = config["file_metadata_file_path"]
         validation_data_folder_path = config["validation_data_folder_path"]
+        private_report_template_file_path = config[
+            "private_report_template_file_path"
+        ]
 
         r = InsertAnalysis(
-            api_url=api_url,
             config_file_path=config_file_path,
             file_data_folder_path=file_data_folder_path,
             sys_metadata_file_path=sys_metadata_file_path,
             file_metadata_file_path=file_metadata_file_path,
             validation_data_folder_path=validation_data_folder_path,
             evaluation_scripts_folder_path=evaluation_scripts_folder_path,
+            private_report_template_file_path=private_report_template_file_path,
             s3_bucket_name="pv-validation-hub-bucket",
+            api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
         )
-        r.insertData(api_url)
+        r.insertData()

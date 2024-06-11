@@ -1,0 +1,33 @@
+{
+    "nested": [
+        1,
+        {
+            "nested": 2
+        },
+        [
+            3,
+            4,
+            {
+                "nested": 5,
+                "nested_array": [
+                    6,
+                    7
+                ]
+            },
+            [
+                8,
+                9
+            ]
+        ]
+    ],
+    "json_body": {
+        "size": [
+            512,
+            512
+        ],
+        "test": "Hello World!",
+        "boolean": true,
+        "integer": 42,
+        "float": 3.14
+    }
+}

@@ -1,3 +1,4 @@
+from functools import wraps
 import os
 import requests
 import logging
@@ -63,6 +64,7 @@ def request_handler(
     if not r.ok:
         logger_if_able(f"Error: {r.text}", logger, "ERROR")
         raise Exception("Failed to get data")
+    print(r.text)
     json_body: dict[str, Any] = json.loads(r.text)
     return json_body
 
@@ -90,9 +92,11 @@ def method_request(
     return response
 
 
-def login_to_API(username: str, password: str, logger: Logger | None = None):
+def login_to_API(
+    api_url: str, username: str, password: str, logger: Logger | None = None
+):
 
-    login_url = f"{API_BASE_URL}/login"
+    login_url = f"{api_url}/login"
 
     json_body = request_handler(
         "POST", login_url, {"username": username, "password": password}
@@ -105,7 +109,7 @@ def login_to_API(username: str, password: str, logger: Logger | None = None):
     return token
 
 
-def with_credentials(logger: Logger | None = None):
+def with_credentials(api_url: str, logger: Logger | None = None):
 
     username = os.environ.get("admin_username")
     password = os.environ.get("admin_password")
@@ -116,13 +120,15 @@ def with_credentials(logger: Logger | None = None):
     api_auth_token = None
     headers = {}
 
-    def decorator(func: Callable[..., T]):
+    def decorator(func):
         # @wraps(func)
         def wrapper(*args, **kwargs):
             nonlocal api_auth_token
             if not api_auth_token:
                 logger_if_able("Logging in", logger)
-                api_auth_token = login_to_API(username, password, logger)
+                api_auth_token = login_to_API(
+                    api_url, username, password, logger
+                )
                 headers["Authorization"] = f"Token {api_auth_token}"
             kwargs["auth"] = headers
             return func(*args, **kwargs)
@@ -132,7 +138,6 @@ def with_credentials(logger: Logger | None = None):
     return decorator
 
 
-@with_credentials()
 def request_to_API_w_credentials(
     method: str,
     endpoint: str,
@@ -142,7 +147,7 @@ def request_to_API_w_credentials(
     **kwargs: Any,
 ):
 
-    url = f"{API_BASE_URL}/{endpoint}"
+    url = f"{endpoint}"
 
     auth_header: dict[str, str] | None = (
         kwargs["auth"] if "auth" in kwargs else None
@@ -172,3 +177,13 @@ def request_to_API(
 
     data = request_handler(method, url, data, headers, logger)
     return data
+
+
+if __name__ == "__main__":
+    print(API_BASE_URL)
+    request_to_API_w_credential = with_credentials(API_BASE_URL)(
+        request_to_API_w_credentials
+    )
+
+    # Test with_credentials decorator
+    request_to_API_w_credential("GET", API_BASE_URL + "/healthy/")

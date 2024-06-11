@@ -17,7 +17,7 @@ from rest_framework.authentication import (
     SessionAuthentication,
 )
 
-from .serializers import AccountSerializer
+from .serializers import AccountSerializer, AccountSerializerClean
 from .models import Account
 import json
 import logging
@@ -160,15 +160,16 @@ class AccountDetail(APIView):
 
 # Public Route for public profile lookup
 @csrf_exempt
-@api_view(["GET"])
+@api_view(["POST"])
 def get_account(request):
-    username = request.headers.get("username")
+    username = request.data.get("username")
     if not username:
         return JsonResponse({"error": "Username not provided"}, status=400)
     try:
         account = Account.objects.get(username=username)
         # Exclude sensitive fields
-        serializer = AccountSerializer(account, exclude=["password"])
+        serializer = AccountSerializerClean(account)
+        logger.info(f"account: {serializer.data}")
         return JsonResponse(serializer.data)
     except ObjectDoesNotExist:
         return JsonResponse({"error": "Account not found"}, status=404)
