@@ -187,10 +187,7 @@ def extract_analysis_data(  # noqa: C901
             3, f"No files found in s3 bucket for analysis {analysis_id}"
         )
 
-    required_files = [
-        "config.json",
-        "file_test_link.csv",
-    ]
+    required_files = ["config.json", "file_test_link.csv", "template.py"]
     file_names = [file.split("/")[-1] for file in files]
 
     for required_file in required_files:
