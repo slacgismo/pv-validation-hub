@@ -30,10 +30,9 @@ logger = logging.getLogger(__name__)
 # Create your views here.
 
 
+# Public route, leaderboard cards
 @api_view(["GET"])
 @csrf_exempt
-# @authentication_classes([SessionAuthentication, TokenAuthentication])
-# @permission_classes([IsAuthenticated])
 def list_analysis(request: Request):
     analyses = Analysis.objects.all()
     # print(analyses)
@@ -43,10 +42,9 @@ def list_analysis(request: Request):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+# Public route, leaderboard details
 @api_view(["GET"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication, SessionAuthentication])
-@permission_classes([IsAuthenticated])
 def analysis_detail(request, analysis_id):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
     # print(analysis)
@@ -56,10 +54,9 @@ def analysis_detail(request, analysis_id):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+# Public Route, leaderboard
 @api_view(["GET"])
 @csrf_exempt
-@authentication_classes([TokenAuthentication, SessionAuthentication])
-@permission_classes([IsAuthenticated])
 def leaderboard(request, analysis_id):
     _analysis = Analysis.objects.get(analysis_id=analysis_id)
 

@@ -43,6 +43,17 @@ def get_secret(secret_name: str):
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
+
+    # Check for AWS credentials
+    credentials = session.get_credentials()
+    if (
+        not credentials
+        or not credentials.access_key
+        or not credentials.secret_key
+    ):
+        logger.error("No AWS credentials found.")
+        raise ValueError("Credentials not found")
+
     client = session.client(
         service_name="secretsmanager", region_name=region_name, config=config
     )
@@ -300,7 +311,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
-STATIC_URL = "staticfiles/"
+STATIC_URL = "/staticfiles/"
 
 
 # Default primary key field type
