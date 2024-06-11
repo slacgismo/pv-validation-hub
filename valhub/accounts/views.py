@@ -182,6 +182,7 @@ def get_account(request):
 def update_account(request):
     account = request.user
     data = request.data
+    logger.info(f"update_account: {data}")
 
     serializer = AccountSerializer(account, data=data, partial=True)
     if serializer.is_valid():
