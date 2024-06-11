@@ -27,12 +27,22 @@ class SubmissionSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super(SubmissionSerializer, self).__init__(*args, **kwargs)
 
+    error_rate = serializers.SerializerMethodField()
+
     class Meta:
         model = Submission
         fields = (
             "algorithm",
             "submission_id",
             "error_rate",
+        )
+
+    def get_error_rate(self, obj):
+        error_report = ErrorReport.objects.filter(submission=obj).first()
+        return (
+            error_report.error_rate
+            if error_report and error_report.error_rate is not None
+            else 0
         )
 
     def to_representation(self, instance):
@@ -49,12 +59,6 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["submitted_at"] = instance.submitted_at
         data["result"] = instance.result
         data["status"] = instance.status
-        error_report = ErrorReport.objects.filter(submission=instance).first()
-        data["error_rate"] = (
-            error_report.error_rate
-            if error_report and error_report.error_rate is not None
-            else 0
-        )
         return data
 
 

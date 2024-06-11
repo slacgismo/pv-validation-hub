@@ -1,5 +1,6 @@
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ObjectDoesNotExist
 import django.contrib.auth as auth
 
 from rest_framework.decorators import (
@@ -78,6 +79,7 @@ def register(request: Request):
         data = {
             "token": str(token.key),
             "user": AccountSerializer(account).data,
+            "username": _username,
         }
 
         return JsonResponse(data, status=201)
@@ -111,6 +113,7 @@ def login(request: Request):
         token = Token.objects.get_or_create(user=user)
         data = {
             "token": str(token[0].key),
+            "username": _username,
         }
 
         dump = json.dumps(data)
@@ -119,16 +122,20 @@ def login(request: Request):
         return HttpResponse("Invalid credentials", status=400)
 
 
+# This class will be deprecated, we should standardize to functions
 class AccountDetail(APIView):
     """
     Retrieve, update or delete a user.
     """
 
-    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     @csrf_exempt
     def get(self, request: Request):
+        logger.info("user", request.user)
+        logger.info("auth", request.auth)
+        logger.info("req:", request)
         serializer = AccountSerializer(request.user)
         return JsonResponse(serializer.data)
 
@@ -149,6 +156,47 @@ class AccountDetail(APIView):
         account = request.user
         account.delete()
         return HttpResponse(status=204)
+
+
+# Public Route for public profile lookup
+@csrf_exempt
+@api_view(["GET"])
+def get_account(request):
+    username = request.headers.get("username")
+    if not username:
+        return JsonResponse({"error": "Username not provided"}, status=400)
+    try:
+        account = Account.objects.get(username=username)
+        # Exclude sensitive fields
+        serializer = AccountSerializer(account, exclude=["password"])
+        return JsonResponse(serializer.data)
+    except ObjectDoesNotExist:
+        return JsonResponse({"error": "Account not found"}, status=404)
+
+
+@csrf_exempt
+@api_view(["PUT"])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def update_account(request):
+    account = request.user
+    data = request.data
+
+    serializer = AccountSerializer(account, data=data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(serializer.data)
+    return JsonResponse(serializer.errors, status=400)
+
+
+@csrf_exempt
+@api_view(["DELETE"])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    account = request.user
+    account.delete()
+    return HttpResponse(status=204)
 
 
 # Users on the client use Token Auth w/ a generated session Token, not Django Session Auth
