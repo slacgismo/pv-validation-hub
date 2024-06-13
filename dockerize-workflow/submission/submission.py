@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 from time import sleep
 from time import perf_counter
@@ -6,11 +5,10 @@ import csv
 
 
 def submission_function(index: str = "0", *args, **kwargs):
-    print("Submission function called")
     start = perf_counter()
 
     random_number = np.random.rand()
-    sleep_time = random_number * 10
+    sleep_time = random_number * 15
     sleep(sleep_time)
     end = perf_counter()
     time_elapsed = end - start
@@ -24,10 +22,3 @@ def submission_function(index: str = "0", *args, **kwargs):
 
     print("Submission function completed successfully!")
     return time_elapsed
-
-
-if __name__ == "__main__":
-
-    args = sys.argv[1:]
-
-    submission_function(*args)
