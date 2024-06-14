@@ -3,8 +3,58 @@ import inspect
 import sys
 import pandas as pd
 import numpy as np
+from time import perf_counter
+from functools import wraps
+from typing import Any, Union, Tuple, TypeVar, Callable, cast
+from logging import Logger
+import logging
 
-from typing import Callable, cast
+T = TypeVar("T")
+
+
+def logger_if_able(
+    message: str, logger: Logger | None = None, level: str = "INFO"
+):
+    if logger is not None:
+        levels_dict = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+        }
+
+        level = level.upper()
+
+        if level not in levels_dict:
+            raise Exception(f"Invalid log level: {level}")
+
+        log_level = levels_dict[level]
+
+        logger.log(log_level, message)
+    else:
+        print(message)
+
+
+def timing(verbose: bool = True, logger: Union[Logger, None] = None):
+    @wraps(timing)
+    def decorator(func: Callable[..., T]):
+        @wraps(func)
+        def wrapper(*args, **kwargs) -> Tuple[T, float]:
+            start_time = perf_counter()
+            result = func(*args, **kwargs)
+            end_time = perf_counter()
+            execution_time = end_time - start_time
+            if verbose:
+                msg = (
+                    f"{func.__name__} took {execution_time:.3f} seconds to run"
+                )
+                logger_if_able(msg, logger)
+            return result, execution_time
+
+        return wrapper
+
+    return decorator
 
 
 def format_args_for_submission(data_dir: str, args: list[str]):
@@ -36,7 +86,7 @@ def import_submission_function(submission_file_name: str, function_name: str):
         raise e
 
     try:
-        submission_function: Callable = getattr(
+        submission_function: Callable[[pd.Series, Any], np.ndarray] = getattr(
             submission_module, function_name
         )
         function_parameters = list(
@@ -81,7 +131,9 @@ def main():
 
     print(f"Submission args: {submission_args}")
 
-    results: np.ndarray = submission_function(*submission_args)
+    results, execution_time = timing()(submission_function)(*submission_args)
+
+    print(f"Execution time: {execution_time}")
 
     print(f"Results: {results}")
 

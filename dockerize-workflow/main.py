@@ -181,7 +181,7 @@ def main_flow(memory_limit: str):
     if not data_files:
         raise FileNotFoundError("No data files found")
 
-    files = data_files[:1]
+    files = data_files
 
     for filepath in files:
         main_task.submit(tag, memory_limit, filepath)
@@ -194,7 +194,7 @@ def main():
     flow(
         task_runner=DaskTaskRunner(
             cluster_kwargs={
-                "n_workers": 1,
+                "n_workers": 3,
                 "threads_per_worker": 1,
                 "memory_limit": f"{memory_limit}GiB",
             }
