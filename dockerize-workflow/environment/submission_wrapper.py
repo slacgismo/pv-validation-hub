@@ -142,6 +142,11 @@ def main():
     results_file = f"{results_dir}/{data_file_name}"
     results_df.to_csv(results_file)
 
+    execution_tuple = (data_file_name, execution_time)
+    execution_file = f"{results_dir}/time.csv"
+    execution_df = pd.DataFrame([execution_tuple])
+    execution_df.to_csv(execution_file, mode="a", header=False)
+
 
 if __name__ == "__main__":
     main()

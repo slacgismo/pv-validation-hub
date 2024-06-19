@@ -1,9 +1,10 @@
 import os
-from sys import stdout
-from typing import Any, cast
+from typing import Any, TypeVar, cast
+from dask.distributed import Client
+from dask.delayed import delayed
 import docker.models
 import docker.models.containers
-from prefect import flow, task
+from prefect import Flow, flow, task
 from prefect_dask.task_runners import DaskTaskRunner
 import docker
 from docker.models.images import Image
@@ -24,8 +25,11 @@ def docker_task(
         submission_args = []
 
     # Define volumes to mount
-    results_dir = os.path.join(os.path.dirname(__file__), "results")
-    data_dir = os.path.join(os.path.dirname(__file__), "data")
+    # results_dir = os.path.join(os.path.dirname(__file__), "results")
+    # data_dir = os.path.join(os.path.dirname(__file__), "data")
+
+    data_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/data"
+    results_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/results"
 
     volumes = {
         results_dir: {"bind": "/app/results/", "mode": "rw"},
@@ -70,7 +74,6 @@ def docker_task(
         container.wait()
 
     except Exception as e:
-        print(f"Error: {e}")
         raise e
     finally:
         if container:
@@ -84,7 +87,31 @@ def docker_task(
 
 
 def initialize_docker_client():
-    client = docker.from_env()
+    base_url = os.environ.get("DOCKER_HOST")
+
+    if not base_url:
+
+        raise FileNotFoundError("DOCKER_HOST environment variable not set")
+
+    cert_path = os.environ.get("DOCKER_CERT_PATH")
+    if not cert_path:
+        raise FileNotFoundError(
+            "DOCKER_CERT_PATH environment variable not set"
+        )
+
+    ca_cert = cert_path + "/ca.pem"
+    client_cert = cert_path + "/cert.pem"
+    client_key = cert_path + "/key.pem"
+
+    client = docker.DockerClient(
+        base_url=base_url,
+        version="auto",
+        tls={
+            "ca_cert": ca_cert,
+            "client_cert": (client_cert, client_key),
+            "verify": True,
+        },
+    )
     return client
 
 
@@ -112,7 +139,6 @@ def create_docker_image(
         except ImageNotFound:
             print("Docker image not found")
         except Exception as e:
-            print(f"Error: {e}")
             raise e
 
     if image:
@@ -156,21 +182,34 @@ def main_task(image: str, memory_limit: str, data_filepath: str):
             submission_args,
         )
     except Exception as e:
-        print(f"Error: {e}")
+        raise e
     finally:
         if client:
             client.close()
 
 
+def check_if_docker_daemon_is_running():
+
+    client = initialize_docker_client()
+    try:
+        client.ping()
+    except Exception as e:
+        raise e
+    finally:
+        client.close()
+
+
 def main_flow(memory_limit: str):
     tag: str = "submission:latest"
+
+    check_if_docker_daemon_is_running()
 
     client = None
     try:
         client = initialize_docker_client()
         image = create_docker_image(tag, client, overwrite=True)
     except Exception as e:
-        print(f"Error: {e}")
+        raise e
     finally:
         if client:
             client.close()
@@ -181,7 +220,7 @@ def main_flow(memory_limit: str):
     if not data_files:
         raise FileNotFoundError("No data files found")
 
-    files = data_files
+    files = data_files[:5]
 
     for filepath in files:
         main_task.submit(tag, memory_limit, filepath)
@@ -194,7 +233,7 @@ def main():
     flow(
         task_runner=DaskTaskRunner(
             cluster_kwargs={
-                "n_workers": 3,
+                "n_workers": 2,
                 "threads_per_worker": 1,
                 "memory_limit": f"{memory_limit}GiB",
             }
@@ -203,5 +242,111 @@ def main():
     )(main_flow)(memory_limit)
 
 
+def sub_func(image: str, memory_limit: str, data_filepath: str):
+    client = None
+    try:
+        client = initialize_docker_client()
+        # image = create_docker_image(client, prefect_logger)
+
+        submission_file_name = "submission.submission_wrapper"
+        submission_function_name = "detect_time_shifts"
+        submission_args = [data_filepath]
+
+        docker_task(
+            client,
+            image,
+            memory_limit,
+            submission_file_name,
+            submission_function_name,
+            submission_args,
+        )
+    except Exception as e:
+        raise e
+    finally:
+        if client:
+            client.close()
+
+
+def main_func(memory_limit: str):
+    tag: str = "submission:latest"
+
+    check_if_docker_daemon_is_running()
+
+    client = None
+    try:
+        client = initialize_docker_client()
+        image = create_docker_image(tag, client, overwrite=True)
+    except Exception as e:
+        raise e
+    finally:
+        if client:
+            client.close()
+
+    data_files = os.listdir("data")
+    print(data_files)
+
+    if not data_files:
+        raise FileNotFoundError("No data files found")
+
+    files = data_files[:5]
+
+    for filepath in files:
+        sub_func.submit(tag, memory_limit, filepath)
+
+
+def dask_main():
+    results: list = []
+
+    total_workers = 2
+    total_threads = 1
+    memory_per_worker = 8
+
+    tag: str = "submission:latest"
+
+    check_if_docker_daemon_is_running()
+
+    client = None
+    try:
+        client = initialize_docker_client()
+        image = create_docker_image(tag, client, overwrite=True)
+    except Exception as e:
+        raise e
+    finally:
+        if client:
+            client.close()
+
+    data_files = os.listdir("data")
+    print(data_files)
+
+    if not data_files:
+        raise FileNotFoundError("No data files found")
+
+    files = data_files[:5]
+
+    with Client(
+        n_workers=total_workers,
+        threads_per_worker=total_threads,
+        memory_limit=f"{memory_per_worker}GiB",
+        # **kwargs,
+    ) as client:
+
+        # logger_if_able(f"client: {client}", logger, "INFO")
+
+        lazy_results = []
+        for args in files:
+            lazy_result = delayed(sub_func, pure=True)(
+                tag, memory_per_worker, args
+            )
+            lazy_results.append(lazy_result)
+
+        futures = client.compute(lazy_results)
+
+        results = client.gather(futures)  # type: ignore
+
+    return results
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    dask_main()
+    # check_if_docker_daemon_is_running()
