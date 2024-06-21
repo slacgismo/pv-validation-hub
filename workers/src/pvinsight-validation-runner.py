@@ -16,7 +16,7 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import Any, Callable, cast
+from typing import Any, Callable, Tuple, TypeVar, cast, ParamSpec
 import pandas as pd
 import os
 from importlib import import_module
@@ -49,6 +49,8 @@ from utility import (
     timing,
     is_local,
 )
+
+P = ParamSpec("P")
 
 FAILED = "failed"
 
@@ -102,7 +104,7 @@ def push_to_s3(
                 logger.info(f"update submission status to {FAILED}")
                 update_submission_status(submission_id, FAILED)
     else:
-        s3 = boto3.client("s3")
+        s3 = boto3.client("s3")  # type: ignore
         s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
 
 
@@ -286,9 +288,9 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
 
 @timing(verbose=True, logger=logger)
 def run_user_submission(
-    fn: Callable[..., pd.Series],
-    *args: Any,
-    **kwargs: Any,
+    fn: Callable[P, pd.Series],
+    *args,
+    **kwargs,
 ):
     return fn(*args, **kwargs)
 
@@ -614,7 +616,7 @@ def create_function_args_for_file(
     system_metadata_df: pd.DataFrame,
     data_dir: str,
     config_data: dict[str, Any],
-    submission_function: Callable[..., pd.Series],
+    submission_function: Callable[P, pd.Series],
     function_parameters: list[str],
     function_name: str,
     performance_metrics: list[str],
@@ -651,18 +653,28 @@ def create_function_args_for_file(
     return function_args
 
 
+T = TypeVar("T")
+
+
+def append_to_list(item: T, array: list[T] | None = None):
+    if array is None:
+        array = []
+    array.append(item)
+    return array
+
+
 def prepare_function_args_for_parallel_processing(
     file_metadata_df: pd.DataFrame,
     system_metadata_df: pd.DataFrame,
     data_dir: str,
     config_data: dict[str, Any],
-    submission_function: Callable[..., pd.Series],
+    submission_function: Callable[P, pd.Series],
     function_parameters: list[str],
     function_name: str,
     performance_metrics: list[str],
 ):
 
-    function_args_list: list[tuple] = []
+    function_args_list = None
 
     for file_number, (_, file_metadata_row) in enumerate(
         file_metadata_df.iterrows()
@@ -679,7 +691,13 @@ def prepare_function_args_for_parallel_processing(
             performance_metrics,
             file_number,
         )
-        function_args_list.append(function_args)
+        function_args_list = append_to_list(function_args, function_args_list)
+
+    if function_args_list is None:
+        # TODO: add error code
+        raise RunnerException(
+            *get_error_by_code(500, runner_error_codes, logger)
+        )
 
     return function_args_list
 
@@ -689,7 +707,7 @@ def run_submission(
     data_dir: str,
     associated_metadata: dict[str, Any],
     config_data: dict[str, Any],
-    submission_function: Callable[..., pd.Series],
+    submission_function: Callable[P, pd.Series],
     function_parameters: list[str],
     row: pd.Series,
 ):
@@ -709,7 +727,7 @@ def run_submission(
     )
 
     data_outputs, function_run_time = run_user_submission(
-        submission_function, time_series, **kwargs
+        submission_function, time_series, kwargs
     )
 
     return (
@@ -723,7 +741,7 @@ def loop_over_files_and_generate_results(
     system_metadata_df: pd.DataFrame,
     data_dir: str,
     config_data: dict[str, Any],
-    submission_function: Callable[..., pd.Series],
+    submission_function: Callable[P, pd.Series],
     function_parameters: list[str],
     function_name: str,
     performance_metrics: list[str],
@@ -891,7 +909,7 @@ def run_submission_and_generate_performance_metrics(
     data_dir: str,
     associated_system_metadata: dict[str, Any],
     config_data: dict[str, Any],
-    submission_function: Callable[..., pd.Series],
+    submission_function: Callable[P, pd.Series],
     function_parameters: list[str],
     file_metadata_row: pd.Series,
     function_name: str,

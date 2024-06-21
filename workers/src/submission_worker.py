@@ -1,6 +1,8 @@
 from importlib import import_module
 from logging import exception
 from typing import Any, Callable, Optional
+from mypy_boto3_s3 import S3Client
+from mypy_boto3_sqs import SQSClient, SQSServiceResource
 import requests
 import sys
 import os
@@ -101,7 +103,7 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
                 )
             return {"status": "success"}
     else:
-        s3 = boto3.client("s3")
+        s3: S3Client = boto3.client("s3")  # type: ignore
         try:
             s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
         except botocore.exceptions.ClientError as e:
@@ -139,7 +141,7 @@ def list_s3_bucket(s3_dir: str):
             f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
         )
 
-        s3 = boto3.client("s3")
+        s3: S3Client = boto3.client("s3")  # type: ignore
         paginator = s3.get_paginator("list_objects_v2")
         pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
         for page in pages:
@@ -474,8 +476,8 @@ def get_or_create_sqs_queue(queue_name):
     """
     # Use the Docker endpoint URL for local development
     if IS_LOCAL:
-        sqs = boto3.resource(
-            "sqs",
+        sqs: SQSServiceResource = boto3.resource(
+            "sqs",  # type: ignore
             endpoint_url="http://sqs:9324",
             region_name="elasticmq",
             aws_secret_access_key="x",
@@ -484,8 +486,8 @@ def get_or_create_sqs_queue(queue_name):
         )
     # Use the production AWS environment for other environments
     else:
-        sqs = boto3.resource(
-            "sqs",
+        sqs: SQSServiceResource = boto3.resource(
+            "sqs",  # type: ignore
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
 
@@ -530,8 +532,8 @@ def get_analysis_pk():
 
 def get_aws_sqs_client():
     if IS_LOCAL:
-        sqs = boto3.client(
-            "sqs",
+        sqs: SQSClient = boto3.client(
+            "sqs",  # type: ignore
             endpoint_url="http://sqs:9324",
             region_name="elasticmq",
             aws_secret_access_key="x",
@@ -540,8 +542,8 @@ def get_aws_sqs_client():
         )
         logger.info(f"Using local SQS endpoint")
     else:
-        sqs = boto3.client(
-            "sqs",
+        sqs: SQSClient = boto3.client(
+            "sqs",  # type: ignore
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
         logger.info(f"Using AWS SQS endpoint")

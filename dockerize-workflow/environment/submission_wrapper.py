@@ -5,11 +5,13 @@ import pandas as pd
 import numpy as np
 from time import perf_counter
 from functools import wraps
-from typing import Any, Union, Tuple, TypeVar, Callable, cast
+from typing import Any, ParamSpec, Union, Tuple, TypeVar, Callable, cast
 from logging import Logger
 import logging
 
 T = TypeVar("T")
+
+P = ParamSpec("P")
 
 
 def logger_if_able(
@@ -37,10 +39,8 @@ def logger_if_able(
 
 
 def timing(verbose: bool = True, logger: Union[Logger, None] = None):
-    @wraps(timing)
-    def decorator(func: Callable[..., T]):
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Tuple[T, float]:
+    def decorator(func: Callable[P, T]):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Tuple[T, float]:
             start_time = perf_counter()
             result = func(*args, **kwargs)
             end_time = perf_counter()

@@ -2,6 +2,10 @@ import json
 from dask.delayed import delayed
 from dask.distributed import Client
 from dask import config
+import docker
+from docker.models.containers import Container
+from docker.errors import ImageNotFound
+from docker.models.images import Image
 
 from concurrent.futures import (
     ProcessPoolExecutor,
@@ -12,10 +16,20 @@ from functools import wraps
 from logging import Logger
 from time import perf_counter, sleep
 import os
-from typing import Any, Callable, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    ParamSpec,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 import logging
 import boto3
 import botocore.exceptions
+from mypy_boto3_s3 import S3Client
 import psutil
 import requests
 import math
@@ -29,6 +43,7 @@ SUBMISSION_ERROR_PREFIX = "sb"
 
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,10 +112,10 @@ submission_error_codes = get_error_codes_dict(
 
 
 def timing(verbose: bool = True, logger: Union[Logger, None] = None):
-    @wraps(timing)
-    def decorator(func: Callable[..., T]):
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Tuple[T, float]:
+    # @wraps(timing)
+    def decorator(func: Callable[P, T]):
+        # @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Tuple[T, float]:
             start_time = perf_counter()
             result = func(*args, **kwargs)
             end_time = perf_counter()
@@ -117,25 +132,25 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
     return decorator
 
 
-def multiprocess(
-    func: Callable[..., T], data: list, n_processes: int, logger: Logger | None
-) -> list[T]:
-    log = logger or print
-    with ProcessPoolExecutor(max_workers=n_processes) as executor:
-        futures = {executor.submit(func, d): d for d in data}
-        results: list[T] = []
-        for future in as_completed(futures):
-            try:
-                results.append(future.result())
-            except Exception as e:
-                log.error(f"Error: {e}")
-    return results
+# def multiprocess(
+#     func: Callable[P, T], data: list, n_processes: int, logger: Logger | None
+# ) -> list[T]:
+#     log = logger or print
+#     with ProcessPoolExecutor(max_workers=n_processes) as executor:
+#         futures = {executor.submit(func, d): d for d in data}
+#         results: list[T] = []
+#         for future in as_completed(futures):
+#             try:
+#                 results.append(future.result())
+#             except Exception as e:
+#                 log.error(f"Error: {e}")
+#     return results
 
 
 def timeout(seconds: int, logger: Union[Logger, None] = None):
-    def decorator(func: Callable[..., T]):
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> T:
+    def decorator(func: Callable[P, T]):
+        # @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(func, *args, **kwargs)
                 try:
@@ -282,9 +297,12 @@ def set_workers_and_threads(
     return total_workers, total_threads
 
 
+U = TypeVar("U")
+
+
 def dask_multiprocess(
-    func: Callable[..., T],
-    func_arguments: list[tuple[Any, ...]],
+    func: Callable[P, T],
+    func_arguments: Sequence[Tuple[U, ...]],
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
     memory_per_run: float | int | None = None,
@@ -417,7 +435,7 @@ def pull_from_s3(
         with open(target_file_path, "wb") as f:
             f.write(r.content)
     else:
-        s3 = boto3.client("s3")
+        s3: S3Client = boto3.client("s3")  # type: ignore
 
         # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
@@ -518,7 +536,7 @@ def with_credentials(logger: Logger | None = None):
     api_auth_token = None
     headers = {}
 
-    def decorator(func: Callable[..., T]):
+    def decorator(func: Callable[P, T]):
         # @wraps(func)
         def wrapper(*args, **kwargs):
             nonlocal api_auth_token
@@ -736,6 +754,287 @@ def generate_private_report_for_submission(
     except Exception as e:
         logger_if_able(f"Error: {e}", logger, "ERROR")
         raise e
+
+
+# Docker functions
+
+
+class DockerContainerContextManager:
+
+    def __init__(
+        self,
+        client: docker.DockerClient,
+        image: Image | str,
+        command: str | list[str],
+        volumes: dict[str, dict[str, str]] | list[str],
+        mem_limit: str | None = None,
+    ) -> None:
+        self.client = client
+        self.container: Container | None = None
+        self.image = image
+        self.command = command
+        self.volumes = volumes
+        self.mem_limit = f"{mem_limit}g" if mem_limit else None
+
+    def __enter__(self):
+        container = self.client.containers.run(
+            image=self.image,
+            command=self.command,
+            volumes=self.volumes,
+            detach=True,
+            stdout=True,
+            stderr=True,
+            mem_limit=self.mem_limit,
+        )
+
+        self.container = cast(Container, container)
+        return self.container
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.container:
+            if self.container.status == "running":
+                self.container.stop()
+            self.container.remove()
+
+
+def docker_task(
+    client: docker.DockerClient,
+    image: str,
+    memory_limit: str,
+    submission_file_name: str,
+    submission_function_name: str,
+    submission_args: Sequence[Any],
+    data_dir: str,
+    results_dir: str,
+):
+
+    if submission_args is None:
+        submission_args = []
+
+    # Define volumes to mount
+    # results_dir = os.path.join(os.path.dirname(__file__), "results")
+    # data_dir = os.path.join(os.path.dirname(__file__), "data")
+
+    volumes = {
+        results_dir: {"bind": "/app/results/", "mode": "rw"},
+        data_dir: {"bind": "/app/data/", "mode": "ro"},
+    }
+
+    command: list[str] = [
+        "python",
+        "submission_wrapper.py",
+        submission_file_name,
+        submission_function_name,
+        *submission_args,
+    ]
+
+    with DockerContainerContextManager(
+        client, image, command, volumes, memory_limit
+    ) as container:
+        print("Docker container starting...")
+        print(f"Image: {image}")
+        print(f"Submission file name: {submission_file_name}")
+        print(f"Submission function name: {submission_function_name}")
+        print(f"Submission args: {submission_args}")
+
+        # Wait for container to finish
+        for line in container.logs(stream=True):
+            line = cast(str, line)
+            print(line.strip())
+
+        container.wait()
+
+
+def submission_task(
+    image_tag: str,
+    memory_limit: str,
+    submission_file_name: str,
+    submission_function_name: str,
+    submission_args: Sequence[Any],
+    data_dir: str,
+    results_dir: str,
+):
+
+    with DockerClientContextManager() as client:
+        docker_task(
+            client=client,
+            image=image_tag,
+            memory_limit=memory_limit,
+            submission_file_name=submission_file_name,
+            submission_function_name=submission_function_name,
+            submission_args=submission_args,
+            data_dir=data_dir,
+            results_dir=results_dir,
+        )
+
+
+def create_docker_image(
+    tag: str,
+    client: docker.DockerClient,
+    overwrite: bool = False,
+):
+
+    file_path = os.path.join(os.path.dirname(__file__), "environment")
+
+    print(file_path)
+
+    # Check if Dockerfile exists
+    if not os.path.exists(os.path.join(file_path, "Dockerfile")):
+        raise FileNotFoundError("Dockerfile not found")
+
+    # Check if docker image already exists
+
+    image = None
+
+    if not overwrite:
+        try:
+            image = client.images.get(tag)
+        except ImageNotFound:
+            print("Docker image not found")
+        except Exception as e:
+            raise e
+
+    if image:
+        print("Docker image already exists")
+        print(image)
+        return image
+    else:
+        print("Docker image does not exist")
+
+        # Create docker image from Dockerfile
+        image, build_logs = client.images.build(
+            path=file_path, tag=tag, dockerfile="Dockerfile"
+        )
+        for log in build_logs:
+            if "stream" in log:
+                print(log["stream"].strip())
+
+        print("Docker image created")
+
+        return image
+
+
+class DockerClientContextManager:
+    def __init__(self):
+        self.client = None
+
+    def __enter__(self):
+        self.client = initialize_docker_client()
+        return self.client
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.client:
+            self.client.close()
+
+
+def initialize_docker_client():
+    base_url = os.environ.get("DOCKER_HOST")
+
+    if not base_url:
+        raise FileNotFoundError("DOCKER_HOST environment variable not set")
+
+    # cert_path = os.environ.get("DOCKER_CERT_PATH")
+    # if not cert_path:
+    #     raise FileNotFoundError(
+    #         "DOCKER_CERT_PATH environment variable not set"
+    #     )
+
+    # if not os.path.exists(cert_path):
+    #     raise FileNotFoundError(f"Cert path {cert_path} not found")
+
+    # ca_cert = cert_path + "/ca.pem"
+    # client_cert = cert_path + "/ca-key.pem"
+    # client_key = cert_path + "/key.pem"
+
+    # if not os.path.exists(ca_cert):
+    #     raise FileNotFoundError(f"CA cert {ca_cert} not found")
+    # if not os.path.exists(client_cert):
+    #     raise FileNotFoundError(f"Client cert {client_cert} not found")
+    # if not os.path.exists(client_key):
+    #     raise FileNotFoundError(f"Client key {client_key} not found")
+
+    client = docker.DockerClient(
+        base_url=base_url,
+        version="auto",
+        # tls={
+        #     "ca_cert": ca_cert,
+        #     "client_cert": (client_cert, client_key),
+        #     "verify": True,
+        # },
+    )
+    return client
+
+
+def is_docker_daemon_running():
+    is_running = False
+
+    with DockerClientContextManager() as client:
+        if client.ping():
+            is_running = True
+
+    return is_running
+
+
+def create_docker_image_for_submission():
+    tag = "submission:latest"
+
+    is_docker_daemon_running()
+
+    with DockerClientContextManager() as client:
+        image = create_docker_image(tag, client, overwrite=True)
+
+    return image, tag
+
+
+def dask_main():
+    results: list = []
+
+    total_workers = 2
+    total_threads = 1
+    memory_per_worker = 8
+
+    image, tag = create_docker_image_for_submission()
+
+    data_files = os.listdir("data")
+    print(data_files)
+
+    if not data_files:
+        raise FileNotFoundError("No data files found")
+
+    files = data_files[:5]
+
+    submission_file_name = "submission.submission_wrapper"
+    submission_function_name = "detect_time_shifts"
+
+    data_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/data"
+    results_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/results"
+
+    with Client(
+        n_workers=total_workers,
+        threads_per_worker=total_threads,
+        memory_limit=f"{memory_per_worker}GiB",
+        # **kwargs,
+    ) as client:
+
+        lazy_results = []
+        for file in files:
+            submission_args = (file,)
+            lazy_result = delayed(submission_task, pure=True)(
+                tag,
+                memory_per_worker,
+                submission_file_name,
+                submission_function_name,
+                submission_args,
+                data_dir,
+                results_dir,
+            )
+            lazy_results.append(lazy_result)
+
+        futures = client.compute(lazy_results)
+
+        results = client.gather(futures)  # type: ignore
+
+    return results
 
 
 if __name__ == "__main__":
