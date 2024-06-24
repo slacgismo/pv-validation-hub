@@ -43,6 +43,20 @@ cd preload
 
 ## Documentation
 
+Updating the ERD can be done using `djangoviz`. This should NOT be committed to production.
+
+The steps to use it are simple:
+
+When running a local container, update the following in `valhub/valhub/settings.py:`
+```
+INSTALLED_APPS = [
+    "other apps",
+    "djangoviz"
+]
+```
+
+Then exec into your docker container, and run `python3 manage.py djangoviz`, the follow the link returned in the shell. You can share the link or take a screenshot to add the updated ERD into the docs directory.
+
 - [PV validation hub requirements whitepaper](https://docs.google.com/document/d/e/2PACX-1vSQwL7_T0gTMJj7Z6nM5KYm0mzFAz0r_11hpzvCmlGyg5LPeKnyrKIZrwqQ7g5eS80ynmZWKnRA3-n0/pub)
 - [Technical Requirements Document](https://docs.google.com/document/d/e/2PACX-1vSOjb0lh8LQ-jnrHf5CqAModR2NoGTU-GMHYOfJuUSEK4g71MIm9E3cPEuYqfuKPiP9VdUe2C5DCJD-/pub)
 - [Practicum pitch slides](https://tinyurl.com/HubSlides)

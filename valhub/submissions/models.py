@@ -41,6 +41,7 @@ class Submission(models.Model):
         db_index=True,
         default=SUBMITTING,
     )
+    alt_name = models.TextField(null=True, blank=True, default="")
 
     # mae - mean average error
     # mrt - mean run time
