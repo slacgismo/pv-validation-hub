@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 
 from .models import ErrorReport as ErrorReportModel
-from .serializers import ErrorReportSerializer
+from .serializers import ErrorReportSerializer, ErrorReportPrivateSerializer
 import random
 import json
 from rest_framework.request import Request
@@ -187,7 +187,7 @@ def ErrorReport(request: Request, *args, **kwargs):
 def ErrorReportPrivateList(request: Request, pk):
     try:
         error_reports = ErrorReportModel.objects.filter(submission=pk)
-        serializer = ErrorReportSerializer(error_reports, many=True)
+        serializer = ErrorReportPrivateSerializer(error_reports, many=True)
         return JsonResponse(
             serializer.data, safe=False, status=status.HTTP_200_OK
         )
