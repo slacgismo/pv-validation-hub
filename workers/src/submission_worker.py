@@ -24,6 +24,7 @@ from utility import (
     RunnerException,
     SubmissionException,
     WorkerException,
+    copy_file_to_directory,
     get_error_by_code,
     get_error_codes_dict,
     pull_from_s3,
@@ -146,9 +147,10 @@ def list_s3_bucket(s3_dir: str):
         pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
         for page in pages:
             if page["KeyCount"] > 0:
-                for entry in page["Contents"]:
-                    if "Key" in entry:
-                        all_files.append(entry["Key"])
+                if "Contents" in page:
+                    for entry in page["Contents"]:
+                        if "Key" in entry:
+                            all_files.append(entry["Key"])
 
         # remove the first entry if it is the same as s3_dir
         if len(all_files) > 0 and all_files[0] == s3_dir:
@@ -175,6 +177,18 @@ def update_submission_result(submission_id: int, result_json: dict[str, Any]):
         )
 
 
+def prepare_docker_files_for_submission(src_dir: str, docker_dir: str):
+    files = [
+        "Dockerfile",
+        "submission_wrapper.py",
+        "requirements.txt",
+        "unzip.py",
+    ]
+
+    for file in files:
+        copy_file_to_directory(file, src_dir, docker_dir)
+
+
 def extract_analysis_data(  # noqa: C901
     analysis_id: int, current_evaluation_dir: str
 ) -> pd.DataFrame:
@@ -188,9 +202,9 @@ def extract_analysis_data(  # noqa: C901
         raise FileNotFoundError(
             3, f"No files found in s3 bucket for analysis {analysis_id}"
         )
+    file_names = [file.split("/")[-1] for file in files]
 
     required_files = ["config.json", "file_test_link.csv", "template.py"]
-    file_names = [file.split("/")[-1] for file in files]
 
     for required_file in required_files:
         if required_file not in file_names:
@@ -214,9 +228,11 @@ def extract_analysis_data(  # noqa: C901
     data_dir = os.path.join(current_evaluation_dir, "data")
     file_data_dir = os.path.join(data_dir, "file_data")
     validation_data_dir = os.path.join(data_dir, "validation_data")
+    docker_dir = os.path.join(current_evaluation_dir, "docker")
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(file_data_dir, exist_ok=True)
     os.makedirs(validation_data_dir, exist_ok=True)
+    os.makedirs(docker_dir, exist_ok=True)
 
     # File category link: This file represents the file_category_link table,
     # which links specific files in the file_metadata table.
@@ -358,6 +374,9 @@ def load_analysis(
         os.path.join(current_evaluation_dir, "errorcodes.json"),
     )
 
+    docker_dir = os.path.join(current_evaluation_dir, "docker")
+
+    prepare_docker_files_for_submission("/root/worker/src/docker", docker_dir)
     # import analysis runner as a module
     sys.path.insert(0, current_evaluation_dir)
     runner_module_name = "pvinsight-validation-runner"

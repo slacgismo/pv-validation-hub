@@ -39,10 +39,12 @@ from utility import (
     RUNNER_ERROR_PREFIX,
     RunnerException,
     SubmissionException,
+    create_docker_image_for_submission,
     dask_multiprocess,
     generate_private_report_for_submission,
     get_error_by_code,
     get_error_codes_dict,
+    move_file_to_directory,
     pull_from_s3,
     request_to_API_w_credentials,
     timeout,
@@ -295,6 +297,13 @@ def run_user_submission(
     return fn(*args, **kwargs)
 
 
+def move_files_to_directory(files: list[str], src_dir: str, dest_dir: str):
+    for file in files:
+        src_file_path = os.path.join(src_dir, file)
+
+        shutil.move(src_file_path, dest_dir)
+
+
 def run(  # noqa: C901
     s3_submission_zip_file_path: str,
     file_metadata_df: pd.DataFrame,
@@ -315,12 +324,18 @@ def run(  # noqa: C901
             if not current_evaluation_dir.endswith("/")
             else current_evaluation_dir + "data"
         )
+        docker_dir = (
+            current_evaluation_dir + "/docker"
+            if not current_evaluation_dir.endswith("/")
+            else current_evaluation_dir + "docker"
+        )
         sys.path.append(
             current_evaluation_dir
         )  # append current_evaluation_dir to sys.path
     else:
         results_dir = "./results"
         data_dir = "./data"
+        docker_dir = "./docker"
         current_evaluation_dir = os.getcwd()
 
     if tmp_dir is None:
@@ -332,7 +347,9 @@ def run(  # noqa: C901
     # Ensure results directory exists
     os.makedirs(data_dir, exist_ok=True)
 
-    # Load in the module that we're going to test on.
+    # # Load in the module that we're going to test on.
+    # target_module_path, new_dir, submission_file_name, module_name = install_module_dependencies(s3_submission_zip_file_path, update_submission_status, submission_id, tmp_dir)
+
     logger.info(f"module_to_import_s3_path: {s3_submission_zip_file_path}")
     target_module_compressed_file_path = pull_from_s3(
         IS_LOCAL, S3_BUCKET_NAME, s3_submission_zip_file_path, tmp_dir, logger
@@ -340,54 +357,35 @@ def run(  # noqa: C901
     logger.info(
         f"target_module_compressed_file_path: {target_module_compressed_file_path}"
     )
-    target_module_path = convert_compressed_file_path_to_directory(
-        target_module_compressed_file_path
+
+    # Move the submission file to the docker directory
+
+    submission_file_name = target_module_compressed_file_path.split("/")[-1]
+
+    # Move the submission file to the docker directory
+    move_file_to_directory(submission_file_name, tmp_dir, docker_dir)
+
+    # raise RunnerException(*get_error_by_code(500, runner_error_codes, logger))
+
+    # Create docker image for the submission
+    image_tag = "submission:latest"
+
+    overwrite = True
+
+    logger.info(f"Creating docker image for submission...")
+
+    image, image_tag = create_docker_image_for_submission(
+        docker_dir, image_tag, submission_file_name, overwrite, logger
     )
-    logger.info(
-        f"decompressing file {target_module_compressed_file_path} to {target_module_path}"
-    )
 
-    extract_zip(target_module_compressed_file_path, target_module_path)
-    logger.info(
-        f"decompressed file {target_module_compressed_file_path} to {target_module_path}"
-    )
+    logger.info(f"Created docker image for submission: {image_tag}")
 
-    logger.info(f"target_module_path: {target_module_path}")
-    # get current directory, i.e. directory of runner.py file
-    new_dir = os.path.dirname(os.path.abspath(__file__))
-    logger.info(f"new_dir: {new_dir}")
+    raise RunnerException(*get_error_by_code(500, runner_error_codes, logger))
 
-    submission_file_name = get_module_file_name(target_module_path)
-    logger.info(f"file_name: {submission_file_name}")
-    module_name = get_module_name(target_module_path)
-    logger.info(f"module_name: {module_name}")
-
-    # install submission dependency
-    try:
-        subprocess.check_call(
-            [
-                "python",
-                "-m",
-                "pip",
-                "install",
-                "-r",
-                os.path.join(target_module_path, "requirements.txt"),
-            ]
-        )
-        logger.info("submission dependencies installed successfully.")
-    except subprocess.CalledProcessError as e:
-        logger.error("error installing submission dependencies:", e)
-        logger.info(f"update submission status to {FAILED}")
-        update_submission_status(submission_id, FAILED)
-        error_code = 2
-        raise RunnerException(
-            *get_error_by_code(error_code, runner_error_codes, logger)
-        )
-
-    shutil.move(
-        os.path.join(target_module_path, submission_file_name),
-        os.path.join(new_dir, submission_file_name),
-    )
+    # shutil.move(
+    #     os.path.join(target_module_path, submission_file_name),
+    #     os.path.join(new_dir, submission_file_name),
+    # )
 
     # Generate list for us to store all of our results for the module
     results_list = list()
@@ -609,6 +607,66 @@ def run(  # noqa: C901
     )
 
     return public_metrics_dict
+
+
+def install_module_dependencies(
+    s3_submission_zip_file_path,
+    update_submission_status,
+    submission_id,
+    tmp_dir,
+):
+    logger.info(f"module_to_import_s3_path: {s3_submission_zip_file_path}")
+    target_module_compressed_file_path = pull_from_s3(
+        IS_LOCAL, S3_BUCKET_NAME, s3_submission_zip_file_path, tmp_dir, logger
+    )
+    logger.info(
+        f"target_module_compressed_file_path: {target_module_compressed_file_path}"
+    )
+    target_module_path = convert_compressed_file_path_to_directory(
+        target_module_compressed_file_path
+    )
+    logger.info(
+        f"decompressing file {target_module_compressed_file_path} to {target_module_path}"
+    )
+
+    extract_zip(target_module_compressed_file_path, target_module_path)
+    logger.info(
+        f"decompressed file {target_module_compressed_file_path} to {target_module_path}"
+    )
+
+    logger.info(f"target_module_path: {target_module_path}")
+    # get current directory, i.e. directory of runner.py file
+    new_dir = os.path.dirname(os.path.abspath(__file__))
+    logger.info(f"new_dir: {new_dir}")
+
+    submission_file_name = get_module_file_name(target_module_path)
+    logger.info(f"file_name: {submission_file_name}")
+    module_name = get_module_name(target_module_path)
+    logger.info(f"module_name: {module_name}")
+
+    # install submission dependency
+    try:
+        subprocess.check_call(
+            [
+                "python",
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                os.path.join(target_module_path, "requirements.txt"),
+            ]
+        )
+        logger.info("submission dependencies installed successfully.")
+    except subprocess.CalledProcessError as e:
+        logger.error("error installing submission dependencies:", e)
+        logger.info(f"update submission status to {FAILED}")
+        update_submission_status(submission_id, FAILED)
+        error_code = 2
+        raise RunnerException(
+            *get_error_by_code(error_code, runner_error_codes, logger)
+        )
+
+    return target_module_path, new_dir, submission_file_name, module_name
 
 
 def create_function_args_for_file(

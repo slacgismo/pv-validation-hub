@@ -1,4 +1,5 @@
 import json
+import shutil
 from dask.delayed import delayed
 from dask.distributed import Client
 from dask import config
@@ -49,7 +50,7 @@ FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def logger_if_able(
-    message: str, logger: Logger | None = None, level: str = "INFO"
+    message: object, logger: Logger | None = None, level: str = "INFO"
 ):
     if logger is not None:
         levels_dict = {
@@ -476,6 +477,48 @@ def get_error_by_code(
     return error_code, error_codes_dict[error_code_str]
 
 
+def copy_file_to_directory(
+    file: str, src_dir: str, dest_dir: str, logger: Logger | None = None
+):
+    src_file_path = os.path.join(src_dir, file)
+
+    if not os.path.exists(src_file_path):
+        raise FileNotFoundError(f"File {src_file_path} not found.")
+
+    if not os.path.exists(dest_dir):
+        raise FileNotFoundError(f"Directory {dest_dir} not found.")
+
+    try:
+        shutil.copy(src_file_path, dest_dir)
+    except Exception as e:
+        logger_if_able(
+            f"Error moving file {src_file_path} to {dest_dir}", logger, "ERROR"
+        )
+        logger_if_able(e, logger, "ERROR")
+        raise e
+
+
+def move_file_to_directory(
+    file: str, src_dir: str, dest_dir: str, logger: Logger | None = None
+):
+    src_file_path = os.path.join(src_dir, file)
+
+    if not os.path.exists(src_file_path):
+        raise FileNotFoundError(f"File {src_file_path} not found.")
+
+    if not os.path.exists(dest_dir):
+        raise FileNotFoundError(f"Directory {dest_dir} not found.")
+
+    try:
+        shutil.move(src_file_path, dest_dir)
+    except Exception as e:
+        logger_if_able(
+            f"Error moving file {src_file_path} to {dest_dir}", logger, "ERROR"
+        )
+        logger_if_able(e, logger, "ERROR")
+        raise e
+
+
 # API Utility Functions
 
 IS_LOCAL = is_local()
@@ -869,17 +912,20 @@ def submission_task(
 
 
 def create_docker_image(
+    dir_path: str,
     tag: str,
+    submission_file_name: str,
     client: docker.DockerClient,
     overwrite: bool = False,
+    logger: Logger | None = None,
 ):
 
-    file_path = os.path.join(os.path.dirname(__file__), "environment")
+    # file_path = os.path.join(os.path.dirname(__file__), "environment")
 
-    print(file_path)
+    logger_if_able(dir_path, logger)
 
     # Check if Dockerfile exists
-    if not os.path.exists(os.path.join(file_path, "Dockerfile")):
+    if not os.path.exists(os.path.join(dir_path, "Dockerfile")):
         raise FileNotFoundError("Dockerfile not found")
 
     # Check if docker image already exists
@@ -890,26 +936,29 @@ def create_docker_image(
         try:
             image = client.images.get(tag)
         except ImageNotFound:
-            print("Docker image not found")
+            logger_if_able("Docker image not found", logger)
         except Exception as e:
             raise e
 
     if image:
-        print("Docker image already exists")
-        print(image)
+        logger_if_able("Docker image already exists", logger)
+        logger_if_able(image, logger)
         return image
     else:
-        print("Docker image does not exist")
+        logger_if_able("Docker image does not exist")
 
         # Create docker image from Dockerfile
         image, build_logs = client.images.build(
-            path=file_path, tag=tag, dockerfile="Dockerfile"
+            path=dir_path,
+            tag=tag,
+            dockerfile="Dockerfile",
+            buildargs={"zip_file": f"{submission_file_name}"},
         )
         for log in build_logs:
             if "stream" in log:
-                print(log["stream"].strip())
+                logger_if_able(log["stream"].strip())
 
-        print("Docker image created")
+        logger_if_able("Docker image created")
 
         return image
 
@@ -975,15 +1024,27 @@ def is_docker_daemon_running():
     return is_running
 
 
-def create_docker_image_for_submission():
-    tag = "submission:latest"
+def create_docker_image_for_submission(
+    dir_path: str,
+    image_tag: str,
+    submission_file_name: str,
+    overwrite: bool = True,
+    logger: Logger | None = None,
+):
 
     is_docker_daemon_running()
 
     with DockerClientContextManager() as client:
-        image = create_docker_image(tag, client, overwrite=True)
+        image = create_docker_image(
+            dir_path,
+            image_tag,
+            submission_file_name,
+            client,
+            overwrite=overwrite,
+            logger=logger,
+        )
 
-    return image, tag
+    return image, image_tag
 
 
 def dask_main():
@@ -993,7 +1054,15 @@ def dask_main():
     total_threads = 1
     memory_per_worker = 8
 
-    image, tag = create_docker_image_for_submission()
+    dir_path = os.path.join(os.path.dirname(__file__), "environment")
+
+    image_tag = "submission:latest"
+
+    submission_file_name = "submission.zip"
+
+    image, _ = create_docker_image_for_submission(
+        dir_path, image_tag, submission_file_name
+    )
 
     data_files = os.listdir("data")
     print(data_files)
@@ -1020,7 +1089,7 @@ def dask_main():
         for file in files:
             submission_args = (file,)
             lazy_result = delayed(submission_task, pure=True)(
-                tag,
+                image_tag,
                 memory_per_worker,
                 submission_file_name,
                 submission_function_name,
