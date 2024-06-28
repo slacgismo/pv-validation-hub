@@ -16,7 +16,7 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import Any, Callable, Tuple, TypeVar, cast, ParamSpec
+from typing import Any, Callable, Sequence, Tuple, TypeVar, cast, ParamSpec
 import pandas as pd
 import os
 from importlib import import_module
@@ -47,6 +47,7 @@ from utility import (
     move_file_to_directory,
     pull_from_s3,
     request_to_API_w_credentials,
+    submission_task,
     timeout,
     timing,
     is_local,
@@ -329,6 +330,7 @@ def run(  # noqa: C901
             if not current_evaluation_dir.endswith("/")
             else current_evaluation_dir + "docker"
         )
+
         sys.path.append(
             current_evaluation_dir
         )  # append current_evaluation_dir to sys.path
@@ -380,8 +382,6 @@ def run(  # noqa: C901
 
     logger.info(f"Created docker image for submission: {image_tag}")
 
-    raise RunnerException(*get_error_by_code(500, runner_error_codes, logger))
-
     # shutil.move(
     #     os.path.join(target_module_path, submission_file_name),
     #     os.path.join(new_dir, submission_file_name),
@@ -426,6 +426,25 @@ def run(  # noqa: C901
             *get_error_by_code(error_code, runner_error_codes, logger)
         )
 
+    # Save system metadata to a CSV file
+    system_metadata_file_name = "system_metadata.csv"
+
+    system_metadata_df.to_csv(
+        os.path.join(
+            os.path.join(data_dir, "metadata"), system_metadata_file_name
+        )
+    )
+
+    file_metadata_file_name = "file_metadata.csv"
+
+    file_metadata_df.to_csv(
+        os.path.join(
+            os.path.join(data_dir, "metadata"), file_metadata_file_name
+        )
+    )
+
+    # exit()
+
     # Read in the configuration JSON for the particular run
     with open(os.path.join(current_evaluation_dir, "config.json"), "r") as f:
         if not f:
@@ -444,39 +463,55 @@ def run(  # noqa: C901
 
     # Get the name of the function we want to import associated with this
     # test
-    function_name: str = config_data["function_name"]
-    # Import designated module via importlib
-    module = import_module(module_name)
-    try:
-        submission_function: Callable = getattr(module, function_name)
-        function_parameters = list(
-            inspect.signature(submission_function).parameters
-        )
-    except AttributeError:
-        logger.error(
-            f"function {function_name} not found in module {module_name}"
-        )
-        logger.info(f"update submission status to {FAILED}")
-        update_submission_status(submission_id, FAILED)
-        error_code = 6
-        raise RunnerException(
-            *get_error_by_code(error_code, runner_error_codes, logger)
-        )
+    # # Import designated module via importlib
+    # module = import_module(module_name)
+    # try:
+    #     submission_function: Callable = getattr(module, function_name)
+    #     function_parameters = list(
+    #         inspect.signature(submission_function).parameters
+    #     )
+    # except AttributeError:
+    #     logger.error(
+    #         f"function {function_name} not found in module {module_name}"
+    #     )
+    #     logger.info(f"update submission status to {FAILED}")
+    #     update_submission_status(submission_id, FAILED)
+    #     error_code = 6
+    #     raise RunnerException(
+    #         *get_error_by_code(error_code, runner_error_codes, logger)
+    #     )
 
     total_number_of_files = len(file_metadata_df)
     logger.info(f"total_number_of_files: {total_number_of_files}")
 
+    memory_limit: str = "8"
+    submission_module_name: str = "submission.submission_wrapper"
+    submission_function_name: str = config_data["function_name"]
+    data_dir: str = os.path.abspath(data_dir)
+    results_dir: str = os.path.abspath(results_dir)
+
+    volume_data_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/workers/current_evaluation/data"
+    volume_results_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/workers/current_evaluation/results"
+
+    func_arguments_list = prepare_function_args_for_parallel_processing(
+        image_tag=image_tag,
+        memory_limit=memory_limit,
+        submission_file_name=submission_module_name,
+        submission_function_name=submission_function_name,
+        data_dir=data_dir,
+        results_dir=results_dir,
+        volume_data_dir=volume_data_dir,
+        volume_results_dir=volume_results_dir,
+    )
+
     # Loop through each file and generate predictions
 
+    # print(func_arguments_list)
+
+    # raise Exception("Finished Successfully")
+
     results_list, number_of_errors = loop_over_files_and_generate_results(
-        file_metadata_df,
-        system_metadata_df,
-        data_dir,
-        config_data,
-        submission_function,
-        function_parameters,
-        function_name,
-        performance_metrics,
+        func_arguments_list
     )
 
     # Convert the results to a pandas dataframe and perform all of the
@@ -670,43 +705,12 @@ def install_module_dependencies(
 
 
 def create_function_args_for_file(
-    file_metadata_row: pd.Series,
-    system_metadata_df: pd.DataFrame,
-    data_dir: str,
-    config_data: dict[str, Any],
-    submission_function: Callable[P, pd.Series],
-    function_parameters: list[str],
-    function_name: str,
-    performance_metrics: list[str],
-    file_number: int,
+    file_metadata_row: pd.Series, *args, **kwargs
 ):
 
-    file_name: str = file_metadata_row["file_name"]
-
-    # Get associated system ID
-    system_id = file_metadata_row["system_id"]
-
-    # Get all of the associated metadata for the particular file based
-    # on its system ID. This metadata will be passed in via kwargs for
-    # any necessary arguments
-    associated_system_metadata: dict[str, Any] = dict(
-        system_metadata_df[system_metadata_df["system_id"] == system_id].iloc[
-            0
-        ]
-    )
-
-    function_args = (
-        file_name,
-        data_dir,
-        associated_system_metadata,
-        config_data,
-        submission_function,
-        function_parameters,
-        file_metadata_row,
-        function_name,
-        performance_metrics,
-        file_number,
-    )
+    submission_file_name: str = cast(str, file_metadata_row["file_name"])
+    # Submission Args for the function
+    function_args = (submission_file_name,)
 
     return function_args
 
@@ -722,15 +726,23 @@ def append_to_list(item: T, array: list[T] | None = None):
 
 
 def prepare_function_args_for_parallel_processing(
-    file_metadata_df: pd.DataFrame,
-    system_metadata_df: pd.DataFrame,
+    image_tag: str,
+    memory_limit: str,
+    submission_file_name: str,
+    submission_function_name: str,
     data_dir: str,
-    config_data: dict[str, Any],
-    submission_function: Callable[P, pd.Series],
-    function_parameters: list[str],
-    function_name: str,
-    performance_metrics: list[str],
+    results_dir: str,
+    volume_data_dir: str,
+    volume_results_dir: str,
 ):
+
+    file_metadata_df = pd.read_csv(
+        os.path.join(data_dir, "metadata", "file_metadata.csv")
+    )
+
+    system_metadata_df = pd.read_csv(
+        os.path.join(data_dir, "metadata", "system_metadata.csv")
+    )
 
     function_args_list = None
 
@@ -738,17 +750,21 @@ def prepare_function_args_for_parallel_processing(
         file_metadata_df.iterrows()
     ):
 
-        function_args = create_function_args_for_file(
+        submission_args = create_function_args_for_file(
             file_metadata_row,
-            system_metadata_df,
-            data_dir,
-            config_data,
-            submission_function,
-            function_parameters,
-            function_name,
-            performance_metrics,
-            file_number,
+            submission_function_name=submission_function_name,
         )
+
+        function_args = (
+            image_tag,
+            memory_limit,
+            submission_file_name,
+            submission_function_name,
+            submission_args,
+            volume_data_dir,
+            volume_results_dir,
+        )
+
         function_args_list = append_to_list(function_args, function_args_list)
 
     if function_args_list is None:
@@ -795,26 +811,19 @@ def run_submission(
 
 
 def loop_over_files_and_generate_results(
-    file_metadata_df: pd.DataFrame,
-    system_metadata_df: pd.DataFrame,
-    data_dir: str,
-    config_data: dict[str, Any],
-    submission_function: Callable[P, pd.Series],
-    function_parameters: list[str],
-    function_name: str,
-    performance_metrics: list[str],
+    func_arguments_list: list[Tuple],
 ) -> tuple[list[dict[str, Any]], int]:
 
-    func_arguments_list = prepare_function_args_for_parallel_processing(
-        file_metadata_df,
-        system_metadata_df,
-        data_dir,
-        config_data,
-        submission_function,
-        function_parameters,
-        function_name,
-        performance_metrics,
-    )
+    # func_arguments_list = prepare_function_args_for_parallel_processing(
+    #     file_metadata_df,
+    #     system_metadata_df,
+    #     data_dir,
+    #     config_data,
+    #     submission_function,
+    #     function_parameters,
+    #     function_name,
+    #     performance_metrics,
+    # )
 
     NUM_FILES_TO_TEST = 3
 
@@ -829,13 +838,14 @@ def loop_over_files_and_generate_results(
     # Test the first two files
     logger.info(f"Testing the first {NUM_FILES_TO_TEST} files...")
     test_results = dask_multiprocess(
-        run_submission_and_generate_performance_metrics,
+        submission_task,
         test_func_argument_list,
         n_workers=NUM_FILES_TO_TEST,
         threads_per_worker=1,
         # memory_limit="16GiB",
         logger=logger,
     )
+
     errors = [error for _, error in test_results]
     number_of_errors += sum(errors)
 

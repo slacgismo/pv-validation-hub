@@ -60,7 +60,7 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
 def format_args_for_submission(data_dir: str, args: list[str]):
     filename = args[0]
 
-    file_path = f"{data_dir}/{filename}"
+    file_path = f"{data_dir}/file_data/{filename}"
 
     df = pd.read_csv(
         file_path,
@@ -124,8 +124,8 @@ def main():
     print(f"Function: {submission_function}")
     print(f"Function parameters: {function_parameters}")
 
-    data_dir = "/app/data/"
-    results_dir = "/app/results/"
+    data_dir = "/app/data"
+    results_dir = "/app/results"
 
     submission_args = format_args_for_submission(data_dir, args[2:])
 
@@ -138,6 +138,9 @@ def main():
     print(f"Results: {results}")
 
     # save results to csv file
+
+    print(f"Saving results to {results_dir}/{data_file_name}")
+
     results_df = pd.DataFrame(results)
     results_file = f"{results_dir}/{data_file_name}"
     results_df.to_csv(results_file)

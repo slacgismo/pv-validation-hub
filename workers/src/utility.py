@@ -311,7 +311,7 @@ def dask_multiprocess(
     **kwargs,
 ) -> list[T]:
 
-    MEMORY_PER_RUN = 7.0  # in GB
+    MEMORY_PER_RUN = 8.0  # in GB
 
     memory_per_run = memory_per_run or MEMORY_PER_RUN
 
@@ -355,6 +355,9 @@ def dask_multiprocess(
 
         lazy_results = []
         for args in func_arguments:
+
+            logger_if_able(f"args: {args}", logger, "INFO")
+
             lazy_result = delayed(func, pure=True)(*args)
             lazy_results.append(lazy_result)
 

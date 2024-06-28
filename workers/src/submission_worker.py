@@ -228,10 +228,12 @@ def extract_analysis_data(  # noqa: C901
     data_dir = os.path.join(current_evaluation_dir, "data")
     file_data_dir = os.path.join(data_dir, "file_data")
     validation_data_dir = os.path.join(data_dir, "validation_data")
+    metadata_dir = os.path.join(data_dir, "metadata")
     docker_dir = os.path.join(current_evaluation_dir, "docker")
     os.makedirs(data_dir, exist_ok=True)
     os.makedirs(file_data_dir, exist_ok=True)
     os.makedirs(validation_data_dir, exist_ok=True)
+    os.makedirs(metadata_dir, exist_ok=True)
     os.makedirs(docker_dir, exist_ok=True)
 
     # File category link: This file represents the file_category_link table,
