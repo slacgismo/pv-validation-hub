@@ -13,11 +13,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the submission package into the container
-COPY submission.zip .
+COPY $zip_file .
 
 # Unzip the submission package
 
-RUN python -m unzip submission.zip submission
+RUN python -m unzip $zip_file submission
 
 WORKDIR /app/submission
 

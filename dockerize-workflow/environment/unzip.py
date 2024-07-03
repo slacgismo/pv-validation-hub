@@ -9,11 +9,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def remove_unallowed_starting_characters(file_name: str) -> str | None:
+    unallowed_starting_characters = ("_", ".")
+
+    parts = file_name.split("/")
+    for part in parts:
+        if part.startswith(unallowed_starting_characters):
+            return None
+    return file_name
+
+
 def extract_files(  # noqa: C901
     ref: zipfile.ZipFile | tarfile.TarFile,
     extract_path: str,
     zip_path: str,
-    remove_unallowed_starting_characters: Callable[[str], str | None],
 ):
 
     logger.info("Extracting files from: " + zip_path)
@@ -111,22 +120,12 @@ def extract_zip(zip_path: str, extract_path: str):
     if not os.path.exists(extract_path):
         os.makedirs(extract_path)
 
-    def remove_unallowed_starting_characters(file_name: str) -> str | None:
-        unallowed_starting_characters = ("_", ".")
-
-        parts = file_name.split("/")
-        for part in parts:
-            if part.startswith(unallowed_starting_characters):
-                return None
-        return file_name
-
     if zipfile.is_zipfile(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             extract_files(
                 zip_ref,
                 extract_path,
                 zip_path,
-                remove_unallowed_starting_characters,
             )
     elif tarfile.is_tarfile(zip_path):
         with tarfile.open(zip_path, "r") as tar_ref:
@@ -134,7 +133,6 @@ def extract_zip(zip_path: str, extract_path: str):
                 tar_ref,
                 extract_path,
                 zip_path,
-                remove_unallowed_starting_characters,
             )
     else:
         raise Exception(1, "File is not a zip or tar file.")

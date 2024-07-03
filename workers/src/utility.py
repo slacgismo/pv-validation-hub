@@ -817,6 +817,7 @@ class DockerContainerContextManager:
     ) -> None:
         self.client = client
         self.container: Container | None = None
+        self.id: str | None = None
         self.image = image
         self.command = command
         self.volumes = volumes
@@ -834,6 +835,9 @@ class DockerContainerContextManager:
         )
 
         self.container = cast(Container, container)
+
+        self.id = self.container.id
+
         return self.container
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -841,6 +845,10 @@ class DockerContainerContextManager:
             if self.container.status == "running":
                 self.container.stop()
             self.container.remove()
+
+        self.client.containers.prune(
+            filters={"label": "status=exited", "label": "status=created"}
+        )
 
 
 def docker_task(
