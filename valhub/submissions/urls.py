@@ -45,7 +45,7 @@ urlpatterns = [
         name="get_submission_results",
     ),
     path(
-        "user/<int:user_id>/submissions",
+        "user/<int:user_id>/submissions/<int:analysis_id>",
         views.get_user_submissions,
         name="get_user_submissions",
     ),
