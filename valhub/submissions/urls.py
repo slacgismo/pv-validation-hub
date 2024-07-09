@@ -24,6 +24,16 @@ urlpatterns = [
         name="update_submission_result",
     ),
     path(
+        "update_submission_name/<int:user_id>/<int:submission_id>",
+        views.update_submission_name,
+        name="update_submission_name",
+    ),
+    path(
+        "archive_submission/<int:user_id>/<int:submission_id>",
+        views.archive_submission,
+        name="archive_submission",
+    ),
+    path(
         "user_submission/<int:user_id>",
         views.user_submission,
         name="user_submission",
