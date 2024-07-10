@@ -564,7 +564,23 @@ def get_user_submissions(request: Request, user_id: str, analysis_id: str):
                 response_data, status=status.HTTP_406_NOT_ACCEPTABLE
             )
 
-        user_submissions = Submission.objects.filter(created_by=user)
+        user_submissions = Submission.objects.filter(
+            created_by=user, archived=False
+        )
+        response_data = SubmissionSerializer(user_submissions, many=True).data
+        return Response(response_data, status=status.HTTP_200_OK)
+    elif analysis_id == -1:
+        try:
+            user = Account.objects.get(uuid=user_id)
+        except Account.DoesNotExist:
+            response_data = {"error": "User account does not exist"}
+            return Response(
+                response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+            )
+
+        user_submissions = Submission.objects.filter(
+            created_by=user, archived=True
+        )
         response_data = SubmissionSerializer(user_submissions, many=True).data
         return Response(response_data, status=status.HTTP_200_OK)
     else:
@@ -583,29 +599,60 @@ def get_user_submissions(request: Request, user_id: str, analysis_id: str):
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
         user_submissions = Submission.objects.filter(
-            created_by=user, analysis=analysis
+            created_by=user, analysis=analysis, archived=False
         ).order_by("submitted_at")
         response_data = SubmissionSerializer(user_submissions, many=True).data
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_archived_user_submissions(request: Request, user_id: str):
+    try:
+        user = Account.objects.get(uuid=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    user_submissions = Submission.objects.filter(
+        created_by=user, archived=True
+    )
+    response_data = SubmissionSerializer(user_submissions, many=True).data
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def update_submission_name(request: Request, user_id: str, submission_id: str):
-    if submission_id is None:
-        try:
-            user = Account.objects.get(uuid=user_id)
-        except Account.DoesNotExist:
-            response_data = {"error": "User account does not exist"}
-            return Response(
-                response_data, status=status.HTTP_406_NOT_ACCEPTABLE
-            )
+def set_submission_name(request: Request, user_id: str, submission_id: str):
+    try:
+        user = Account.objects.get(uuid=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return JsonResponse(
+            response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+        )
 
-        user_submissions = Submission.objects.filter(created_by=user)
-        response_data = SubmissionSerializer(user_submissions, many=True).data
-        return Response(response_data, status=status.HTTP_200_OK)
+    try:
+        submission = Submission.objects.get(pk=submission_id, created_by=user)
+    except Submission.DoesNotExist:
+        response_data = {"error": "Submission does not exist"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    logger.info(f"request data = {request.data}")
+    alt_name = request.data.get("alt_name")
+    if alt_name is None:
+        response_data = {"error": "alt_name is required"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.alt_name = alt_name
+    submission.save()
+
+    response_data = SubmissionSerializer(submission).data
+    return JsonResponse(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
@@ -613,15 +660,27 @@ def update_submission_name(request: Request, user_id: str, submission_id: str):
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def archive_submission(request: Request, user_id: str, submission_id: str):
-    if submission_id is None:
-        try:
-            user = Account.objects.get(uuid=user_id)
-        except Account.DoesNotExist:
-            response_data = {"error": "User account does not exist"}
-            return Response(
-                response_data, status=status.HTTP_406_NOT_ACCEPTABLE
-            )
+    try:
+        user = Account.objects.get(uuid=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return JsonResponse(
+            response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+        )
 
-        user_submissions = Submission.objects.filter(created_by=user)
-        response_data = SubmissionSerializer(user_submissions, many=True).data
-        return Response(response_data, status=status.HTTP_200_OK)
+    try:
+        submission = Submission.objects.get(pk=submission_id, created_by=user)
+    except Submission.DoesNotExist:
+        response_data = {"error": "Submission does not exist"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    archived = request.data.get("archived")
+    if archived is None:
+        response_data = {"error": "archived is required"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.archived = archived
+    submission.save()
+
+    response_data = SubmissionSerializer(submission).data
+    return JsonResponse(response_data, status=status.HTTP_200_OK)

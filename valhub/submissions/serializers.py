@@ -40,6 +40,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "submission_id",
             "error_rate",
             "alt_name",
+            "archived",
         )
 
     def get_error_rate(self, obj):
@@ -65,6 +66,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["result"] = instance.result
         data["status"] = instance.status
         data["alt_name"] = instance.alt_name
+        data["archived"] = instance.archived
         return data
 
 
@@ -91,6 +93,7 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "error_rate",
             "submitted_at",
             "alt_name",
+            "archived",
         )
 
     def get_error_rate(self, obj):
