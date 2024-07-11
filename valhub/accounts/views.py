@@ -202,6 +202,7 @@ def delete_account(request):
 
 
 # Users on the client use Token Auth w/ a generated session Token, not Django Session Auth
+@csrf_exempt
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
