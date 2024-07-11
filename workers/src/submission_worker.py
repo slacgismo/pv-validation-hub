@@ -144,9 +144,10 @@ def list_s3_bucket(s3_dir: str):
         pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
         for page in pages:
             if page["KeyCount"] > 0:
-                for entry in page["Contents"]:
-                    if "Key" in entry:
-                        all_files.append(entry["Key"])
+                if "Contents" in page:
+                    for entry in page["Contents"]:
+                        if "Key" in entry:
+                            all_files.append(entry["Key"])
 
         # remove the first entry if it is the same as s3_dir
         if len(all_files) > 0 and all_files[0] == s3_dir:

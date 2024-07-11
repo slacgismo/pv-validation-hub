@@ -1,5 +1,6 @@
 requests
 boto3
+boto3-stubs[s3,sqs]
 pandas
 numpy
 seaborn
@@ -8,3 +9,4 @@ dask
 distributed
 bokeh
 marimo
+docker

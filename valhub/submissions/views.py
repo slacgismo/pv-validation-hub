@@ -265,6 +265,7 @@ def update_submission_result(request: Request, submission_id: str):
         "mean_mean_absolute_error",
         "mean_run_time",
         "function_parameters",
+        "metrics",
     ]
 
     if not all(field in results for field in required_fields):
@@ -275,6 +276,7 @@ def update_submission_result(request: Request, submission_id: str):
     submission.mae = float(results["mean_mean_absolute_error"])
     submission.mrt = float(results["mean_run_time"])
     submission.data_requirements = results["function_parameters"]
+    submission.result = results["metrics"]
     try:
         submission.save()
     except ValidationError as e:

@@ -123,12 +123,18 @@ services:
       - s3
       - sqs
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./workers/current_evaluation:/root/worker/current_evaluation
       - ./workers/logs:/root/worker/logs
-      # - ./workers/tmp:/tmp
+      - ./workers/tmp:/tmp
       - ./workers/requirements.txt:/root/worker/requirements.txt
       - ./workers/src:/root/worker/src
     restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./workers/src
+          target: /root/worker/src
 
 volumes:
   valhub:
