@@ -507,10 +507,42 @@ def login_to_API(username: str, password: str, logger: Logger | None = None):
     return token
 
 
+def get_login_secrets_from_aws() -> tuple[str, str]:
+
+    secret_name = "pv-validation-hub-worker-credentials"
+    region_name = "us-west-2"
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name="secretsmanager", region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except Exception as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+
+    secret = get_secret_value_response["SecretString"]
+
+    secret_dict = json.loads(secret)
+
+    username = secret_dict.get("username", None)
+    password = secret_dict.get("password", None)
+
+    if not username or not password:
+        raise Exception("Missing admin credentials")
+
+    return username, password
+
+
 def with_credentials(logger: Logger | None = None):
 
-    username = os.environ.get("admin_username")
-    password = os.environ.get("admin_password")
+    username, password = get_login_secrets_from_aws()
 
     if not username or not password:
         raise Exception("Missing admin credentials")
