@@ -494,6 +494,11 @@ def run(  # noqa: C901
     public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
     public_metrics_dict["median_run_time"] = results_df["run_time"].median()
     public_metrics_dict["function_parameters"] = function_parameters
+    public_metrics_dict["data_requirements"] = results_df[
+        "data_requirements"
+    ].iloc[0]
+
+    metrics_list = []
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -505,12 +510,41 @@ def run(  # noqa: C901
                 logger.info(
                     f"metric: {metric}, val: {val}, combined: {'mean_' + metric}"
                 )
-                public_metrics_dict["mean_" + metric] = results_df[
-                    metric + "_" + val
-                ].mean()
-                public_metrics_dict["median_" + metric] = results_df[
-                    metric + "_" + val
-                ].median()
+
+                mean_metric = results_df[metric + "_" + val].mean()
+
+                public_metrics_dict["mean_" + metric] = mean_metric
+
+                metric_tuple = (
+                    f"mean_{metric}",
+                    mean_metric,
+                )
+                metrics_list.append(metric_tuple)
+
+                median_metric = results_df[metric + "_" + val].median()
+                public_metrics_dict["median_" + metric] = median_metric
+
+                metric_tuple = (
+                    f"median_{metric}",
+                    median_metric,
+                )
+                metrics_list.append(metric_tuple)
+        elif "runtime" in metric:
+            key = "run_time"
+
+            if key not in results_df.columns:
+                continue
+
+            mean_metric = results_df[key].mean()
+
+            metric_tuple = (
+                f"mean_{key}",
+                mean_metric,
+            )
+            metrics_list.append(metric_tuple)
+
+    public_metrics_dict["metrics"] = json.dumps(metrics_list)
+
     # Write public metric information to a public results table.
     with open(
         os.path.join(results_dir, config_data["public_results_table"]), "w"
@@ -529,7 +563,14 @@ def run(  # noqa: C901
     private_results_columns: list[str] = config_data["private_results_columns"]
 
     # Filter to only the necessary columns (available via the config)
-    results_df_private = results_df_private_all[private_results_columns]
+
+    results_df_private = results_df_private_all[
+        [
+            col
+            for col in private_results_columns
+            if col in results_df_private_all.columns
+        ]
+    ]
 
     results_file_name = module_name + "_full_results.csv"
 

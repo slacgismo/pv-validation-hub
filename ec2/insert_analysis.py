@@ -5,7 +5,6 @@ including system metadata and file metadata.
 
 import json
 from logging import Logger
-from re import template
 from typing import Any, cast
 import numpy as np
 import pandas as pd
@@ -168,9 +167,10 @@ def list_s3_bucket(
         pages = paginator.paginate(Bucket=s3_bucket_name, Prefix=s3_dir)
         for page in pages:
             if page["KeyCount"] > 0:
-                for entry in page["Contents"]:
-                    if "Key" in entry:
-                        all_files.append(entry["Key"])
+                if "Contents" in page:
+                    for entry in page["Contents"]:
+                        if "Key" in entry:
+                            all_files.append(entry["Key"])
 
         # remove the first entry if it is the same as s3_dir
         if len(all_files) > 0 and all_files[0] == s3_dir:
@@ -345,9 +345,28 @@ class InsertAnalysis:
             if force:
                 print("Force is True. Creating a new analysis.")
 
+            performance_metrics: list[str] | None = self.config.get(
+                "performance_metrics", None
+            )
+
+            if not performance_metrics:
+                raise ValueError(
+                    "Performance metrics are required to create a new analysis."
+                )
+
+            display_errors = []
+            for metric in performance_metrics:
+                metric_words = metric.split("_")
+
+                display_words = [word.capitalize() for word in metric_words]
+                display = " ".join(display_words)
+
+                display_error = (metric, display)
+                display_errors.append(display_error)
+
             body = {
                 "analysis_name": self.config["category_name"],
-                "max_concurrent_submission_evaluation": max_concurrent_submission_evaluation,
+                "display_errors": json.dumps(display_errors),
             }
 
             res = post_data_to_api_to_df(
@@ -844,4 +863,4 @@ if __name__ == "__main__":
             s3_url=s3_url,
             is_local=is_local,
         )
-        r.insertData()
+        r.insertData(force=True)
