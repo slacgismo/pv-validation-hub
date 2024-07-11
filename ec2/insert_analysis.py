@@ -309,7 +309,6 @@ class InsertAnalysis:
     def createAnalysis(
         self,
         db_analysis_df: pd.DataFrame,
-        max_concurrent_submission_evaluation: int,
         force: bool = False,
     ):
         """
@@ -354,7 +353,7 @@ class InsertAnalysis:
                     "Performance metrics are required to create a new analysis."
                 )
 
-            display_errors = []
+            display_errors: list[tuple[str, str]] = []
             for metric in performance_metrics:
                 metric_words = metric.split("_")
 
@@ -364,13 +363,17 @@ class InsertAnalysis:
                 display_error = (metric, display)
                 display_errors.append(display_error)
 
+            print("display_errors", display_errors)
+
             body = {
                 "analysis_name": self.config["category_name"],
                 "display_errors": json.dumps(display_errors),
             }
 
+            print("body", body)
+
             res = post_data_to_api_to_df(
-                self.api_url, "/analysis/create/", body
+                self.api_url, "analysis/create/", body
             )
             print("Analysis created")
             self.analysis_id = res["analysis_id"].values[0]
@@ -809,7 +812,7 @@ class InsertAnalysis:
         """
 
         db_analyses_df = self.getAllAnalyses()
-        self.createAnalysis(db_analyses_df, 100, force)
+        self.createAnalysis(db_analyses_df, force)
 
         if not self.analysis_id:
             raise ValueError("Analysis ID not found or created.")

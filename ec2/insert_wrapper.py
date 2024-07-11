@@ -177,7 +177,7 @@ if __name__ == "__main__":
 
         config = json.load(file)
 
-        is_local = True
+        # is_local = True
 
         force = True
 
