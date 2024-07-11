@@ -1,2 +1,3 @@
 What do I need and where do I need it:
 
+aws ecs update-service --service arn:aws:ecs:us-west-2:041414866712:service/pv-validation-hub-api-cluster/ecs-api-service --task arn:aws:ecs:us-west-2:041414866712:task/pv-validation-hub-api-cluster/7e18067fa4684639a756d2f979f20821 --region us-west-2 --enable-execute-command --task-definition arn:aws:ecs:us-west-2:041414866712:task-definition/pv-validation-hub-api-task:11 --no-cli-pager --force-new-deployment
