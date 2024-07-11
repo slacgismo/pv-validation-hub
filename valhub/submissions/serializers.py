@@ -4,7 +4,11 @@ from analyses.models import Analysis
 from accounts.models import Account
 from error_report.models import ErrorReport
 from error_report.serializers import ErrorReportLeaderboardSerializer
+import json
 import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -35,6 +39,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "algorithm",
             "submission_id",
             "error_rate",
+            "alt_name",
+            "archived",
         )
 
     def get_error_rate(self, obj):
@@ -59,6 +65,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["submitted_at"] = instance.submitted_at
         data["result"] = instance.result
         data["status"] = instance.status
+        data["alt_name"] = instance.alt_name
+        data["archived"] = instance.archived
         return data
 
 
@@ -83,6 +91,9 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "mrt",
             "data_requirements",
             "error_rate",
+            "submitted_at",
+            "alt_name",
+            "archived",
         )
 
     def get_error_rate(self, obj):
@@ -101,4 +112,23 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "uuid": instance.created_by.uuid,
             "username": instance.created_by.username,
         }
+
+        # Attempt to load the stringified array from the text field
+        try:
+            data_requirements = json.loads(instance.data_requirements)
+            # Ensure that the loaded object is a list
+            if not isinstance(data_requirements, list):
+                raise ValueError(
+                    "Loaded object is not a list"
+                )  # Include a message with the ValueError
+        except (ValueError, TypeError) as e:
+            logger.error(
+                f"Failed to parse data_requirements for submission {instance.submission_id}: {e}"
+            )
+            logger.error(f"With a value of {instance.data_requirements}")
+            data_requirements = (
+                []
+            )  # Default to an empty list if any error occurs
+
+        data["data_requirements"] = data_requirements
         return data

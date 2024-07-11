@@ -508,44 +508,44 @@ def get_submission_results(request: Request, submission_id: str):
             f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
         )
 
-    png_files = [file for file in file_list if file.lower().endswith(".png")]
-    logging.info(f"png_files: {png_files}")
+    html_files = [file for file in file_list if file.lower().endswith(".html")]
+    logging.info(f"html_files: {html_files}")
 
-    if not png_files:
+    if not html_files:
         return JsonResponse(
-            {"error": "No .png files found in the results directory"},
+            {"error": "No .html files found in the results directory"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     if is_emulation:
         logging.info(f"emulation: {base_url}")
 
-        for png_file in png_files:
-            file_url = urljoin(base_url, png_file)
+        for html_file in html_files:
+            file_url = urljoin(base_url, html_file)
             if file_url:
                 file_urls.append(file_url)
             else:
                 return JsonResponse(
-                    {"error": f"Error retrieving .png file: {png_file}"},
+                    {"error": f"Error retrieving .html file: {html_file}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
     else:
         logging.info(f"not emulation: {cf_results_path}")
 
-        for png_file in png_files:
-            file_url = create_cloudfront_url(png_file)
+        for html_file in html_files:
+            file_url = create_cloudfront_url(html_file)
             if file_url:
                 file_urls.append(file_url)
             else:
                 return JsonResponse(
-                    {"error": f"Error retrieving .png file: {png_file}"},
+                    {"error": f"Error retrieving .html file: {html_file}"},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
     # set returns
     logging.info(f"setting returns")
-    ret["file_urls"] = file_urls
+    ret["marimo_url"] = file_urls
 
     return JsonResponse(ret, status=status.HTTP_200_OK)
 
@@ -554,13 +554,133 @@ def get_submission_results(request: Request, submission_id: str):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def get_user_submissions(request: Request, user_id: str):
+def get_user_submissions(request: Request, user_id: str, analysis_id: str):
+    if analysis_id is None or analysis_id == 0:
+        try:
+            user = Account.objects.get(uuid=user_id)
+        except Account.DoesNotExist:
+            response_data = {"error": "User account does not exist"}
+            return Response(
+                response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+            )
+
+        user_submissions = Submission.objects.filter(
+            created_by=user, archived=False
+        )
+        response_data = SubmissionSerializer(user_submissions, many=True).data
+        return Response(response_data, status=status.HTTP_200_OK)
+    elif analysis_id == -1:
+        try:
+            user = Account.objects.get(uuid=user_id)
+        except Account.DoesNotExist:
+            response_data = {"error": "User account does not exist"}
+            return Response(
+                response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+            )
+
+        user_submissions = Submission.objects.filter(
+            created_by=user, archived=True
+        )
+        response_data = SubmissionSerializer(user_submissions, many=True).data
+        return Response(response_data, status=status.HTTP_200_OK)
+    else:
+        try:
+            user = Account.objects.get(uuid=user_id)
+        except Account.DoesNotExist:
+            response_data = {"error": "User account does not exist"}
+            return Response(
+                response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+            )
+
+        try:
+            analysis = Analysis.objects.get(pk=analysis_id)
+        except Analysis.DoesNotExist:
+            response_data = {"error": "Analysis does not exist"}
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+        user_submissions = Submission.objects.filter(
+            created_by=user, analysis=analysis, archived=False
+        ).order_by("submitted_at")
+        response_data = SubmissionSerializer(user_submissions, many=True).data
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def get_archived_user_submissions(request: Request, user_id: str):
     try:
         user = Account.objects.get(uuid=user_id)
     except Account.DoesNotExist:
         response_data = {"error": "User account does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
 
-    user_submissions = Submission.objects.filter(created_by=user)
+    user_submissions = Submission.objects.filter(
+        created_by=user, archived=True
+    )
     response_data = SubmissionSerializer(user_submissions, many=True).data
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def set_submission_name(request: Request, user_id: str, submission_id: str):
+    try:
+        user = Account.objects.get(uuid=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return JsonResponse(
+            response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+        )
+
+    try:
+        submission = Submission.objects.get(pk=submission_id, created_by=user)
+    except Submission.DoesNotExist:
+        response_data = {"error": "Submission does not exist"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    logger.info(f"request data = {request.data}")
+    alt_name = request.data.get("alt_name")
+    if alt_name is None:
+        response_data = {"error": "alt_name is required"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.alt_name = alt_name
+    submission.save()
+
+    response_data = SubmissionSerializer(submission).data
+    return JsonResponse(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def archive_submission(request: Request, user_id: str, submission_id: str):
+    try:
+        user = Account.objects.get(uuid=user_id)
+    except Account.DoesNotExist:
+        response_data = {"error": "User account does not exist"}
+        return JsonResponse(
+            response_data, status=status.HTTP_406_NOT_ACCEPTABLE
+        )
+
+    try:
+        submission = Submission.objects.get(pk=submission_id, created_by=user)
+    except Submission.DoesNotExist:
+        response_data = {"error": "Submission does not exist"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    archived = request.data.get("archived")
+    if archived is None:
+        response_data = {"error": "archived is required"}
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.archived = archived
+    submission.save()
+
+    response_data = SubmissionSerializer(submission).data
+    return JsonResponse(response_data, status=status.HTTP_200_OK)

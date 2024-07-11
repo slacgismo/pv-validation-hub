@@ -434,7 +434,7 @@ def process_submission_message(
     logger.info(f"update submission status to {FINISHED}")
     update_submission_status(submission_id, FINISHED)
 
-    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ['time_series', 'latitude', 'longitude', 'data_sampling_frequency']}
+    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
     res_json = ret
     logger.info(f"update submission result to {res_json}")
     update_submission_result(submission_id, res_json)
