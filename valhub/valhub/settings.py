@@ -146,6 +146,12 @@ DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "pv-validation-hub.org",
+    "api.pv-validation-hub.org",
+    "db.pv-validation-hub.org",
+]
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
