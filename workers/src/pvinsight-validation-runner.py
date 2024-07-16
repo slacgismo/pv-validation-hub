@@ -647,6 +647,7 @@ def run(  # noqa: C901
         f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
     )
 
+    # public_metrics_dict["success_rate"] = success_rate
     return public_metrics_dict
 
 
@@ -869,6 +870,9 @@ def generate_performance_metrics_for_submission(
     if config_data["comparison_type"] == "scalar":
         for val in config_data["ground_truth_compare"]:
             ground_truth_dict[val] = associated_metadata[val]
+            logger.debug(
+                f'ground_truth_dict["{val}"]: {ground_truth_dict[val]}'
+            )
     if config_data["comparison_type"] == "time_series":
         ground_truth_series: pd.Series = pd.read_csv(
             os.path.join(data_dir + "/validation_data/", file_name),
@@ -877,18 +881,18 @@ def generate_performance_metrics_for_submission(
         ).squeeze()
         ground_truth_dict["time_series"] = ground_truth_series
 
-    ground_truth_file_length = len(ground_truth_series)
+        ground_truth_file_length = len(ground_truth_series)
 
-    file_submission_result_length = len(data_outputs)
-    if file_submission_result_length != ground_truth_file_length:
-        logger.error(
-            f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
-        )
-        error_code = 8
+        file_submission_result_length = len(data_outputs)
+        if file_submission_result_length != ground_truth_file_length:
+            logger.error(
+                f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
+            )
+            error_code = 8
 
-        raise RunnerException(
-            *get_error_by_code(error_code, runner_error_codes, logger)
-        )
+            raise RunnerException(
+                *get_error_by_code(error_code, runner_error_codes, logger)
+            )
 
     # Convert the data outputs to a dictionary identical to the
     # ground truth dictionary
@@ -916,6 +920,7 @@ def generate_performance_metrics_for_submission(
             # and calculate the absolute error
             for val in config_data["ground_truth_compare"]:
                 error = np.abs(output_dictionary[val] - ground_truth_dict[val])
+                logger.debug(f"error for {val}: {error}")
                 results_dictionary[metric + "_" + val] = error
         elif metric == "mean_absolute_error":
             for val in config_data["ground_truth_compare"]:

@@ -283,10 +283,17 @@ def extract_analysis_data(  # noqa: C901
         ground_truth.split("/")[-1] for ground_truth in ground_truths
     ]
 
-    if not all(file in ground_truth_files for file in files_for_analysis):
-        raise FileNotFoundError(
-            9, f"Ground truth data files not found for analysis {analysis_id}"
-        )
+    # if not all(file in ground_truth_files for file in files_for_analysis):
+    #     raise FileNotFoundError(
+    #         9, f"Ground truth data files not found for analysis {analysis_id}"
+    #     )
+
+    for analysis_file in files_for_analysis:
+        if analysis_file not in ground_truth_files:
+            raise FileNotFoundError(
+                9,
+                f"Ground truth data file {analysis_file} not found for analysis {analysis_id}",
+            )
 
     if not all(file in analytical_files for file in files_for_analysis):
         raise FileNotFoundError(
