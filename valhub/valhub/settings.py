@@ -166,6 +166,7 @@ INSTALLED_APPS = [
     "validation_tests.apps.ValidationTestsConfig",
     "backend.apps.BackendConfig",
     "error_report.apps.ErrorReportConfig",
+    "versions.apps.VersionsConfig",
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
