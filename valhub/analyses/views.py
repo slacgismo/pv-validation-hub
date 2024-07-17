@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import (
     api_view,
 )
+from django.http import JsonResponse
 
 from .models import Analysis
 from submissions.models import Submission
@@ -62,14 +63,16 @@ def leaderboard(request, analysis_id):
 
     if _analysis is None:
         response_data = {"error": "analysis does not exist"}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     submission_list = Submission.objects.filter(
         analysis=_analysis, mae__isnull=False, status=Submission.FINISHED
     )
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    response_data = {"submissions": serializer.data}
+
+    return JsonResponse(response_data, status=status.HTTP_200_OK)
 
 
 # Update this later to only accept route calls from within localhost or own container

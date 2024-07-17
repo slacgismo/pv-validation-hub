@@ -529,6 +529,11 @@ def run(  # noqa: C901
     public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
     public_metrics_dict["median_run_time"] = results_df["run_time"].median()
     public_metrics_dict["function_parameters"] = function_parameters
+    public_metrics_dict["data_requirements"] = results_df[
+        "data_requirements"
+    ].iloc[0]
+
+    metrics_list = []
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -540,12 +545,41 @@ def run(  # noqa: C901
                 logger.info(
                     f"metric: {metric}, val: {val}, combined: {'mean_' + metric}"
                 )
-                public_metrics_dict["mean_" + metric] = results_df[
-                    metric + "_" + val
-                ].mean()
-                public_metrics_dict["median_" + metric] = results_df[
-                    metric + "_" + val
-                ].median()
+
+                mean_metric = results_df[metric + "_" + val].mean()
+
+                public_metrics_dict["mean_" + metric] = mean_metric
+
+                metric_tuple = (
+                    f"mean_{metric}",
+                    mean_metric,
+                )
+                metrics_list.append(metric_tuple)
+
+                median_metric = results_df[metric + "_" + val].median()
+                public_metrics_dict["median_" + metric] = median_metric
+
+                metric_tuple = (
+                    f"median_{metric}",
+                    median_metric,
+                )
+                metrics_list.append(metric_tuple)
+        elif "runtime" in metric:
+            key = "run_time"
+
+            if key not in results_df.columns:
+                continue
+
+            mean_metric = results_df[key].mean()
+
+            metric_tuple = (
+                f"mean_{key}",
+                mean_metric,
+            )
+            metrics_list.append(metric_tuple)
+
+    public_metrics_dict["metrics"] = json.dumps(metrics_list)
+
     # Write public metric information to a public results table.
     with open(
         os.path.join(results_dir, config_data["public_results_table"]), "w"
@@ -564,7 +598,14 @@ def run(  # noqa: C901
     private_results_columns: list[str] = config_data["private_results_columns"]
 
     # Filter to only the necessary columns (available via the config)
-    results_df_private = results_df_private_all[private_results_columns]
+
+    results_df_private = results_df_private_all[
+        [
+            col
+            for col in private_results_columns
+            if col in results_df_private_all.columns
+        ]
+    ]
 
     results_file_name = module_name + "_full_results.csv"
 
@@ -641,6 +682,7 @@ def run(  # noqa: C901
         f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
     )
 
+    # public_metrics_dict["success_rate"] = success_rate
     return public_metrics_dict
 
 
@@ -914,6 +956,9 @@ def generate_performance_metrics_for_submission(
     if config_data["comparison_type"] == "scalar":
         for val in config_data["ground_truth_compare"]:
             ground_truth_dict[val] = associated_metadata[val]
+            logger.debug(
+                f'ground_truth_dict["{val}"]: {ground_truth_dict[val]}'
+            )
     if config_data["comparison_type"] == "time_series":
         ground_truth_series: pd.Series = pd.read_csv(
             os.path.join(data_dir + "/validation_data/", file_name),
@@ -922,18 +967,18 @@ def generate_performance_metrics_for_submission(
         ).squeeze()
         ground_truth_dict["time_series"] = ground_truth_series
 
-    ground_truth_file_length = len(ground_truth_series)
+        ground_truth_file_length = len(ground_truth_series)
 
-    file_submission_result_length = len(data_outputs)
-    if file_submission_result_length != ground_truth_file_length:
-        logger.error(
-            f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
-        )
-        error_code = 8
+        file_submission_result_length = len(data_outputs)
+        if file_submission_result_length != ground_truth_file_length:
+            logger.error(
+                f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
+            )
+            error_code = 8
 
-        raise RunnerException(
-            *get_error_by_code(error_code, runner_error_codes, logger)
-        )
+            raise RunnerException(
+                *get_error_by_code(error_code, runner_error_codes, logger)
+            )
 
     # Convert the data outputs to a dictionary identical to the
     # ground truth dictionary
@@ -951,8 +996,8 @@ def generate_performance_metrics_for_submission(
     results_dictionary["file_name"] = file_name
     # Set the runtime in the results dictionary
     results_dictionary["run_time"] = function_run_time
-    # Set the data requirements in the dictionary
-    results_dictionary["data_requirements"] = function_parameters
+    # Set the data requirements in the dictionary, JSON required or bad juju happens in my DB and FE
+    results_dictionary["data_requirements"] = json.dumps(function_parameters)
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
     for metric in performance_metrics:
@@ -961,6 +1006,7 @@ def generate_performance_metrics_for_submission(
             # and calculate the absolute error
             for val in config_data["ground_truth_compare"]:
                 error = np.abs(output_dictionary[val] - ground_truth_dict[val])
+                logger.debug(f"error for {val}: {error}")
                 results_dictionary[metric + "_" + val] = error
         elif metric == "mean_absolute_error":
             for val in config_data["ground_truth_compare"]:

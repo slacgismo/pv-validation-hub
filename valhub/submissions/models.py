@@ -35,12 +35,15 @@ class Submission(models.Model):
     )
     algorithm_s3_path = models.URLField(max_length=1000)
     result = models.TextField(null=True, blank=True, default="")
+    # json array of tuples '[["mae", "50"], ["error2", "5"]]'
+    # keyname, error value tuple
     status = models.CharField(
         max_length=30,
         choices=STATUS_OPTIONS,
         db_index=True,
         default=SUBMITTING,
     )
+    alt_name = models.TextField(null=True, blank=True, default="")
 
     # mae - mean average error
     # mrt - mean run time
@@ -48,3 +51,4 @@ class Submission(models.Model):
     mae = models.FloatField(null=True, blank=True)
     mrt = models.FloatField(null=True, blank=True)
     data_requirements = models.TextField(null=True, blank=True)
+    archived = models.BooleanField(default=False)

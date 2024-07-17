@@ -24,6 +24,16 @@ urlpatterns = [
         name="update_submission_result",
     ),
     path(
+        "set_submission_name/<int:user_id>/<int:submission_id>",
+        views.set_submission_name,
+        name="set_submission_name",
+    ),
+    path(
+        "archive_submission/<int:user_id>/<int:submission_id>",
+        views.archive_submission,
+        name="archive_submission",
+    ),
+    path(
         "user_submission/<int:user_id>",
         views.user_submission,
         name="user_submission",
@@ -45,8 +55,13 @@ urlpatterns = [
         name="get_submission_results",
     ),
     path(
-        "user/<int:user_id>/submissions",
+        "user/<int:user_id>/submissions/<int:analysis_id>",
         views.get_user_submissions,
         name="get_user_submissions",
+    ),
+    path(
+        "user/<int:user_id>/submissions/archived",
+        views.get_archived_user_submissions,
+        name="get_archived_user_submissions",
     ),
 ]

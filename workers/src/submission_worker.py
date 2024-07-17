@@ -302,10 +302,17 @@ def extract_analysis_data(  # noqa: C901
         ground_truth.split("/")[-1] for ground_truth in ground_truths
     ]
 
-    if not all(file in ground_truth_files for file in files_for_analysis):
-        raise FileNotFoundError(
-            9, f"Ground truth data files not found for analysis {analysis_id}"
-        )
+    # if not all(file in ground_truth_files for file in files_for_analysis):
+    #     raise FileNotFoundError(
+    #         9, f"Ground truth data files not found for analysis {analysis_id}"
+    #     )
+
+    for analysis_file in files_for_analysis:
+        if analysis_file not in ground_truth_files:
+            raise FileNotFoundError(
+                9,
+                f"Ground truth data file {analysis_file} not found for analysis {analysis_id}",
+            )
 
     if not all(file in analytical_files for file in files_for_analysis):
         raise FileNotFoundError(
@@ -457,7 +464,7 @@ def process_submission_message(
     logger.info(f"update submission status to {FINISHED}")
     update_submission_status(submission_id, FINISHED)
 
-    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ['time_series', 'latitude', 'longitude', 'data_sampling_frequency']}
+    # Uploads public metrics to DB, ret expected format {'module': 'pvanalytics-cpd-module', 'mean_mean_absolute_error': 2.89657870134743, 'mean_run_time': 24.848265788458676, 'data_requirements': ["time_series", "latitude", "longitude", "data_sampling_frequency"]}
     res_json = ret
     logger.info(f"update submission result to {res_json}")
     update_submission_result(submission_id, res_json)

@@ -182,6 +182,7 @@ def get_account(request):
 def update_account(request):
     account = request.user
     data = request.data
+    logger.info(f"update_account: {data}")
 
     serializer = AccountSerializer(account, data=data, partial=True)
     if serializer.is_valid():
@@ -201,6 +202,7 @@ def delete_account(request):
 
 
 # Users on the client use Token Auth w/ a generated session Token, not Django Session Auth
+@csrf_exempt
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])

@@ -10,7 +10,7 @@ class SystemMetadata(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     tracking = models.BooleanField()
-    dc_capacity = models.FloatField()
+    dc_capacity = models.FloatField(default=0.0)
 
     def __str__(self):
         return self.name
