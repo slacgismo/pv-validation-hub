@@ -9,11 +9,8 @@ from docker.errors import ImageNotFound
 from docker.models.images import Image
 
 from concurrent.futures import (
-    ProcessPoolExecutor,
     ThreadPoolExecutor,
-    as_completed,
 )
-from functools import wraps
 from logging import Logger
 from time import perf_counter, sleep
 import os
@@ -878,10 +875,6 @@ class DockerContainerContextManager:
                 self.container.stop()
             self.container.remove()
 
-        self.client.containers.prune(
-            filters={"label": "status=exited", "label": "status=created"}
-        )
-
 
 def docker_task(
     client: docker.DockerClient,
@@ -892,7 +885,11 @@ def docker_task(
     submission_args: Sequence[Any],
     data_dir: str,
     results_dir: str,
-):
+    logger: Logger | None = None,
+) -> tuple[bool, int | None]:
+
+    error_raised = False
+    error_code: int | None = None
 
     if submission_args is None:
         submission_args = []
@@ -917,18 +914,40 @@ def docker_task(
     with DockerContainerContextManager(
         client, image, command, volumes, memory_limit
     ) as container:
-        print("Docker container starting...")
-        print(f"Image: {image}")
-        print(f"Submission file name: {submission_file_name}")
-        print(f"Submission function name: {submission_function_name}")
-        print(f"Submission args: {submission_args}")
+        logger_if_able("Docker container starting...", logger)
+        logger_if_able(f"Image: {image}", logger)
+        logger_if_able(f"Submission file name: {submission_file_name}", logger)
+        logger_if_able(
+            f"Submission function name: {submission_function_name}", logger
+        )
+        logger_if_able(f"Submission args: {submission_args}", logger)
 
         # Wait for container to finish
         for line in container.logs(stream=True):
             line = cast(str, line)
-            print(line.strip())
+            logger_if_able(line.strip(), logger)
 
-        container.wait()
+        try:
+            container_dict: dict[str, Any] = container.wait()
+        except Exception as e:
+            error_raised = True
+            error_code = 500
+            logger_if_able(f"Error: {e}", logger, "ERROR")
+            return error_raised, error_code
+
+        if "StatusCode" not in container_dict:
+            raise Exception(
+                "Error: Docker container did not return status code"
+            )
+
+        exit_code: int = cast(int, container_dict["StatusCode"])
+
+        if exit_code != 0:
+            error_raised = True
+            error_code = exit_code
+            logger_if_able("Error: Docker container exited with error", logger)
+
+    return error_raised, error_code
 
 
 def submission_task(
@@ -939,19 +958,35 @@ def submission_task(
     submission_args: Sequence[Any],
     data_dir: str,
     results_dir: str,
-):
+    logger: Logger | None = None,
+) -> tuple[bool, int | None]:
+
+    error = False
+    error_code: int | None = None
 
     with DockerClientContextManager() as client:
-        docker_task(
-            client=client,
-            image=image_tag,
-            memory_limit=memory_limit,
-            submission_file_name=submission_file_name,
-            submission_function_name=submission_function_name,
-            submission_args=submission_args,
-            data_dir=data_dir,
-            results_dir=results_dir,
-        )
+        try:
+            error_raised, error_code_raised = docker_task(
+                client=client,
+                image=image_tag,
+                memory_limit=memory_limit,
+                submission_file_name=submission_file_name,
+                submission_function_name=submission_function_name,
+                submission_args=submission_args,
+                data_dir=data_dir,
+                results_dir=results_dir,
+                logger=logger,
+            )
+            if error_raised:
+                error = True
+                error_code = error_code_raised
+                logger_if_able("Error: Docker task failed", logger, "ERROR")
+        except Exception as e:
+            error = True
+            error_code = 500
+            logger_if_able(f"Error: {e}", None, "ERROR")
+
+    return error, error_code
 
 
 def create_docker_image(
@@ -994,6 +1029,7 @@ def create_docker_image(
         image, build_logs = client.images.build(
             path=dir_path,
             tag=tag,
+            rm=True,
             dockerfile="Dockerfile",
             buildargs={"zip_file": f"{submission_file_name}"},
         )
@@ -1020,10 +1056,10 @@ class DockerClientContextManager:
 
 
 def initialize_docker_client():
-    base_url = os.environ.get("DOCKER_HOST")
+    base_url = os.environ.get("DOCKER_HOST", None)
 
     if not base_url:
-        raise FileNotFoundError("DOCKER_HOST environment variable not set")
+        logger_if_able("Docker host not set", None, "WARNING")
 
     # cert_path = os.environ.get("DOCKER_CERT_PATH")
     # if not cert_path:
@@ -1139,6 +1175,7 @@ def dask_main():
                 submission_args,
                 data_dir,
                 results_dir,
+                logger,
             )
             lazy_results.append(lazy_result)
 

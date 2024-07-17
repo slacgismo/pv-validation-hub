@@ -114,9 +114,13 @@ def main():
 
     print("Getting submission function...")
 
-    submission_function, function_parameters = import_submission_function(
-        submission_file_name, function_name
-    )
+    try:
+        submission_function, function_parameters = import_submission_function(
+            submission_file_name, function_name
+        )
+    except AttributeError as e:
+        error_code = 500
+        exit(error_code)
     print("Got submission function")
 
     print(f"Submission file name: {submission_file_name}")

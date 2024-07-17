@@ -490,8 +490,20 @@ def run(  # noqa: C901
     data_dir: str = os.path.abspath(data_dir)
     results_dir: str = os.path.abspath(results_dir)
 
-    volume_data_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/workers/current_evaluation/data"
-    volume_results_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/workers/current_evaluation/results"
+    volume_host_data_dir = os.environ.get("DOCKER_HOST_VOLUME_DATA_DIR")
+    volume_host_results_dir = os.environ.get("DOCKER_HOST_VOLUME_RESULTS_DIR")
+
+    if volume_host_data_dir is None:
+        # TODO: add error code
+        raise RunnerException(
+            *get_error_by_code(500, runner_error_codes, logger)
+        )
+
+    if volume_host_results_dir is None:
+        # TODO: add error code
+        raise RunnerException(
+            *get_error_by_code(500, runner_error_codes, logger)
+        )
 
     func_arguments_list = prepare_function_args_for_parallel_processing(
         image_tag=image_tag,
@@ -500,8 +512,8 @@ def run(  # noqa: C901
         submission_function_name=submission_function_name,
         data_dir=data_dir,
         results_dir=results_dir,
-        volume_data_dir=volume_data_dir,
-        volume_results_dir=volume_results_dir,
+        volume_data_dir=volume_host_data_dir,
+        volume_results_dir=volume_host_results_dir,
     )
 
     # Loop through each file and generate predictions
@@ -510,9 +522,12 @@ def run(  # noqa: C901
 
     # raise Exception("Finished Successfully")
 
-    results_list, number_of_errors = loop_over_files_and_generate_results(
+    number_of_errors = loop_over_files_and_generate_results(
         func_arguments_list
     )
+    logger.info(f"number_of_errors: {number_of_errors}")
+
+    raise Exception("Finished Successfully")
 
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
@@ -805,6 +820,7 @@ def prepare_function_args_for_parallel_processing(
             submission_args,
             volume_data_dir,
             volume_results_dir,
+            logger,
         )
 
         function_args_list = append_to_list(function_args, function_args_list)
@@ -854,7 +870,7 @@ def run_submission(
 
 def loop_over_files_and_generate_results(
     func_arguments_list: list[Tuple],
-) -> tuple[list[dict[str, Any]], int]:
+) -> int:
 
     # func_arguments_list = prepare_function_args_for_parallel_processing(
     #     file_metadata_df,
@@ -879,7 +895,7 @@ def loop_over_files_and_generate_results(
 
     # Test the first two files
     logger.info(f"Testing the first {NUM_FILES_TO_TEST} files...")
-    test_results = dask_multiprocess(
+    test_errors = dask_multiprocess(
         submission_task,
         test_func_argument_list,
         n_workers=NUM_FILES_TO_TEST,
@@ -888,7 +904,7 @@ def loop_over_files_and_generate_results(
         logger=logger,
     )
 
-    errors = [error for _, error in test_results]
+    errors = [error for error, error_code in test_errors]
     number_of_errors += sum(errors)
 
     if number_of_errors == NUM_FILES_TO_TEST:
@@ -903,10 +919,10 @@ def loop_over_files_and_generate_results(
     # Test the rest of the files
 
     logger.info(f"Testing the rest of the files...")
-    rest_results = []
+    rest_errors = []
     try:
-        rest_results = dask_multiprocess(
-            run_submission_and_generate_performance_metrics,
+        rest_errors = dask_multiprocess(
+            submission_task,
             rest_func_argument_list,
             # n_workers=4,
             threads_per_worker=1,
@@ -929,16 +945,16 @@ def loop_over_files_and_generate_results(
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
-    errors = [error for _, error in rest_results]
+    errors = [error for error, error_code in rest_errors]
     number_of_errors += sum(errors)
 
-    test_results = [result for result, _ in test_results if result is not None]
-    rest_results = [result for result, _ in rest_results if result is not None]
+    # test_errors = [result for result, _ in test_errors if result is not None]
+    # rest_errors = [result for result, _ in rest_errors if result is not None]
 
-    results.extend(test_results)
-    results.extend(rest_results)
+    # results.extend(test_errors)
+    # results.extend(rest_errors)
 
-    return results, number_of_errors
+    return number_of_errors
 
 
 def generate_performance_metrics_for_submission(
