@@ -7,5 +7,5 @@ class Analysis(models.Model):
     display_errors = models.JSONField(null=True, blank=True, default=dict)
 
 
-# json array of error fields for FE '[["mae", "MAE"], ["error2", "ERROR"]]'
-# keyname, displayname tuple
+# json object of error fields for FE {"mae": "MAE", "error2": "ERROR_2", etc...}
+# keyname, displayname

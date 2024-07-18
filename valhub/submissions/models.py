@@ -3,6 +3,7 @@ from django.db import models
 from analyses.models import Analysis
 from base.utils import RandomFileName
 from accounts.models import Account
+from decimal import Decimal
 
 import uuid
 
@@ -34,7 +35,7 @@ class Submission(models.Model):
         max_length=1000, upload_to=RandomFileName("submission_files")
     )
     algorithm_s3_path = models.URLField(max_length=1000)
-    result = models.JSONField(null=True, blank=True, default=dict)
+    result = models.TextField(null=True, blank=True, default="")
     # json array of tuples '[["mae", "50"], ["error2", "5"]]'
     # keyname, error value tuple
     status = models.CharField(
@@ -52,5 +53,11 @@ class Submission(models.Model):
     mrt = models.FloatField(null=True, blank=True)
     data_requirements = models.TextField(null=True, blank=True)
     archived = models.BooleanField(default=False)
-    python_version = models.FloatField(null=False, blank=False, default=3.11)
+    python_version = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        null=False,
+        blank=False,
+        default=Decimal("3.11"),
+    )
     worker_version = models.FloatField(null=False, blank=False, default=1.0)

@@ -4,6 +4,7 @@ from analyses.models import Analysis
 from accounts.models import Account
 from error_report.models import ErrorReport
 from error_report.serializers import ErrorReportLeaderboardSerializer
+from versions.models import Versions
 import json
 import logging
 
@@ -32,6 +33,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         super(SubmissionSerializer, self).__init__(*args, **kwargs)
 
     error_rate = serializers.SerializerMethodField()
+    worker_version = serializers.SerializerMethodField()
 
     class Meta:
         model = Submission
@@ -41,6 +43,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "error_rate",
             "alt_name",
             "archived",
+            "python_version",
+            "worker_version",
         )
 
     def get_error_rate(self, obj):
@@ -50,6 +54,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
             if error_report and error_report.error_rate is not None
             else 0
         )
+
+    def get_worker_version(self, obj):
+        try:
+            version = Versions.objects.get(pk=1)
+            return version.cur_worker_version
+        except Versions.DoesNotExist:
+            return None
 
     def to_representation(self, instance):
         data = super(SubmissionSerializer, self).to_representation(instance)
@@ -67,6 +78,16 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["status"] = instance.status
         data["alt_name"] = instance.alt_name
         data["archived"] = instance.archived
+        data["python_version"] = instance.python_version
+        data["worker_version"] = instance.worker_version
+
+        # Update worker_version to use the value from Versions model with PK 1
+        try:
+            version = Versions.objects.get(pk=1)
+            data["worker_version"] = version.cur_worker_version
+        except Versions.DoesNotExist:
+            data["worker_version"] = None
+
         return data
 
 

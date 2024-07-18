@@ -2,7 +2,7 @@ from django.db import models
 
 
 def default_python_versions():
-    return {"3.9", "3.10", "3.11", "3.12"}
+    return ["3.9", "3.10", "3.11", "3.12"]
 
 
 class Versions(models.Model):

@@ -65,10 +65,10 @@ class VersionsDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(["GET"])
 def GetPythonVersions(request):
     try:
-        versions = Versions.objects.values_list("python_versions", flat=True)
-        python_versions = [
-            version for sublist in versions for version in sublist.keys()
-        ]
+        version = Versions.objects.get(pk=1)
+        python_versions = list(version.python_versions)
         return JsonResponse(python_versions, safe=False)
     except Versions.DoesNotExist:
-        return JsonResponse({"error": "No versions found"}, status=404)
+        return JsonResponse(
+            {"error": "No versions found with ID 1"}, status=404
+        )
