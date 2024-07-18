@@ -510,6 +510,7 @@ def run(  # noqa: C901
         memory_limit=memory_limit,
         submission_file_name=submission_module_name,
         submission_function_name=submission_function_name,
+        current_evaluation_dir=current_evaluation_dir,
         data_dir=data_dir,
         results_dir=results_dir,
         volume_data_dir=volume_host_data_dir,
@@ -762,12 +763,39 @@ def install_module_dependencies(
 
 
 def create_function_args_for_file(
-    file_metadata_row: pd.Series, *args, **kwargs
+    file_metadata_row: pd.Series,
+    system_metadata_row: pd.Series,
+    allowable_kwargs: list[str],
 ):
 
     submission_file_name: str = cast(str, file_metadata_row["file_name"])
+
+    # Join both the file and system metadata into a single dictionary
+    merged_row = pd.merge(
+        file_metadata_row.to_frame().T,
+        system_metadata_row.to_frame().T,
+        on="system_id",
+        how="inner",
+    ).squeeze()
+
+    args: list[str] = []
+
+    for argument in allowable_kwargs:
+        if argument not in merged_row:
+            logger.error(f"argument {argument} not found in merged_row")
+            # raise RunnerException(
+            #     *get_error_by_code(500, runner_error_codes, logger)
+            # )
+            args.append("")
+            continue
+        value = merged_row[argument]
+
+        args.append(str(value))
+
     # Submission Args for the function
-    function_args = (submission_file_name,)
+    function_args = (submission_file_name, *args)
+
+    logger.info(f"function_args: {function_args}")
 
     return function_args
 
@@ -787,6 +815,7 @@ def prepare_function_args_for_parallel_processing(
     memory_limit: str,
     submission_file_name: str,
     submission_function_name: str,
+    current_evaluation_dir: str,
     data_dir: str,
     results_dir: str,
     volume_data_dir: str,
@@ -801,16 +830,39 @@ def prepare_function_args_for_parallel_processing(
         os.path.join(data_dir, "metadata", "system_metadata.csv")
     )
 
+    config_data: dict[str, Any] = json.load(
+        open(os.path.join(current_evaluation_dir, "config.json"))
+    )
+
     function_args_list = None
+
+    allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
+
+    logger.info(f"allowable_kwargs: {allowable_kwargs}")
 
     for file_number, (_, file_metadata_row) in enumerate(
         file_metadata_df.iterrows()
     ):
 
+        system_metadata_row: pd.Series = system_metadata_df[
+            system_metadata_df["system_id"] == file_metadata_row["system_id"]
+        ].iloc[0]
+
+        if system_metadata_row.empty:
+            logger.error(
+                f"system_metadata not found for system_id: {file_metadata_row['system_id']}"
+            )
+            raise RunnerException(
+                *get_error_by_code(500, runner_error_codes, logger)
+            )
+
         submission_args = create_function_args_for_file(
             file_metadata_row,
-            submission_function_name=submission_function_name,
+            system_metadata_row,
+            allowable_kwargs,
         )
+
+        logger.info(f"submission_args: {submission_args}")
 
         function_args = (
             image_tag,

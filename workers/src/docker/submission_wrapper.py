@@ -1,5 +1,6 @@
 from importlib import import_module
 import inspect
+from re import sub
 import sys
 import pandas as pd
 import numpy as np
@@ -57,7 +58,9 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
     return decorator
 
 
-def format_args_for_submission(data_dir: str, args: list[str]):
+def format_args_for_submission(
+    data_dir: str, function_params: list[str], args: list[str]
+):
     filename = args[0]
 
     file_path = f"{data_dir}/file_data/{filename}"
@@ -68,11 +71,28 @@ def format_args_for_submission(data_dir: str, args: list[str]):
         parse_dates=True,
     )
 
-    print(df.head(5))
+    series: pd.Series = df.squeeze()
 
-    series: pd.Series = df.asfreq("60min").squeeze()
+    rest_args = args[1:]
+    new_args = []
 
-    submission_args = [series, *args[1:]]
+    for arg in rest_args:
+        if arg.isdigit():
+            new_args.append(int(arg))
+        elif arg.isdecimal():
+            new_args.append(float(arg))
+        else:
+            new_args.append(arg)
+
+    submission_args: list = [series, *new_args]
+
+    if len(submission_args) != len(function_params):
+        print(
+            f"Function parameters do not match submission arguments: {submission_args}"
+        )
+        submission_args = submission_args[: len(function_params)]
+
+    print(f"Submission args: {submission_args}")
 
     return submission_args
 
@@ -131,7 +151,9 @@ def main():
     data_dir = "/app/data"
     results_dir = "/app/results"
 
-    submission_args = format_args_for_submission(data_dir, args[2:])
+    submission_args = format_args_for_submission(
+        data_dir, function_parameters, args[2:]
+    )
 
     print(f"Submission args: {submission_args}")
 
