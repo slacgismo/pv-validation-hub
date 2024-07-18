@@ -58,6 +58,14 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
     return decorator
 
 
+def is_float(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
+
 def format_args_for_submission(
     data_dir: str, function_params: list[str], args: list[str]
 ):
@@ -77,10 +85,10 @@ def format_args_for_submission(
     new_args = []
 
     for arg in rest_args:
-        if arg.isdigit():
-            new_args.append(int(arg))
-        elif arg.isdecimal():
+        if is_float(arg):
             new_args.append(float(arg))
+        elif arg.isdigit():
+            new_args.append(int(arg))
         else:
             new_args.append(arg)
 
