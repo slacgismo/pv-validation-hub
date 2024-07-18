@@ -66,7 +66,7 @@ def leaderboard(request, analysis_id):
         return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     submission_list = Submission.objects.filter(
-        analysis=_analysis, mae__isnull=False, status=Submission.FINISHED
+        analysis=_analysis, result__isnull=False, status=Submission.FINISHED
     )
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 

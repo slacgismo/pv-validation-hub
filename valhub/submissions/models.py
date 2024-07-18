@@ -35,9 +35,9 @@ class Submission(models.Model):
         max_length=1000, upload_to=RandomFileName("submission_files")
     )
     algorithm_s3_path = models.URLField(max_length=1000)
-    result = models.TextField(null=True, blank=True, default="")
-    # json array of tuples '[["mae", "50"], ["error2", "5"]]'
-    # keyname, error value tuple
+    result = models.JSONField(null=True, blank=True, default=dict)
+    # json object of key/value pairs {"mae": 50, "error2", 5}
+    # keyname, error value
     status = models.CharField(
         max_length=30,
         choices=STATUS_OPTIONS,
