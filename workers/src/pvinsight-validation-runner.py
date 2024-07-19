@@ -572,12 +572,15 @@ def run(  # noqa: C901
     # are valid keys, anything else breaks our results processing
     for metric in performance_metrics:
         if "absolute_error" in metric:
+            # QUESTION: Does this need to loop over all the ground truth compare values?
             for val in config_data["ground_truth_compare"]:
                 logger.info(
                     f"metric: {metric}, val: {val}, combined: {'mean_' + metric}"
                 )
 
-                mean_metric = results_df[metric + "_" + val].mean()
+                metric_name = metric + "_" + val
+
+                mean_metric = results_df[metric_name].mean()
 
                 public_metrics_dict["mean_" + metric] = mean_metric
 
@@ -587,7 +590,7 @@ def run(  # noqa: C901
                 )
                 metrics_list.append(metric_tuple)
 
-                median_metric = results_df[metric + "_" + val].median()
+                median_metric = results_df[metric_name].median()
                 public_metrics_dict["median_" + metric] = median_metric
 
                 metric_tuple = (
@@ -662,46 +665,46 @@ def run(  # noqa: C901
 
     # Loop through all of the plot dictionaries and generate plots and
     # associated tables for reporting
-    for plot in config_data["plots"]:
-        if plot["type"] == "histogram":
-            if "color_code" in plot:
-                color_code = plot["color_code"]
-            else:
-                color_code = None
-            gen_plot = generate_histogram(
-                results_df_private, plot["x_val"], plot["title"], color_code
-            )
-            # Save the plot
-            gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
-            plt.close()
-            plt.clf()
-            # Write the stratified results to a table for private reporting
-            # (if color_code param is not None)
-            if color_code:
-                stratified_results_tbl = pd.DataFrame(
-                    results_df_private.groupby(color_code)[
-                        plot["x_val"]
-                    ].mean()
-                )
-                stratified_results_tbl.to_csv(
-                    os.path.join(
-                        results_dir,
-                        module_name
-                        + "_"
-                        + str(color_code)
-                        + "_"
-                        + plot["x_val"]
-                        + ".csv",
-                    )
-                )
-        if plot["type"] == "scatter_plot":
-            gen_plot = generate_scatter_plot(
-                results_df_private, plot["x_val"], plot["y_val"], plot["title"]
-            )
-            # Save the plot
-            gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
-            plt.close()
-            plt.clf()
+    # for plot in config_data["plots"]:
+    #     if plot["type"] == "histogram":
+    #         if "color_code" in plot:
+    #             color_code = plot["color_code"]
+    #         else:
+    #             color_code = None
+    #         gen_plot = generate_histogram(
+    #             results_df_private, plot["x_val"], plot["title"], color_code
+    #         )
+    #         # Save the plot
+    #         gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
+    #         plt.close()
+    #         plt.clf()
+    #         # Write the stratified results to a table for private reporting
+    #         # (if color_code param is not None)
+    #         if color_code:
+    #             stratified_results_tbl = pd.DataFrame(
+    #                 results_df_private.groupby(color_code)[
+    #                     plot["x_val"]
+    #                 ].mean()
+    #             )
+    #             stratified_results_tbl.to_csv(
+    #                 os.path.join(
+    #                     results_dir,
+    #                     module_name
+    #                     + "_"
+    #                     + str(color_code)
+    #                     + "_"
+    #                     + plot["x_val"]
+    #                     + ".csv",
+    #                 )
+    #             )
+    #     if plot["type"] == "scatter_plot":
+    #         gen_plot = generate_scatter_plot(
+    #             results_df_private, plot["x_val"], plot["y_val"], plot["title"]
+    #         )
+    #         # Save the plot
+    #         gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
+    #         plt.close()
+    #         plt.clf()
 
     logger.info(f"number_of_errors: {number_of_errors}")
 

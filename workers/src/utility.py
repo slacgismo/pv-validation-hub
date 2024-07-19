@@ -823,9 +823,13 @@ def generate_private_report_for_submission(
         subprocess.run(
             cli_commands[action],
             check=True,
-            # stdout=subprocess.PIPE,
-            # stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
         )
+    except subprocess.CalledProcessError as e:
+        combined_output = e.stdout + "\n" + e.stderr
+        logger_if_able(f"Error: {combined_output}", logger, "ERROR")
     except Exception as e:
         logger_if_able(f"Error: {e}", logger, "ERROR")
         raise e
