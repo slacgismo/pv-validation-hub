@@ -1164,7 +1164,7 @@ def generate_performance_metrics_for_submission(
 
             logger.info(f"submission_output_row: {submission_output_row}")
             logger.info(
-                f"submission_output_row[{idx}]: {submission_output_row[idx]}"
+                f"submission_output_row[{idx}]: {submission_output_row.iloc[idx]}"
             )
             logger.info(
                 f"config_data['ground_truth_compare'][{idx}]: {config_data['ground_truth_compare'][idx]}"
