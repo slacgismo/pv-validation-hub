@@ -1,5 +1,6 @@
 from importlib import import_module
 import inspect
+import pathlib
 from re import sub
 import sys
 import pandas as pd
@@ -114,9 +115,9 @@ def import_submission_function(submission_file_name: str, function_name: str):
         raise e
 
     try:
-        submission_function: Callable[[pd.Series, Any], np.ndarray] = getattr(
-            submission_module, function_name
-        )
+        submission_function: Callable[
+            [pd.Series, Any], np.ndarray | tuple[float, float]
+        ] = getattr(submission_module, function_name)
         function_parameters = list(
             inspect.signature(submission_function).parameters.keys()
         )
@@ -169,20 +170,30 @@ def main():
 
     print(f"Execution time: {execution_time}")
 
-    print(f"Results: {results}")
-
     # save results to csv file
 
     print(f"Saving results to {results_dir}/{data_file_name}")
+    if isinstance(results, tuple):
 
-    results_df = pd.DataFrame(results)
+        results_df = pd.DataFrame([results])
+    else:
+        results_df = pd.DataFrame(results)
+    print(f"Results: {results_df}")
     results_file = f"{results_dir}/{data_file_name}"
-    results_df.to_csv(results_file)
+    results_df.to_csv(results_file, header=True)
+
+    columns = ["file_name", "execution_time"]
+
+    execution_file = f"{results_dir}/execution_time.csv"
+    time_file = pathlib.Path(execution_file)
+
+    if not time_file.exists():
+        time_df = pd.DataFrame(columns=columns)
+        time_df.to_csv(execution_file, index=False, header=True)
 
     execution_tuple = (data_file_name, execution_time)
-    execution_file = f"{results_dir}/time.csv"
-    execution_df = pd.DataFrame([execution_tuple])
-    execution_df.to_csv(execution_file, mode="a", header=False)
+    execution_df = pd.DataFrame([execution_tuple], columns=columns)
+    execution_df.to_csv(execution_file, mode="a", header=False, index=False)
 
 
 if __name__ == "__main__":

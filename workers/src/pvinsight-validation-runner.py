@@ -16,6 +16,7 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
+from logging import config
 from typing import Any, Callable, Sequence, Tuple, TypeVar, cast, ParamSpec
 import pandas as pd
 import os
@@ -528,7 +529,15 @@ def run(  # noqa: C901
     )
     logger.info(f"number_of_errors: {number_of_errors}")
 
-    raise Exception("Finished Successfully")
+    # raise Exception("Finished Successfully")
+
+    results_list = loop_over_results_and_generate_metrics(
+        data_dir=data_dir,
+        results_dir=results_dir,
+        current_evaluation_dir=current_evaluation_dir,
+    )
+
+    # raise Exception("Finished Successfully")
 
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
@@ -540,11 +549,17 @@ def run(  # noqa: C901
     # First get mean value for all the performance metrics and save (this will
     # be saved to a public metrics dictionary)
     public_metrics_dict: dict[str, Any] = dict()
+
+    module_name = "submission"
+
     public_metrics_dict["module"] = module_name
     # Get the mean and median run times
     public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
     public_metrics_dict["median_run_time"] = results_df["run_time"].median()
-    public_metrics_dict["function_parameters"] = function_parameters
+    public_metrics_dict["function_parameters"] = [
+        "time_series",
+        *config_data["allowable_kwargs"],
+    ]
     public_metrics_dict["data_requirements"] = results_df[
         "data_requirements"
     ].iloc[0]
@@ -1009,25 +1024,109 @@ def loop_over_files_and_generate_results(
     return number_of_errors
 
 
-def generate_performance_metrics_for_submission(
-    data_outputs: pd.Series,
-    function_run_time: float,
-    file_name: str,
+def loop_over_results_and_generate_metrics(
     data_dir: str,
-    associated_metadata: dict[str, Any],
+    results_dir: str,
+    current_evaluation_dir: str,
+) -> list[dict[str, Any]]:
+    all_results: list[dict[str, Any]] = []
+
+    file_metadata_df: pd.DataFrame = pd.read_csv(
+        os.path.join(data_dir, "metadata", "file_metadata.csv")
+    )
+
+    system_metadata_df = pd.read_csv(
+        os.path.join(data_dir, "metadata", "system_metadata.csv")
+    )
+
+    config_data: dict[str, Any] = json.load(
+        open(os.path.join(current_evaluation_dir, "config.json"))
+    )
+
+    submission_execution_times_df = pd.read_csv(
+        os.path.join(results_dir, "execution_time.csv")
+    )
+
+    for _, file_metadata_row in file_metadata_df.iterrows():
+
+        file_name = file_metadata_row["file_name"]
+
+        system_metadata_dict: dict[str, Any] = dict(
+            system_metadata_df[
+                system_metadata_df["system_id"]
+                == file_metadata_row["system_id"]
+            ].iloc[0]
+        )
+
+        try:
+            submission_runtime: float = cast(
+                float,
+                submission_execution_times_df[
+                    submission_execution_times_df["file_name"] == file_name
+                ]["execution_time"].iloc[0],
+            )
+        except IndexError:
+            logger.error(
+                f"submission_runtime not found for file {file_name}. Exiting."
+            )
+            continue
+
+        function_parameters = ["time_series", *config_data["allowable_kwargs"]]
+
+        result = generate_performance_metrics_for_submission(
+            file_name,
+            config_data,
+            system_metadata_dict,
+            results_dir,
+            data_dir,
+            submission_runtime,
+            function_parameters,
+        )
+
+        logger.info(f"{file_name}: {result}")
+        all_results.append(result)
+
+    return all_results
+
+
+def generate_performance_metrics_for_submission(
+    file_name: str,
     config_data: dict[str, Any],
+    system_metadata_dict: dict[str, Any],
+    results_dir: str,
+    data_dir: str,
+    submission_runtime: float,
     function_parameters: list[str],
-    performance_metrics: list[str],
 ):
+
+    performance_metrics = config_data["performance_metrics"]
+
+    submission_output_row: pd.Series | None = None
+    submission_output_series: pd.Series | None = None
+
     # Get the ground truth scalars that we will compare to
-    ground_truth_dict = dict()
+    ground_truth_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
+        submission_output_row = cast(
+            pd.Series,
+            pd.read_csv(
+                os.path.join(results_dir, file_name),
+                index_col=0,
+            ).iloc[0],
+        )
         for val in config_data["ground_truth_compare"]:
-            ground_truth_dict[val] = associated_metadata[val]
-            logger.debug(
+            ground_truth_dict[val] = system_metadata_dict[val]
+            logger.info(
                 f'ground_truth_dict["{val}"]: {ground_truth_dict[val]}'
             )
     if config_data["comparison_type"] == "time_series":
+        submission_output_series = cast(
+            pd.Series,
+            pd.read_csv(
+                os.path.join(results_dir, file_name),
+                index_col=0,
+            ).squeeze(),
+        )
         ground_truth_series: pd.Series = pd.read_csv(
             os.path.join(data_dir + "/validation_data/", file_name),
             index_col=0,
@@ -1037,7 +1136,7 @@ def generate_performance_metrics_for_submission(
 
         ground_truth_file_length = len(ground_truth_series)
 
-        file_submission_result_length = len(data_outputs)
+        file_submission_result_length = len(submission_output_series)
         if file_submission_result_length != ground_truth_file_length:
             logger.error(
                 f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
@@ -1052,18 +1151,36 @@ def generate_performance_metrics_for_submission(
     # ground truth dictionary
     output_dictionary: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
+        if submission_output_row is None:
+            logger.error(
+                f"submission_output_row is None for {file_name}. Exiting."
+            )
+            error_code = 9
+            raise RunnerException(
+                *get_error_by_code(error_code, runner_error_codes, logger)
+            )
+
         for idx in range(len(config_data["ground_truth_compare"])):
+
+            logger.info(f"submission_output_row: {submission_output_row}")
+            logger.info(
+                f"submission_output_row[{idx}]: {submission_output_row[idx]}"
+            )
+            logger.info(
+                f"config_data['ground_truth_compare'][{idx}]: {config_data['ground_truth_compare'][idx]}"
+            )
+
             output_dictionary[config_data["ground_truth_compare"][idx]] = (
-                data_outputs[idx]
+                submission_output_row[idx]
             )
     if config_data["comparison_type"] == "time_series":
-        output_dictionary["time_series"] = data_outputs
+        output_dictionary["time_series"] = submission_output_series
     # Run routine for all of the performance metrics and append
     # results to the dictionary
     results_dictionary: dict[str, Any] = dict()
     results_dictionary["file_name"] = file_name
     # Set the runtime in the results dictionary
-    results_dictionary["run_time"] = function_run_time
+    results_dictionary["run_time"] = submission_runtime
     # Set the data requirements in the dictionary, JSON required or bad juju happens in my DB and FE
     results_dictionary["data_requirements"] = json.dumps(function_parameters)
     # Loop through the rest of the performance metrics and calculate them
@@ -1073,66 +1190,88 @@ def generate_performance_metrics_for_submission(
             # Loop through the input and the output dictionaries,
             # and calculate the absolute error
             for val in config_data["ground_truth_compare"]:
-                error = np.abs(output_dictionary[val] - ground_truth_dict[val])
+
+                logger.debug(
+                    f"output_dictionary[val]: {output_dictionary[val]}"
+                )
+                logger.debug(
+                    f"ground_truth_dict[val]: {ground_truth_dict[val]}"
+                )
+                difference = output_dictionary[val] - ground_truth_dict[val]
+                logger.debug(f"difference: {difference}")
+
+                error = np.abs(difference)
                 logger.debug(f"error for {val}: {error}")
                 results_dictionary[metric + "_" + val] = error
         elif metric == "mean_absolute_error":
             for val in config_data["ground_truth_compare"]:
-                error = np.mean(
-                    np.abs(output_dictionary[val] - ground_truth_dict[val])
-                )
+
+                output_series: pd.Series = output_dictionary[val]
+                logger.debug(f"output_series: {output_series}")
+
+                ground_truth_series: pd.Series = ground_truth_dict[val]
+                logger.debug(f"ground_truth_series: {ground_truth_series}")
+
+                # copy index from ground truth series
+                output_series.index = ground_truth_series.index
+
+                difference = output_series - ground_truth_series
+                logger.debug(f"difference: {difference}")
+                error = np.mean(difference)
+
+                logger.debug(f"mean_absolute_error for {val}: {error}")
                 results_dictionary[metric + "_" + val] = error
     return results_dictionary
 
 
-@timeout(SUBMISSION_TIMEOUT)
-def run_submission_and_generate_performance_metrics(
-    file_name: str,
-    data_dir: str,
-    associated_system_metadata: dict[str, Any],
-    config_data: dict[str, Any],
-    submission_function: Callable[P, pd.Series],
-    function_parameters: list[str],
-    file_metadata_row: pd.Series,
-    function_name: str,
-    performance_metrics: list[str],
-    file_number: int,
-):
+# @timeout(SUBMISSION_TIMEOUT)
+# def run_submission_and_generate_performance_metrics(
+#     file_name: str,
+#     data_dir: str,
+#     associated_system_metadata: dict[str, Any],
+#     config_data: dict[str, Any],
+#     submission_function: Callable[P, pd.Series],
+#     function_parameters: list[str],
+#     file_metadata_row: pd.Series,
+#     function_name: str,
+#     performance_metrics: list[str],
+#     file_number: int,
+# ):
 
-    error = False
-    try:
-        logger.info(f"{file_number} - running submission for file {file_name}")
-        # Get file_name, which will be pulled from database or S3 for
-        # each analysis
-        (
-            data_outputs,
-            function_run_time,
-        ) = run_submission(
-            file_name,
-            data_dir,
-            associated_system_metadata,
-            config_data,
-            submission_function,
-            function_parameters,
-            file_metadata_row,
-        )
+#     error = False
+#     try:
+#         logger.info(f"{file_number} - running submission for file {file_name}")
+#         # Get file_name, which will be pulled from database or S3 for
+#         # each analysis
+#         (
+#             data_outputs,
+#             function_run_time,
+#         ) = run_submission(
+#             file_name,
+#             data_dir,
+#             associated_system_metadata,
+#             config_data,
+#             submission_function,
+#             function_parameters,
+#             file_metadata_row,
+#         )
 
-        results_dictionary = generate_performance_metrics_for_submission(
-            data_outputs,
-            function_run_time,
-            file_name,
-            data_dir,
-            associated_system_metadata,
-            config_data,
-            function_parameters,
-            performance_metrics,
-        )
+#         results_dictionary = generate_performance_metrics_for_submission(
+#             data_outputs,
+#             function_run_time,
+#             file_name,
+#             data_dir,
+#             associated_system_metadata,
+#             config_data,
+#             function_parameters,
+#             performance_metrics,
+#         )
 
-        return results_dictionary, error
-    except Exception as e:
-        logger.error(f"error running function {function_name}: {e}")
-        error = True
-        return None, error
+#         return results_dictionary, error
+#     except Exception as e:
+#         logger.error(f"error running function {function_name}: {e}")
+#         error = True
+#         return None, error
 
 
 def prepare_kwargs_for_submission_function(
