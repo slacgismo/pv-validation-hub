@@ -274,10 +274,10 @@ def update_submission_result(request: Request, submission_id: str):
 
     logging.info(f"results = {results}")
 
-    if "mean_absolute_error" in results:
-        submission.mae = float(results["mean_absolute_error"])
-    elif "mean_mean_absolute_error" in results:
-        submission.mae = float(results["mean_mean_absolute_error"])
+    # if "mean_absolute_error" in results:
+    #     submission.mae = float(results["mean_absolute_error"])
+    # elif "mean_mean_absolute_error" in results:
+    #     submission.mae = float(results["mean_mean_absolute_error"])
     # submission.mrt = float(results["mean_run_time"])
     submission.data_requirements = results["function_parameters"]
     submission.result = results["metrics"]
