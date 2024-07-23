@@ -103,7 +103,16 @@ def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
     else:
         s3 = boto3.client("s3")
         try:
-            s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
+            extra_args = {}
+            if s3_file_path.endswith(".html"):
+                extra_args = {"ContentType": "text/html"}
+            ExtraArgs = extra_args if extra_args else None
+            s3.upload_file(
+                local_file_path,
+                S3_BUCKET_NAME,
+                s3_file_path,
+                ExtraArgs=ExtraArgs,
+            )
         except botocore.exceptions.ClientError as e:
             logger.error(f"Error: {e}")
             logger.info(f"update submission status to {FAILED}")
