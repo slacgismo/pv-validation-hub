@@ -1,0 +1,16 @@
+services:
+  dockerize-workflow:
+    build:
+      context: ./
+    env_file:
+      - .env
+    ports:
+      - "8787:8787"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./certs:/app/certs
+      - ./main.py:/app/main.py
+      - ./requirements.txt:/app/requirements.txt
+      - ./results:/app/results
+      - ./data:/app/data
+      - ./environment:/app/environment
