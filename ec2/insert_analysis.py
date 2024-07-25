@@ -353,21 +353,27 @@ class InsertAnalysis:
                     "Performance metrics are required to create a new analysis."
                 )
 
-            display_errors: list[tuple[str, str]] = []
-            for metric in performance_metrics:
-                metric_words = metric.split("_")
+            display_errors: dict[str, str] = self.config.get(
+                "display_metrics", {}
+            )
+            if not display_errors:
+                raise ValueError(
+                    "Display errors are required to create a new analysis. Add display_errors to the config file."
+                )
+            # for metric in performance_metrics:
+            #     metric_words = metric.split("_")
 
-                display_words = [word.capitalize() for word in metric_words]
-                display = " ".join(display_words)
+            #     display_words = [word.capitalize() for word in metric_words]
+            #     display = " ".join(display_words)
 
-                display_error = (metric, display)
-                display_errors.append(display_error)
+            #     display_error = (metric, display)
+            #     display_errors.append(display_error)
 
             print("display_errors", display_errors)
 
             body = {
                 "analysis_name": self.config["category_name"],
-                "display_errors": json.dumps(display_errors),
+                "display_errors": display_errors,
             }
 
             print("body", body)
