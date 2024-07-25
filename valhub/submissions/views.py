@@ -164,6 +164,7 @@ def analysis_submission(request: Request, analysis_id: str):
                 "submission_pk": int(submission_id),
                 "user_pk": int(user.uuid),
                 "submission_filename": object_url.split("/")[-1],
+                "python_version": str(submission_instance.python_version),
             }
         )
 
@@ -273,7 +274,6 @@ def update_submission_result(request: Request, submission_id: str):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     logging.info(f"results = {results}")
-    submission.mae = float(results["mean_mean_absolute_error"])
     submission.mrt = float(results["mean_run_time"])
     submission.data_requirements = results["function_parameters"]
     submission.result = results["metrics"]
@@ -337,7 +337,7 @@ def analysis_user_submission(request, analysis_id):
 def leaderboard_update(request: Request):
     if request.method in ["PUT", "POST"]:
 
-        required_fields = ["submission_id", "mae", "mrt", "data_requirements"]
+        required_fields = ["submission_id", "mrt", "data_requirements"]
 
         if request.data is None or not isinstance(request.data, dict):
             return Response(
@@ -354,7 +354,6 @@ def leaderboard_update(request: Request):
         body: dict[str, str] = request.data
 
         submission_id = body.get("submission_id", None)
-        mae = body.get("mae", None)
         mrt = body.get("mrt", None)
         data_requirements = body.get("data_requirements", None)
 
@@ -371,9 +370,6 @@ def leaderboard_update(request: Request):
                 {"error": "submission does not exist"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        if mae is not None:
-            submission.mae = float(mae)
 
         if mrt is not None:
             submission.mrt = float(mrt)
@@ -420,7 +416,6 @@ def preload_submissions(request: Request):
             analysis=analysis,
             created_by=user,
             algorithm=submission_data.get("algorithm"),
-            mae=submission_data.get("mae"),
             mrt=submission_data.get("mrt"),
             status=Submission.FINISHED,
             data_requirements=submission_data.get("data_requirements").get(

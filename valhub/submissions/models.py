@@ -45,11 +45,7 @@ class Submission(models.Model):
         default=SUBMITTING,
     )
     alt_name = models.TextField(null=True, blank=True, default="")
-
-    # mae - mean average error
     # mrt - mean run time
-
-    mae = models.FloatField(null=True, blank=True)
     mrt = models.FloatField(null=True, blank=True)
     data_requirements = models.TextField(null=True, blank=True)
     archived = models.BooleanField(default=False)

@@ -108,7 +108,6 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "algorithm_s3_path",
             "analysis_id",
             "result",
-            "mae",
             "mrt",
             "data_requirements",
             "error_rate",
