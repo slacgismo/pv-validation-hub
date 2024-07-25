@@ -564,7 +564,18 @@ def run(  # noqa: C901
         "data_requirements"
     ].iloc[0]
 
-    metrics_list = []
+    metrics_dict: dict[str, str | float] = {}
+
+    def m_mean(df: pd.DataFrame, column: str):
+        return df[metric].mean()
+
+    def m_median(df: pd.DataFrame, column: str):
+        return df[metric].median()
+
+    metric_operations_mapping = {
+        "mean": m_mean,
+        "median": m_median,
+    }
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -574,6 +585,7 @@ def run(  # noqa: C901
         if "absolute_error" in metric:
             # QUESTION: Does this need to loop over all the ground truth compare values?
             for val in config_data["ground_truth_compare"]:
+
                 logger.info(
                     f"metric: {metric}, val: {val}, combined: {'mean_' + metric}"
                 )
@@ -588,7 +600,7 @@ def run(  # noqa: C901
                     f"mean_{metric}",
                     mean_metric,
                 )
-                metrics_list.append(metric_tuple)
+                metrics_dict.append(metric_tuple)
 
                 median_metric = results_df[metric_name].median()
                 public_metrics_dict["median_" + metric] = median_metric
@@ -597,22 +609,47 @@ def run(  # noqa: C901
                     f"median_{metric}",
                     median_metric,
                 )
-                metrics_list.append(metric_tuple)
+                metrics_dict.append(metric_tuple)
         elif "runtime" in metric:
-            key = "run_time"
 
-            if key not in results_df.columns:
-                continue
-
-            mean_metric = results_df[key].mean()
-
-            metric_tuple = (
-                f"mean_{key}",
-                mean_metric,
+            metrics_operations: dict[str, dict[str, str]] = config_data.get(
+                "metrics_operations", {}
             )
-            metrics_list.append(metric_tuple)
 
-    public_metrics_dict["metrics"] = json.dumps(metrics_list)
+            if metric not in metrics_operations:
+                # TODO: add error code
+                logger.error(
+                    f"metric {metric} not found in metrics_operations"
+                )
+                raise RunnerException(
+                    *get_error_by_code(500, runner_error_codes, logger)
+                )
+
+            operations = metrics_operations[metric]
+
+            for operation in operations:
+                if operation not in metric_operations_mapping:
+                    # TODO: add error code
+                    logger.error(
+                        f"operation {operation} not found in metric_operations_mapping"
+                    )
+                    raise RunnerException(
+                        *get_error_by_code(500, runner_error_codes, logger)
+                    )
+
+                operation_function = metric_operations_mapping[operation]
+
+                key = "run_time"
+
+                if key not in results_df.columns:
+                    continue
+
+                metric_result = operation_function(results_df, key)
+
+                metric_result_dict = {f"{operation}_{key}": metric_result}
+                metrics_dict.update(metric_result_dict)
+
+    public_metrics_dict["metrics"] = metrics_dict
 
     # Write public metric information to a public results table.
     with open(
