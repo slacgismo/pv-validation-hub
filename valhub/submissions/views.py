@@ -263,15 +263,15 @@ def update_submission_result(request: Request, submission_id: str):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     required_fields = [
-        "mean_mean_absolute_error",
         "mean_run_time",
         "function_parameters",
         "metrics",
     ]
 
-    if not all(field in results for field in required_fields):
-        response_data = {"error": "missing required fields"}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+    for field in required_fields:
+        if field not in results:
+            response_data = {"error": f"{field} is required"}
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     logging.info(f"results = {results}")
     submission.mrt = float(results["mean_run_time"])

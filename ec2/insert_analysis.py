@@ -49,7 +49,7 @@ def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
 
 
 def post_data_to_api_to_df(
-    api_url: str, endpoint: str, data: dict
+    api_url: str, endpoint: str, data: dict[str, Any]
 ) -> pd.DataFrame:
 
     data = request_to_API_w_credentials(
@@ -392,17 +392,19 @@ class InsertAnalysis:
 
         for system in systems_json_list:
 
-            json_body = {
-                # "system_id": system["system_id"],
-                "name": system["name"],
-                "azimuth": system["azimuth"],
-                "tilt": system["tilt"],
-                "elevation": system["elevation"],
-                "latitude": system["latitude"],
-                "longitude": system["longitude"],
-                "tracking": system["tracking"],
-                "dc_capacity": system["dc_capacity"],
-            }
+            json_body: dict[str, Any] = {}
+
+            json_body["name"] = system["name"]
+            json_body["azimuth"] = system["azimuth"]
+            json_body["tilt"] = system["tilt"]
+            json_body["elevation"] = system["elevation"]
+            json_body["latitude"] = system["latitude"]
+            json_body["longitude"] = system["longitude"]
+            json_body["tracking"] = system["tracking"]
+            if "dc_capacity" in system:
+                print(system["dc_capacity"])
+                if system["dc_capacity"] is not None:
+                    json_body["dc_capacity"] = system["dc_capacity"]
 
             print(json_body)
 
@@ -455,11 +457,18 @@ class InsertAnalysis:
                 self.is_local,
             )
 
+    def uploadValidationData(self):
+
+        file_metadata_names = self.new_file_metadata_df["file_name"]
+
+        for file_name in file_metadata_names:
             # upload validation data to s3
             local_path = os.path.join(
-                self.validation_data_folder_path, metadata["file_name"]
+                self.validation_data_folder_path, file_name
             )
-            upload_path = f'data_files/ground_truth/{str(self.analysis_id)}/{metadata["file_name"]}'
+            upload_path = (
+                f"data_files/ground_truth/{str(self.analysis_id)}/{file_name}"
+            )
             upload_to_s3_bucket(
                 self.s3_url,
                 self.s3_bucket_name,
@@ -626,20 +635,29 @@ class InsertAnalysis:
 
         df_new = df_new[~df_new["name"].isin(list(same_systems["name"]))]
 
-        # Return the system data ready for insertion
-        return df_new[
-            [
-                "system_id",
-                "name",
-                "azimuth",
-                "tilt",
-                "elevation",
-                "latitude",
-                "longitude",
-                "tracking",
-                "dc_capacity",
-            ]
+        system_metadata_columns = [
+            "system_id",
+            "name",
+            "azimuth",
+            "tilt",
+            "elevation",
+            "latitude",
+            "longitude",
+            "tracking",
+            "dc_capacity",
         ]
+
+        def addNAtoMissingColumns(df, columns):
+            new_df = df.copy()
+            for column in columns:
+                if column not in df.columns:
+                    new_df[column] = None
+            return new_df
+
+        # Return the system data ready for insertion
+        df_modified = addNAtoMissingColumns(df_new, system_metadata_columns)
+        print(df_modified.head(5))
+        return df_modified
 
     def buildFileMetadata(self):
         """
@@ -789,7 +807,7 @@ class InsertAnalysis:
         Prepare the file test linker and drop it into the new evaluation folder.
         """
 
-        file_test_link = self.db_file_metadata_df["file_id"]
+        file_test_link = self.new_file_metadata_df["file_id"]
 
         file_test_link.index.name = "test_id"
 
@@ -825,6 +843,7 @@ class InsertAnalysis:
         new_file_metadata_df = self.buildFileMetadata()
         self.createFileMetadata(new_file_metadata_df)
         self.updateFileMetadataIDs()
+        self.uploadValidationData()
 
         self.prepareFileTestLinker()
         self.prepareConfig()
