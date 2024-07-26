@@ -1031,22 +1031,33 @@ def create_docker_image(
         logger_if_able(image, logger)
         return image
     else:
-        logger_if_able("Docker image does not exist")
+        logger_if_able("Docker image does not exist", logger)
+        logger_if_able("Creating Docker image", logger)
 
         try:
             # Create docker image from Dockerfile
-            image, build_logs = client.images.build(
+            live_log_generator = client.api.build(
                 path=dir_path,
                 tag=tag,
                 rm=True,
                 dockerfile="Dockerfile",
                 buildargs={"zip_file": f"{submission_file_name}"},
             )
-            for log in build_logs:
-                if "stream" in log:
-                    logger_if_able(log["stream"].strip())
+            for line in live_log_generator:
+                line_dict = json.loads(line)
+                if line_dict.get("stream"):
+                    logger_if_able(
+                        line_dict["stream"].rstrip(), logger, "INFO"
+                    )
 
             logger_if_able("Docker image created")
+
+            try:
+                image = client.images.get(tag)
+            except ImageNotFound:
+                logger_if_able("Docker image not found", logger)
+            except Exception as e:
+                raise e
 
             return image
         except BuildError as e:
