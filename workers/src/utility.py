@@ -603,7 +603,11 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
 
 def with_credentials(logger: Logger | None = None):
 
-    username, password = get_login_secrets_from_aws()
+    if IS_LOCAL:
+        username = os.environ.get("admin_username", None)
+        password = os.environ.get("admin_password", None)
+    else:
+        username, password = get_login_secrets_from_aws()
 
     if not username or not password:
         raise Exception("Missing admin credentials")
