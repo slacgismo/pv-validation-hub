@@ -129,9 +129,9 @@ services:
       - ./workers/tmp:/tmp
       - ./workers/requirements.txt:/root/worker/requirements.txt
       - ./workers/src:/root/worker/src
-      - type: bind
-        source: ~/.aws
-        target: /root/.aws
+      # - type: bind
+      #   source: ~/.aws
+      #   target: /root/.aws
     restart: unless-stopped
     develop:
       watch:
