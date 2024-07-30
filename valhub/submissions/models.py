@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 from analyses.models import Analysis
 from base.utils import RandomFileName
@@ -47,7 +48,9 @@ class Submission(models.Model):
     alt_name = models.TextField(null=True, blank=True, default="")
     # mrt - mean run time
     mrt = models.FloatField(null=True, blank=True)
-    data_requirements = models.TextField(null=True, blank=True)
+    data_requirements = ArrayField(
+        models.CharField(max_length=100), blank=True, default=list
+    )
     archived = models.BooleanField(default=False)
     python_version = models.DecimalField(
         max_digits=4,

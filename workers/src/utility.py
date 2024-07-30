@@ -1044,11 +1044,14 @@ def create_docker_image(
                 buildargs={"zip_file": f"{submission_file_name}"},
             )
             for line in live_log_generator:
-                line_dict = json.loads(line)
-                if line_dict.get("stream"):
-                    logger_if_able(
-                        line_dict["stream"].rstrip(), logger, "INFO"
-                    )
+                try:
+                    line_dict = json.loads(line)
+                    if line_dict.get("stream"):
+                        logger_if_able(
+                            line_dict["stream"].rstrip(), logger, "INFO"
+                        )
+                except json.JSONDecodeError:
+                    logger_if_able(line, logger, "INFO")
 
             logger_if_able("Docker image created")
 
