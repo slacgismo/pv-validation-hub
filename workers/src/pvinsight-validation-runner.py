@@ -1221,8 +1221,8 @@ def generate_performance_metrics_for_submission(
     results_dictionary["file_name"] = file_name
     # Set the runtime in the results dictionary
     results_dictionary["run_time"] = submission_runtime
-    # Set the data requirements in the dictionary, JSON required or bad juju happens in my DB and FE
-    results_dictionary["data_requirements"] = json.dumps(function_parameters)
+    # Set the data requirements in the dictionary, must be a list for DB array field
+    results_dictionary["data_requirements"] = function_parameters
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
     for metric in performance_metrics:

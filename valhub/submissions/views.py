@@ -33,7 +33,11 @@ from accounts.models import Account
 from .models import Submission
 from urllib.parse import urljoin
 
-from .serializers import SubmissionSerializer, SubmissionDetailSerializer
+from .serializers import (
+    SubmissionSerializer,
+    SubmissionDetailSerializer,
+    SubmissionPrivateReportSerializer,
+)
 from .models import Submission
 
 
@@ -273,6 +277,11 @@ def update_submission_result(request: Request, submission_id: str):
             response_data = {"error": f"{field} is required"}
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
+    # Validate that function_parameters is a list
+    if not isinstance(results["function_parameters"], list):
+        response_data = {"error": "function_parameters must be a list"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
     logging.info(f"results = {results}")
     submission.mrt = float(results["mean_run_time"])
     submission.data_requirements = results["function_parameters"]
@@ -375,6 +384,9 @@ def leaderboard_update(request: Request):
             submission.mrt = float(mrt)
 
         if data_requirements is not None:
+            if isinstance(data_requirements, str):
+                # Convert the string to a list of strings
+                data_requirements = [data_requirements]
             submission.data_requirements = data_requirements
 
         submission.save()
@@ -543,6 +555,9 @@ def get_submission_results(request: Request, submission_id: str):
     # set returns
     logging.info(f"setting returns")
     ret["marimo_url"] = file_urls
+    ret["submission_details"] = SubmissionPrivateReportSerializer(
+        submission
+    ).data
 
     return JsonResponse(ret, status=status.HTTP_200_OK)
 

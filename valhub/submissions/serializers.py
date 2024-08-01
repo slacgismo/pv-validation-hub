@@ -135,22 +135,35 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "username": instance.created_by.username,
         }
 
-        # Attempt to load the stringified array from the text field
-        try:
-            data_requirements = json.loads(instance.data_requirements)
-            # Ensure that the loaded object is a list
-            if not isinstance(data_requirements, list):
-                raise ValueError(
-                    "Loaded object is not a list"
-                )  # Include a message with the ValueError
-        except (ValueError, TypeError) as e:
-            logger.error(
-                f"Failed to parse data_requirements for submission {instance.submission_id}: {e}"
-            )
-            logger.error(f"With a value of {instance.data_requirements}")
-            data_requirements = (
-                []
-            )  # Default to an empty list if any error occurs
+        return data
 
-        data["data_requirements"] = data_requirements
+
+class SubmissionPrivateReportSerializer(serializers.ModelSerializer):
+    """
+    Serialize the private report of Submission Model.
+    """
+
+    class Meta:
+        model = Submission
+        fields = (
+            "submission_id",
+            "result",
+            "mrt",
+            "data_requirements",
+            "submitted_at",
+            "alt_name",
+            "archived",
+            "python_version",
+            "worker_version",
+        )
+
+    def to_representation(self, instance):
+        data = super(
+            SubmissionPrivateReportSerializer, self
+        ).to_representation(instance)
+        data["created_by"] = {
+            "uuid": instance.created_by.uuid,
+            "username": instance.created_by.username,
+        }
+
         return data
