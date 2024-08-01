@@ -4,7 +4,13 @@ FROM python:3.11-slim
 # Set the working directory in the container
 WORKDIR /app
 
-RUN apt-get update 
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libopenblas-dev \
+    libhdf5-dev \
+    python3-dev \
+    cmake \
+    pkg-config
 
 COPY unzip.py .
 COPY requirements.txt .
@@ -24,7 +30,7 @@ RUN python -m unzip $zip_file submission
 WORKDIR /app/submission
 
 # Install the Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 
 # Set the working directory in the container

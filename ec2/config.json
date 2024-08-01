@@ -1,5 +1,5 @@
 {
-    "category_name": "Time Shift Analysis",
+    "category_name": "Quick Dev TS",
     "function_name": "detect_time_shifts",
     "comparison_type": "time_series",
     "performance_metrics": [

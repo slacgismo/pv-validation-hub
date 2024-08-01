@@ -564,7 +564,7 @@ def run(  # noqa: C901
         "data_requirements"
     ].iloc[0]
 
-    metrics_list = []
+    metrics_dict = {}
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -582,22 +582,10 @@ def run(  # noqa: C901
 
                 mean_metric = results_df[metric_name].mean()
 
-                public_metrics_dict["mean_" + metric] = mean_metric
-
-                metric_tuple = (
-                    f"mean_{metric}",
-                    mean_metric,
-                )
-                metrics_list.append(metric_tuple)
+                metrics_dict[f"mean_{metric}"] = mean_metric
 
                 median_metric = results_df[metric_name].median()
-                public_metrics_dict["median_" + metric] = median_metric
-
-                metric_tuple = (
-                    f"median_{metric}",
-                    median_metric,
-                )
-                metrics_list.append(metric_tuple)
+                metrics_dict[f"median_{metric}"] = median_metric
         elif "runtime" in metric:
             key = "run_time"
 
@@ -606,13 +594,10 @@ def run(  # noqa: C901
 
             mean_metric = results_df[key].mean()
 
-            metric_tuple = (
-                f"mean_{key}",
-                mean_metric,
-            )
-            metrics_list.append(metric_tuple)
+            metrics_dict[f"mean_{key}"] = mean_metric
 
-    public_metrics_dict["metrics"] = json.dumps(metrics_list)
+    # json dump no longer needed, as using json field in database
+    public_metrics_dict["metrics"] = metrics_dict
 
     # Write public metric information to a public results table.
     with open(
@@ -1184,8 +1169,8 @@ def generate_performance_metrics_for_submission(
     results_dictionary["file_name"] = file_name
     # Set the runtime in the results dictionary
     results_dictionary["run_time"] = submission_runtime
-    # Set the data requirements in the dictionary, JSON required or bad juju happens in my DB and FE
-    results_dictionary["data_requirements"] = json.dumps(function_parameters)
+    # Set the data requirements in the dictionary, must be a list for DB array field
+    results_dictionary["data_requirements"] = function_parameters
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
     for metric in performance_metrics:

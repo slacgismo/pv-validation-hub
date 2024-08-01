@@ -4,6 +4,7 @@ from analyses.models import Analysis
 from accounts.models import Account
 from error_report.models import ErrorReport
 from error_report.serializers import ErrorReportLeaderboardSerializer
+from versions.models import Versions
 import json
 import logging
 
@@ -32,6 +33,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         super(SubmissionSerializer, self).__init__(*args, **kwargs)
 
     error_rate = serializers.SerializerMethodField()
+    worker_version = serializers.SerializerMethodField()
 
     class Meta:
         model = Submission
@@ -41,6 +43,8 @@ class SubmissionSerializer(serializers.ModelSerializer):
             "error_rate",
             "alt_name",
             "archived",
+            "python_version",
+            "worker_version",
         )
 
     def get_error_rate(self, obj):
@@ -50,6 +54,13 @@ class SubmissionSerializer(serializers.ModelSerializer):
             if error_report and error_report.error_rate is not None
             else 0
         )
+
+    def get_worker_version(self, obj):
+        try:
+            version = Versions.objects.get(pk=1)
+            return version.cur_worker_version
+        except Versions.DoesNotExist:
+            return None
 
     def to_representation(self, instance):
         data = super(SubmissionSerializer, self).to_representation(instance)
@@ -67,6 +78,16 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["status"] = instance.status
         data["alt_name"] = instance.alt_name
         data["archived"] = instance.archived
+        data["python_version"] = instance.python_version
+        data["worker_version"] = instance.worker_version
+
+        # Update worker_version to use the value from Versions model with PK 1
+        try:
+            version = Versions.objects.get(pk=1)
+            data["worker_version"] = version.cur_worker_version
+        except Versions.DoesNotExist:
+            data["worker_version"] = None
+
         return data
 
 
@@ -87,13 +108,14 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "algorithm_s3_path",
             "analysis_id",
             "result",
-            "mae",
             "mrt",
             "data_requirements",
             "error_rate",
             "submitted_at",
             "alt_name",
             "archived",
+            "python_version",
+            "worker_version",
         )
 
     def get_error_rate(self, obj):
@@ -113,22 +135,35 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "username": instance.created_by.username,
         }
 
-        # Attempt to load the stringified array from the text field
-        try:
-            data_requirements = json.loads(instance.data_requirements)
-            # Ensure that the loaded object is a list
-            if not isinstance(data_requirements, list):
-                raise ValueError(
-                    "Loaded object is not a list"
-                )  # Include a message with the ValueError
-        except (ValueError, TypeError) as e:
-            logger.error(
-                f"Failed to parse data_requirements for submission {instance.submission_id}: {e}"
-            )
-            logger.error(f"With a value of {instance.data_requirements}")
-            data_requirements = (
-                []
-            )  # Default to an empty list if any error occurs
+        return data
 
-        data["data_requirements"] = data_requirements
+
+class SubmissionPrivateReportSerializer(serializers.ModelSerializer):
+    """
+    Serialize the private report of Submission Model.
+    """
+
+    class Meta:
+        model = Submission
+        fields = (
+            "submission_id",
+            "result",
+            "mrt",
+            "data_requirements",
+            "submitted_at",
+            "alt_name",
+            "archived",
+            "python_version",
+            "worker_version",
+        )
+
+    def to_representation(self, instance):
+        data = super(
+            SubmissionPrivateReportSerializer, self
+        ).to_representation(instance)
+        data["created_by"] = {
+            "uuid": instance.created_by.uuid,
+            "username": instance.created_by.username,
+        }
+
         return data

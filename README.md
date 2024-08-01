@@ -79,3 +79,35 @@ K6 Load Tester: [Loadforge](https://loadforge.com/?utm_source=googleads&utm_medi
 Note: docker-compose will automatically use environment variables specified in the ```.env``` file located at the project root. Variables specified in the shell take precedence over the env file. Copy and rename the ```.env.example``` file to ```.env``` and fill-in the desired values. ```.env``` files should never be committed, and should always be part of the ```.gitignore``` file, for safe development.
 
 [Environment] (https://docs.docker.com/compose/environment-variables/)
+
+## Important Developer Notes
+
+### Managing Leaderboard Display Fields
+For dynamic analysis error fields and dynamic display options on the front end, we have an informal yet critical connection from the Analysis object and the submission object.
+
+The Analysis Model has a display error JSONfield, while the submission object has a Result JSONfield.
+
+The Display errors field will set the field display name and tracking key on the leaderboard.
+
+The keys in Display errors and Result must match in order for the result values to display on the front end.
+
+Analysis:
+```
+...
+Display errors: {"mae": "MAE", "test": "FOO!"}
+...
+```
+
+Submission:
+```
+...
+Result: {"mae": 44, "test": 9001}
+...
+```
+
+In this example, we will get two columns: "MAE" and "FOO!"
+"MAE" will have the value 44 display for its submission, while "FOO!" will have the number 9001 display.
+
+This setup enables us to have multiple different analytical tasks, with customizable names and display metrics.
+
+We can store as many different result fields as we want into Result, and can add or remove the display keys from the Analysis to show which one's we want.

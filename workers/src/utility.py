@@ -5,7 +5,7 @@ from dask.distributed import Client
 from dask import config
 import docker
 from docker.models.containers import Container
-from docker.errors import ImageNotFound
+from docker.errors import ImageNotFound, BuildError
 from docker.models.images import Image
 
 from concurrent.futures import (
@@ -1031,23 +1031,44 @@ def create_docker_image(
         logger_if_able(image, logger)
         return image
     else:
-        logger_if_able("Docker image does not exist")
+        logger_if_able("Docker image does not exist", logger)
+        logger_if_able("Creating Docker image", logger)
 
-        # Create docker image from Dockerfile
-        image, build_logs = client.images.build(
-            path=dir_path,
-            tag=tag,
-            rm=True,
-            dockerfile="Dockerfile",
-            buildargs={"zip_file": f"{submission_file_name}"},
-        )
-        for log in build_logs:
-            if "stream" in log:
-                logger_if_able(log["stream"].strip())
+        try:
+            # Create docker image from Dockerfile
+            live_log_generator = client.api.build(
+                path=dir_path,
+                tag=tag,
+                rm=True,
+                dockerfile="Dockerfile",
+                buildargs={"zip_file": f"{submission_file_name}"},
+            )
+            for line in live_log_generator:
+                try:
+                    line_dict = json.loads(line)
+                    if line_dict.get("stream"):
+                        logger_if_able(
+                            line_dict["stream"].rstrip(), logger, "INFO"
+                        )
+                except json.JSONDecodeError:
+                    logger_if_able(line, logger, "INFO")
 
-        logger_if_able("Docker image created")
+            logger_if_able("Docker image created")
 
-        return image
+            try:
+                image = client.images.get(tag)
+            except ImageNotFound:
+                logger_if_able("Docker image not found", logger)
+            except Exception as e:
+                raise e
+
+            return image
+        except BuildError as e:
+            logger_if_able(f"Error: {e}", logger, "ERROR")
+            raise e
+        except Exception as e:
+            logger_if_able(f"Error: {e}", logger, "ERROR")
+            raise e
 
 
 class DockerClientContextManager:
