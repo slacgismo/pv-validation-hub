@@ -552,8 +552,8 @@ def run(  # noqa: C901
 
     public_metrics_dict["module"] = module_name
     # Get the mean and median run times
-    public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
-    public_metrics_dict["median_run_time"] = results_df["run_time"].median()
+    public_metrics_dict["mean_runtime"] = results_df["runtime"].mean()
+    public_metrics_dict["median_runtime"] = results_df["runtime"].median()
     public_metrics_dict["function_parameters"] = [
         "time_series",
         *config_data["allowable_kwargs"],
@@ -628,7 +628,7 @@ def run(  # noqa: C901
             for val in config_data["ground_truth_compare"]:
 
                 if metric == "runtime":
-                    key = "run_time"
+                    key = "runtime"
                 else:
                     key = f"{metric}_{val}"
 
@@ -643,7 +643,7 @@ def run(  # noqa: C901
 
                 metric_result = operation_function(results_df, key)
 
-                metric_result_dict = {f"{operation}_{key}": metric_result}
+                metric_result_dict = {f"{operation}_{metric}": metric_result}
                 metrics_dict.update(metric_result_dict)
 
     public_metrics_dict["metrics"] = metrics_dict
