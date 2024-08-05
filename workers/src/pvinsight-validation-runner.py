@@ -1230,7 +1230,8 @@ def generate_performance_metrics_for_submission(
     def p_mean_absolute_error(output: pd.Series, ground_truth: pd.Series):
         output.index = ground_truth.index
         difference = output - ground_truth
-        mean_absolute_error = np.mean(difference)
+        absolute_difference = np.abs(difference)
+        mean_absolute_error = np.mean(absolute_difference)
         return mean_absolute_error
 
     performance_metrics_map = {
