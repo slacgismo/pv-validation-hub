@@ -997,9 +997,18 @@ def submission_task(
     return error, error_code
 
 
+def is_valid_python_version(python_version: str) -> bool:
+    supported_python_versions = cast(
+        list[str],
+        request_to_API_w_credentials("GET", "versions/python", logger=None),
+    )
+    return python_version in supported_python_versions
+
+
 def create_docker_image(
     dir_path: str,
     tag: str,
+    python_version: str,
     submission_file_name: str,
     client: docker.DockerClient,
     overwrite: bool = False,
@@ -1009,10 +1018,15 @@ def create_docker_image(
     # file_path = os.path.join(os.path.dirname(__file__), "environment")
 
     logger_if_able(dir_path, logger)
+    logger_if_able(python_version, logger)
 
     # Check if Dockerfile exists
     if not os.path.exists(os.path.join(dir_path, "Dockerfile")):
         raise FileNotFoundError("Dockerfile not found")
+
+    valid_python_version = is_valid_python_version(python_version)
+    if not valid_python_version:
+        raise ValueError(f"Python version {python_version} is not supported")
 
     # Check if docker image already exists
 
@@ -1041,7 +1055,10 @@ def create_docker_image(
                 tag=tag,
                 rm=True,
                 dockerfile="Dockerfile",
-                buildargs={"zip_file": f"{submission_file_name}"},
+                buildargs={
+                    "zip_file": f"{submission_file_name}",
+                    "python_version": python_version,
+                },
             )
             for line in live_log_generator:
                 try:
@@ -1135,6 +1152,7 @@ def is_docker_daemon_running():
 def create_docker_image_for_submission(
     dir_path: str,
     image_tag: str,
+    python_version: str,
     submission_file_name: str,
     overwrite: bool = True,
     logger: Logger | None = None,
@@ -1146,6 +1164,7 @@ def create_docker_image_for_submission(
         image = create_docker_image(
             dir_path,
             image_tag,
+            python_version,
             submission_file_name,
             client,
             overwrite=overwrite,
@@ -1168,8 +1187,10 @@ def dask_main():
 
     submission_file_name = "submission.zip"
 
+    python_version = "3.10"
+
     image, _ = create_docker_image_for_submission(
-        dir_path, image_tag, submission_file_name
+        dir_path, image_tag, python_version, submission_file_name
     )
 
     data_files = os.listdir("data")

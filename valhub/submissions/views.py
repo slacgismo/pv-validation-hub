@@ -267,7 +267,7 @@ def update_submission_result(request: Request, submission_id: str):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     required_fields = [
-        "mean_run_time",
+        "mean_runtime",
         "function_parameters",
         "metrics",
     ]
@@ -283,7 +283,7 @@ def update_submission_result(request: Request, submission_id: str):
         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
     logging.info(f"results = {results}")
-    submission.mrt = float(results["mean_run_time"])
+    submission.mrt = float(results["mean_runtime"])
     submission.data_requirements = results["function_parameters"]
     submission.result = results["metrics"]
     try:

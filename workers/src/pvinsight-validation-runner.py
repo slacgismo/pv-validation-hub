@@ -16,12 +16,10 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from logging import config
 from typing import Any, Callable, Sequence, Tuple, TypeVar, cast, ParamSpec
 import pandas as pd
 import os
 from importlib import import_module
-import inspect
 from collections import ChainMap
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -311,6 +309,7 @@ def run(  # noqa: C901
     file_metadata_df: pd.DataFrame,
     update_submission_status: Callable[[int, str], dict[str, Any]],
     submission_id: int,
+    python_version: str,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ) -> dict[str, Any]:
@@ -378,7 +377,12 @@ def run(  # noqa: C901
     logger.info(f"Creating docker image for submission...")
 
     image, image_tag = create_docker_image_for_submission(
-        docker_dir, image_tag, submission_file_name, overwrite, logger
+        docker_dir,
+        image_tag,
+        python_version,
+        submission_file_name,
+        overwrite,
+        logger,
     )
 
     logger.info(f"Created docker image for submission: {image_tag}")
@@ -554,8 +558,8 @@ def run(  # noqa: C901
 
     public_metrics_dict["module"] = module_name
     # Get the mean and median run times
-    public_metrics_dict["mean_run_time"] = results_df["run_time"].mean()
-    public_metrics_dict["median_run_time"] = results_df["run_time"].median()
+    public_metrics_dict["mean_runtime"] = results_df["runtime"].mean()
+    public_metrics_dict["median_runtime"] = results_df["runtime"].median()
     public_metrics_dict["function_parameters"] = [
         "time_series",
         *config_data["allowable_kwargs"],
@@ -564,39 +568,90 @@ def run(  # noqa: C901
         "data_requirements"
     ].iloc[0]
 
-    metrics_dict = {}
+    metrics_dict: dict[str, str | float] = {}
+
+    def m_mean(df: pd.DataFrame, column: str):
+        return df[column].mean()
+
+    def m_median(df: pd.DataFrame, column: str):
+        return df[column].median()
+
+    metric_operations_mapping = {
+        "mean": m_mean,
+        "median": m_median,
+    }
+
+    perfomance_metrics_mapping = [
+        "mean_absolute_error",
+        "absolute_error",
+        "runtime",
+    ]
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
     # do not add anything to them. mean_mean_average_error and median_mean_average_error
     # are valid keys, anything else breaks our results processing
     for metric in performance_metrics:
-        if "absolute_error" in metric:
-            # QUESTION: Does this need to loop over all the ground truth compare values?
-            for val in config_data["ground_truth_compare"]:
-                logger.info(
-                    f"metric: {metric}, val: {val}, combined: {'mean_' + metric}"
+
+        if metric not in perfomance_metrics_mapping:
+
+            logger.error(
+                f"metric {metric} not found in perfomance_metrics_mapping"
+            )
+            # TODO: add error code
+
+            raise RunnerException(
+                *get_error_by_code(500, runner_error_codes, logger)
+            )
+
+        metrics_operations: dict[str, dict[str, str]] = config_data.get(
+            "metrics_operations", {}
+        )
+
+        if metric not in metrics_operations:
+            # TODO: add error code
+            logger.error(
+                f"metric {metric} not found in metrics_operations within config.json"
+            )
+            raise RunnerException(
+                *get_error_by_code(500, runner_error_codes, logger)
+            )
+
+        operations = metrics_operations[metric]
+
+        for operation in operations:
+            if operation not in metric_operations_mapping:
+                # TODO: add error code
+                logger.error(
+                    f"operation {operation} not found in metric_operations_mapping"
+                )
+                raise RunnerException(
+                    *get_error_by_code(500, runner_error_codes, logger)
                 )
 
-                metric_name = metric + "_" + val
+            operation_function = metric_operations_mapping[operation]
 
-                mean_metric = results_df[metric_name].mean()
+            for val in config_data["ground_truth_compare"]:
 
-                metrics_dict[f"mean_{metric}"] = mean_metric
+                if metric == "runtime":
+                    key = "runtime"
+                else:
+                    key = f"{metric}_{val}"
 
-                median_metric = results_df[metric_name].median()
-                metrics_dict[f"median_{metric}"] = median_metric
-        elif "runtime" in metric:
-            key = "run_time"
+                if key not in results_df.columns:
 
-            if key not in results_df.columns:
-                continue
+                    logger.error(f"key {key} not found in results_df columns")
 
-            mean_metric = results_df[key].mean()
+                    # TODO: add error code
+                    raise RunnerException(
+                        *get_error_by_code(500, runner_error_codes, logger)
+                    )
 
-            metrics_dict[f"mean_{key}"] = mean_metric
+                metric_result = operation_function(results_df, key)
 
-    # json dump no longer needed, as using json field in database
+                metric_result_dict = {f"{operation}_{metric}": metric_result}
+                metrics_dict.update(metric_result_dict)
+
     public_metrics_dict["metrics"] = metrics_dict
 
     # Write public metric information to a public results table.
@@ -1167,48 +1222,56 @@ def generate_performance_metrics_for_submission(
     # results to the dictionary
     results_dictionary: dict[str, Any] = dict()
     results_dictionary["file_name"] = file_name
-    # Set the runtime in the results dictionary
-    results_dictionary["run_time"] = submission_runtime
+
     # Set the data requirements in the dictionary, must be a list for DB array field
     results_dictionary["data_requirements"] = function_parameters
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
+
+    def p_absolute_error(output: pd.Series, ground_truth: pd.Series):
+        difference = output - ground_truth
+        absolute_difference = np.abs(difference)
+        return absolute_difference
+
+    def p_mean_absolute_error(output: pd.Series, ground_truth: pd.Series):
+        output.index = ground_truth.index
+        difference = output - ground_truth
+        absolute_difference = np.abs(difference)
+        mean_absolute_error = np.mean(absolute_difference)
+        return mean_absolute_error
+
+    performance_metrics_map = {
+        "absolute_error": p_absolute_error,
+        "mean_absolute_error": p_mean_absolute_error,
+    }
+
     for metric in performance_metrics:
-        if metric == "absolute_error":
-            # Loop through the input and the output dictionaries,
-            # and calculate the absolute error
-            for val in config_data["ground_truth_compare"]:
 
-                logger.debug(
-                    f"output_dictionary[val]: {output_dictionary[val]}"
+        if metric == "runtime":
+            # Set the runtime in the results dictionary
+            results_dictionary["runtime"] = submission_runtime
+            continue
+
+        if metric not in performance_metrics_map:
+            logger.error(
+                f"performance metric {metric} not found in performance_metrics_map, Unhandled metric"
+            )
+            # TODO: add error code
+
+            raise RunnerException(
+                *get_error_by_code(500, runner_error_codes, logger)
+            )
+
+        performance_metric_function = performance_metrics_map[metric]
+
+        for val in config_data["ground_truth_compare"]:
+
+            results_dictionary[metric + "_" + val] = (
+                performance_metric_function(
+                    output_dictionary[val], ground_truth_dict[val]
                 )
-                logger.debug(
-                    f"ground_truth_dict[val]: {ground_truth_dict[val]}"
-                )
-                difference = output_dictionary[val] - ground_truth_dict[val]
-                logger.debug(f"difference: {difference}")
+            )
 
-                error = np.abs(difference)
-                logger.debug(f"error for {val}: {error}")
-                results_dictionary[metric + "_" + val] = error
-        elif metric == "mean_absolute_error":
-            for val in config_data["ground_truth_compare"]:
-
-                output_series: pd.Series = output_dictionary[val]
-                logger.debug(f"output_series: {output_series}")
-
-                ground_truth_series: pd.Series = ground_truth_dict[val]
-                logger.debug(f"ground_truth_series: {ground_truth_series}")
-
-                # copy index from ground truth series
-                output_series.index = ground_truth_series.index
-
-                difference = output_series - ground_truth_series
-                logger.debug(f"difference: {difference}")
-                error = np.mean(difference)
-
-                logger.debug(f"mean_absolute_error for {val}: {error}")
-                results_dictionary[metric + "_" + val] = error
     return results_dictionary
 
 
