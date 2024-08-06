@@ -309,6 +309,7 @@ def run(  # noqa: C901
     file_metadata_df: pd.DataFrame,
     update_submission_status: Callable[[int, str], dict[str, Any]],
     submission_id: int,
+    python_version: str,
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ) -> dict[str, Any]:
@@ -376,7 +377,12 @@ def run(  # noqa: C901
     logger.info(f"Creating docker image for submission...")
 
     image, image_tag = create_docker_image_for_submission(
-        docker_dir, image_tag, submission_file_name, overwrite, logger
+        docker_dir,
+        image_tag,
+        python_version,
+        submission_file_name,
+        overwrite,
+        logger,
     )
 
     logger.info(f"Created docker image for submission: {image_tag}")

@@ -891,4 +891,4 @@ if __name__ == "__main__":
             s3_url=s3_url,
             is_local=is_local,
         )
-        r.insertData(force=True)
+        r.insertData()
