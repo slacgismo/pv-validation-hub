@@ -11,5 +11,5 @@
 #     query_api
 #     sleep 5
 # done
-
+ENV=~/.profile sh
 python src/submission_worker.py

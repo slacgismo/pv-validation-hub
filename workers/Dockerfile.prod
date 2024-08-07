@@ -8,9 +8,15 @@ RUN apt-get update && apt-get install -y gawk
 ARG region=us-west-2
 ARG ak
 ARG sak
+ARG DOCKER_HOST_VOLUME_DATA_DIR
+ARG DOCKER_HOST_VOLUME_RESULTS_DIR
 # Copy AWS configuration if needed
 RUN mkdir -p .aws
 RUN mkdir worker
+
+# Set environment variables for prod
+RUN awk -v DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR} -v DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR} \
+    'BEGIN {print "export DOCKER_HOST_VOLUME_DATA_DIR=" DOCKER_HOST_VOLUME_DATA_DIR "\nexport DOCKER_HOST_VOLUME_RESULTS_DIR=" DOCKER_HOST_VOLUME_RESULTS_DIR > "/root/.profile"}'
 
 
 WORKDIR /root/.aws
@@ -20,6 +26,8 @@ RUN awk -v ak="${ak}" -v sak="${sak}" \
 
 RUN awk -v region=${region} \
     'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
+
+
 
 WORKDIR /root/worker
 COPY . .

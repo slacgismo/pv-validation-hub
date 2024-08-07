@@ -368,7 +368,7 @@ def load_analysis(
     analysis_id: int, submission_id: int, current_evaluation_dir: str
 ) -> tuple[
     Callable[
-        [str, pd.DataFrame, Callable, int, Optional[str], Optional[str]],
+        [str, pd.DataFrame, Callable, int, str, Optional[str], Optional[str]],
         dict[str, Any],
     ],
     list,
@@ -427,6 +427,7 @@ def process_submission_message(
     analysis_id: int,
     submission_id: int,
     user_id: int,
+    python_version: str,
     submission_filename: str,
 ):
     """
@@ -457,6 +458,7 @@ def process_submission_message(
     logger.debug(f"update_submission_status: {update_submission_status}")
     logger.debug(f"analysis_id: {analysis_id}")
     logger.debug(f"submission_id: {submission_id}")
+    logger.debug(f"python_version: {python_version}")
     logger.debug(f"current_evaluation_dir: {current_evaluation_dir}")
     logger.debug(f"BASE_TEMP_DIR: {BASE_TEMP_DIR}")
 
@@ -465,6 +467,7 @@ def process_submission_message(
         file_metadata_df,
         update_submission_status,
         submission_id,
+        python_version,
         current_evaluation_dir,
         BASE_TEMP_DIR,
     )
@@ -686,6 +689,10 @@ def main():
                 "submission_filename", None
             )
 
+            python_version: str | None = json_message.get(
+                "python_version", None
+            )
+
             if analysis_id_str is None:
                 logger.error("analysis_id is None")
                 raise ValueError("analysis_id is None")
@@ -704,6 +711,7 @@ def main():
                 or not submission_id
                 or not user_id
                 or not submission_filename
+                or not python_version
             ):
                 logger.error(
                     f"Missing required fields in submission message: analysis_id={analysis_id}, submission_id={submission_id}, user_id={user_id}, submission_filename={submission_filename}"
@@ -727,6 +735,7 @@ def main():
                     int(analysis_id),
                     int(submission_id),
                     int(user_id),
+                    python_version,
                     submission_filename,
                 )
 
