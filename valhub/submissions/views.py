@@ -449,6 +449,7 @@ def preload_submissions(request: Request):
 def get_submission_results(request: Request, submission_id: str):
     try:
         submission = Submission.objects.get(submission_id=submission_id)
+        submission_status = submission.status
     except Submission.DoesNotExist:
         response_data = {"error": "submission does not exist"}
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
@@ -464,93 +465,101 @@ def get_submission_results(request: Request, submission_id: str):
     file_urls = []
     ret = {}
 
-    # Update for actual S3 usage as well
-    if is_emulation:
-        storage_endpoint_url = "http://s3:5000/"
-        static_endpoint_url = "http://localhost:5000/"
-        directory_url = urljoin(
-            storage_endpoint_url, f"{bucket_name}/{results_directory}/list"
-        )
-        response = requests.get(directory_url)
-        if response.status_code != 200:
-            return JsonResponse(
-                {"error": "Error retrieving results list"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    if submission_status == Submission.FINISHED:
+        # Update for actual S3 usage as well
+        if is_emulation:
+            storage_endpoint_url = "http://s3:5000/"
+            static_endpoint_url = "http://localhost:5000/"
+            directory_url = urljoin(
+                storage_endpoint_url, f"{bucket_name}/{results_directory}/list"
             )
-        file_list: list[str] = response.json()
-        base_url = urljoin(
-            static_endpoint_url, f"static/{bucket_name}/{results_directory}"
-        )
-    else:
-        # get the list of files in the results directory
-        s3 = boto3.client("s3")
-        logging.info(f"pre-list_objects_v2")
-        response = s3.list_objects_v2(
-            Bucket=bucket_name, Prefix=results_directory
-        )
-        logging.info(f"post-list_objects_v2")
-        if "Contents" not in response or response["Contents"] is None:
+            response = requests.get(directory_url)
+            if response.status_code != 200:
+                return JsonResponse(
+                    {"error": "Error retrieving results list"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+            file_list: list[str] = response.json()
+            base_url = urljoin(
+                static_endpoint_url,
+                f"static/{bucket_name}/{results_directory}",
+            )
+        else:
+            # get the list of files in the results directory
+            s3 = boto3.client("s3")
+            logging.info(f"pre-list_objects_v2")
+            response = s3.list_objects_v2(
+                Bucket=bucket_name, Prefix=results_directory
+            )
+            logging.info(f"post-list_objects_v2")
+            if "Contents" not in response or response["Contents"] is None:
+                return JsonResponse(
+                    {"error": "No files found in the results directory"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            files = response.get("Contents", [])
+
+            first_file = files[0]
+
+            first_file_key = first_file.get("Key", "")
+
+            # remove the first entry if it is the same as results_directory
+            if first_file_key == results_directory:
+                file_list = [
+                    cast(str, file.get("Key"))
+                    for file in files[1:]
+                    if file.get("Key", None) is not None
+                ]
+            else:
+                file_list = [
+                    cast(str, file.get("Key"))
+                    for file in files
+                    if file.get("Key", None) is not None
+                ]
+            base_url = (
+                f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
+            )
+
+        html_files = [
+            file for file in file_list if file.lower().endswith(".html")
+        ]
+        logging.info(f"html_files: {html_files}")
+
+        if not html_files:
             return JsonResponse(
-                {"error": "No files found in the results directory"},
+                {"error": "No .html files found in the results directory"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        files = response.get("Contents", [])
 
-        first_file = files[0]
+        if is_emulation:
+            logging.info(f"emulation: {base_url}")
 
-        first_file_key = first_file.get("Key", "")
+            for html_file in html_files:
+                file_url = urljoin(base_url, html_file)
+                if file_url:
+                    file_urls.append(file_url)
+                else:
+                    return JsonResponse(
+                        {"error": f"Error retrieving .html file: {html_file}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
 
-        # remove the first entry if it is the same as results_directory
-        if first_file_key == results_directory:
-            file_list = [
-                cast(str, file.get("Key"))
-                for file in files[1:]
-                if file.get("Key", None) is not None
-            ]
         else:
-            file_list = [
-                cast(str, file.get("Key"))
-                for file in files
-                if file.get("Key", None) is not None
-            ]
-        base_url = (
-            f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
-        )
+            logging.info(f"not emulation: {cf_results_path}")
 
-    html_files = [file for file in file_list if file.lower().endswith(".html")]
-    logging.info(f"html_files: {html_files}")
-
-    if not html_files:
-        return JsonResponse(
-            {"error": "No .html files found in the results directory"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    if is_emulation:
-        logging.info(f"emulation: {base_url}")
-
-        for html_file in html_files:
-            file_url = urljoin(base_url, html_file)
-            if file_url:
-                file_urls.append(file_url)
-            else:
-                return JsonResponse(
-                    {"error": f"Error retrieving .html file: {html_file}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-
+            for html_file in html_files:
+                file_url = create_cloudfront_url(html_file)
+                if file_url:
+                    file_urls.append(file_url)
+                else:
+                    return JsonResponse(
+                        {"error": f"Error retrieving .html file: {html_file}"},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    )
+    elif submission_status == Submission.FAILED:
+        file_urls = ["Submission failed"]
     else:
-        logging.info(f"not emulation: {cf_results_path}")
-
-        for html_file in html_files:
-            file_url = create_cloudfront_url(html_file)
-            if file_url:
-                file_urls.append(file_url)
-            else:
-                return JsonResponse(
-                    {"error": f"Error retrieving .html file: {html_file}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+        file_urls = ["Submission is still running"]
 
     # set returns
     logging.info(f"setting returns")
