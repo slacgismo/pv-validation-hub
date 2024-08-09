@@ -155,6 +155,7 @@ class SubmissionPrivateReportSerializer(serializers.ModelSerializer):
             "archived",
             "python_version",
             "worker_version",
+            "status",
         )
 
     def to_representation(self, instance):

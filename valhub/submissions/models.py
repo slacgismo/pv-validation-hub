@@ -52,11 +52,10 @@ class Submission(models.Model):
         models.CharField(max_length=100), blank=True, default=list
     )
     archived = models.BooleanField(default=False)
-    python_version = models.DecimalField(
-        max_digits=4,
-        decimal_places=2,
+    python_version = models.CharField(
+        max_length=10,
         null=False,
         blank=False,
-        default=Decimal("3.11"),
+        default="3.11",
     )
     worker_version = models.FloatField(null=False, blank=False, default=1.0)
