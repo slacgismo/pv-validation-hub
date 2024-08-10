@@ -165,3 +165,4 @@ workers/current_evaluation
 
 *.pid
 *.jsonl
+*.pem

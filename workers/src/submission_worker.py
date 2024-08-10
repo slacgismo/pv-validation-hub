@@ -514,6 +514,7 @@ def get_or_create_sqs_queue(queue_name):
     Returns:
         Returns the SQS Queue object
     """
+    logger.info(f"Getting or creating SQS queue: {queue_name}")
     # Use the Docker endpoint URL for local development
     if IS_LOCAL:
         sqs: SQSServiceResource = boto3.resource(
@@ -530,10 +531,11 @@ def get_or_create_sqs_queue(queue_name):
             "sqs",  # type: ignore
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
-
+    logger.info(f"Retrieved SQS resource")
     if queue_name == "":
         queue_name = "valhub_submission_queue.fifo"
     # Check if the queue exists. If no, then create one
+    logger.info(f"Getting queue by name: {queue_name}")
     try:
         queue = sqs.get_queue_by_name(QueueName=queue_name)
     except botocore.exceptions.ClientError as ex:
@@ -546,6 +548,7 @@ def get_or_create_sqs_queue(queue_name):
             QueueName=queue_name, Attributes={"FifoQueue": "true"}
         )
 
+    logger.info(f"Queue retrieved")
     return queue
 
 
@@ -664,18 +667,22 @@ def main():
         f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
-    # print(queue)
+    logger.info(f'Retrieved queue "valhub_submission_queue.fifo"')
+    logger.info(f"SQS queue URL: {queue.url}")
 
     is_finished = False
 
+    logger.info("Listening for messages...")
     # infinite loop to listen and process messages
     while not is_finished:
+        logger.info("Polling for messages...")
         messages = queue.receive_messages(
             MaxNumberOfMessages=1, VisibilityTimeout=43200
         )
+        logger.info(f"Received {len(messages)} messages")
 
+        logger.info(f"Processing messages...")
         for message in messages:
-
             logger.info(f"Received message: {message.body}")
 
             json_message: dict[str, Any] = json.loads(message.body)
