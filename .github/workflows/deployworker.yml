@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: us-west-2
   ECR_WORKER_REPOSITORY: pv-validation-hub-worker
-  ECS_WORKER_SERVICE: valhub-worker-service-prod
+  ECS_WORKER_SERVICE: valhub-worker-service
   ECS_WORKER_CLUSTER: pv-validation-hub-worker-cluster-prod
   WORKER_CONTAINER_NAME: pv-validation-hub-worker-task-ec2
   AK: ${{ secrets.API_AK }}
