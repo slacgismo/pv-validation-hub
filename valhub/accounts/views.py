@@ -17,10 +17,14 @@ from rest_framework.authentication import (
     SessionAuthentication,
 )
 
+from base.logger import setup_logging
+
 from .serializers import AccountSerializer, AccountSerializerClean
 from .models import Account
 import json
 import logging
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
 

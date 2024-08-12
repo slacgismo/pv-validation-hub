@@ -536,8 +536,11 @@ def get_or_create_sqs_queue(queue_name):
         queue_name = "valhub_submission_queue.fifo"
     # Check if the queue exists. If no, then create one
     logger.info(f"Getting queue by name: {queue_name}")
+
     try:
-        queue = sqs.get_queue_by_name(QueueName=queue_name)
+        queue = sqs.get_queue_by_name(
+            QueueName=queue_name,
+        )
     except botocore.exceptions.ClientError as ex:
         if (
             ex.response.get("Error", {}).get("Code")
@@ -835,7 +838,7 @@ def main():
             is_finished = True
             break
 
-        time.sleep(0.1)
+        time.sleep(1)
 
 
 if __name__ == "__main__":

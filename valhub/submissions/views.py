@@ -40,7 +40,9 @@ from .serializers import (
 )
 from .models import Submission
 
+from base.logger import setup_logging
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Create your views here.
