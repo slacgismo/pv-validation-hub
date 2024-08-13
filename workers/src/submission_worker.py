@@ -228,9 +228,13 @@ def extract_analysis_data(  # noqa: C901
         tmp_path = pull_from_s3(
             IS_LOCAL, S3_BUCKET_NAME, file, BASE_TEMP_DIR, logger
         )
+        dest_path = os.path.join(
+            current_evaluation_dir, tmp_path.split("/")[-1]
+        )
+        logger.info(f"move file {tmp_path} to {dest_path}")
         shutil.move(
             tmp_path,
-            os.path.join(current_evaluation_dir, tmp_path.split("/")[-1]),
+            dest_path,
         )
 
     # create data directory and sub directories
@@ -335,6 +339,7 @@ def extract_analysis_data(  # noqa: C901
         tmp_path = pull_from_s3(
             IS_LOCAL, S3_BUCKET_NAME, analytical, BASE_TEMP_DIR, logger
         )
+        logger.info(f"move analysis file {tmp_path} to {file_data_dir}")
         shutil.move(
             tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
         )
@@ -343,6 +348,9 @@ def extract_analysis_data(  # noqa: C901
 
         tmp_path = pull_from_s3(
             IS_LOCAL, S3_BUCKET_NAME, ground_truth, BASE_TEMP_DIR, logger
+        )
+        logger.info(
+            f'move ground truth file "{tmp_path}" to "{validation_data_dir}"'
         )
         shutil.move(
             tmp_path,

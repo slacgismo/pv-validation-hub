@@ -1006,7 +1006,7 @@ def loop_over_files_and_generate_results(
         func_arguments_list[NUM_FILES_TO_TEST:],
     )
 
-    results: list[dict[str, Any]] = []
+    # results: list[dict[str, Any]] = []
     number_of_errors = 0
 
     # Test the first two files
@@ -1014,7 +1014,7 @@ def loop_over_files_and_generate_results(
     test_errors = dask_multiprocess(
         submission_task,
         test_func_argument_list,
-        n_workers=NUM_FILES_TO_TEST,
+        # n_workers=NUM_FILES_TO_TEST,
         threads_per_worker=1,
         # memory_limit="16GiB",
         logger=logger,

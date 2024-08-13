@@ -849,7 +849,7 @@ class DockerContainerContextManager:
         client: docker.DockerClient,
         image: Image | str,
         command: str | list[str],
-        volumes: dict[str, dict[str, str]] | list[str],
+        volumes: dict[str, str] | list[str],
         mem_limit: str | None = None,
     ) -> None:
         self.client = client
@@ -906,10 +906,12 @@ def docker_task(
     # results_dir = os.path.join(os.path.dirname(__file__), "results")
     # data_dir = os.path.join(os.path.dirname(__file__), "data")
 
-    volumes = {
-        results_dir: {"bind": "/app/results/", "mode": "rw"},
-        data_dir: {"bind": "/app/data/", "mode": "ro"},
-    }
+    # volumes = {
+    #     results_dir: {"bind": "/app/results", "mode": "rw"},
+    #     data_dir: {"bind": "/app/data", "mode": "ro"},
+    # }
+
+    volumes = [f"{results_dir}:/app/results", f"{data_dir}:/app/data"]
 
     command: list[str] = [
         "python",
@@ -936,7 +938,7 @@ def docker_task(
             logger_if_able(line.strip(), logger)
 
         try:
-            container_dict: dict[str, Any] = container.wait()
+            container_dict = container.wait()
         except Exception as e:
             error_raised = True
             error_code = 500
