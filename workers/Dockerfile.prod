@@ -16,7 +16,7 @@ RUN mkdir worker
 
 # Set environment variables for prod
 RUN awk -v DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR} -v DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR} \
-    'BEGIN {print "export DOCKER_HOST_VOLUME_DATA_DIR=" DOCKER_HOST_VOLUME_DATA_DIR "\nexport DOCKER_HOST_VOLUME_RESULTS_DIR=" DOCKER_HOST_VOLUME_RESULTS_DIR > "/root/.profile"}'
+    'BEGIN {print "export DOCKER_HOST_VOLUME_DATA_DIR=" DOCKER_HOST_VOLUME_DATA_DIR "\nexport DOCKER_HOST_VOLUME_RESULTS_DIR=" DOCKER_HOST_VOLUME_RESULTS_DIR > "/home/.profile"}'
 
 
 WORKDIR /root/.aws
@@ -46,18 +46,23 @@ RUN apt-get install -y libpq-dev python3-psycopg2
 # RUN apt-get --assume-yes install python3-pip
 RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client libopenblas-dev
 RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake git libhdf5-dev pkg-config
+
+# Setup virtual environment
+RUN python3 -m venv .venv
+RUN source .venv/bin/activate
+
+# Install dependencies
 RUN python3 -m pip install --upgrade pip
-WORKDIR /root/worker
 RUN python3 -m pip install -r requirements.txt
 
 RUN apt-get update -qq && \
-  apt-get install -y apt-transport-https \
-  ca-certificates \
-  curl \
-  gnupg2 \
-  software-properties-common \
-  && \
-  apt-get clean
+    apt-get install -y apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg2 \
+    software-properties-common \
+    && \
+    apt-get clean
 
 RUN apt-get update
 RUN apt-get install -y ca-certificates curl
@@ -71,5 +76,10 @@ RUN apt-get update
 
 RUN apt install -y docker-ce git
 RUN apt-get clean
+
+# # Create a new user
+# RUN useradd -ms /bin/bash worker
+# RUN chown -R worker:worker /root/worker
+# USER worker
 
 CMD ["/bin/sh", "/root/worker/docker-entrypoint.sh"]
