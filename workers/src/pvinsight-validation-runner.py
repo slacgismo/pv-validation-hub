@@ -499,14 +499,18 @@ def run(  # noqa: C901
     volume_host_results_dir = os.environ.get("DOCKER_HOST_VOLUME_RESULTS_DIR")
 
     if volume_host_data_dir is None:
-        logger.error("volume_host_data_dir not found")
+        logger.error(
+            "DOCKER_HOST_VOLUME_DATA_DIR environment variable not found"
+        )
         # TODO: add error code
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
 
     if volume_host_results_dir is None:
-        logger.error("volume_host_results_dir not found")
+        logger.error(
+            "DOCKER_HOST_VOLUME_RESULTS_DIR environment variable not found"
+        )
         # TODO: add error code
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
