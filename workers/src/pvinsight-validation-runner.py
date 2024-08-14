@@ -516,6 +516,11 @@ def run(  # noqa: C901
             *get_error_by_code(500, runner_error_codes, logger)
         )
 
+    logger.info(f"data_dir:{data_dir}")
+    logger.info(f"results_dir:{results_dir}")
+    logger.info(f"volume_host_data_dir:{volume_host_data_dir}")
+    logger.info(f"volume_host_results_dir:{volume_host_results_dir}")
+
     func_arguments_list = prepare_function_args_for_parallel_processing(
         image_tag=image_tag,
         memory_limit=memory_limit,
@@ -942,6 +947,7 @@ def prepare_function_args_for_parallel_processing(
         function_args_list = append_to_list(function_args, function_args_list)
 
     if function_args_list is None:
+        logger.error("function_args_list is None")
         # TODO: add error code
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)

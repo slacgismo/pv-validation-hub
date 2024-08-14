@@ -913,6 +913,8 @@ def docker_task(
 
     volumes = [f"{results_dir}:/app/results", f"{data_dir}:/app/data"]
 
+    logger_if_able(f"volumes: {volumes}", logger)
+
     command: list[str] = [
         "python",
         "submission_wrapper.py",
