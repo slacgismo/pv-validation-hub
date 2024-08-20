@@ -42,6 +42,12 @@
             "level": "DEBUG",
             "formatter": "json",
             "filename": "logs/submission.log.jsonl"
+        },
+        "error_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "ERROR",
+            "formatter": "detailed",
+            "filename": "logs/submission.error.log"
         }
     },
     "loggers": {
@@ -50,7 +56,8 @@
             "handlers": [
                 "stdout",
                 "file",
-                "json_file"
+                "json_file",
+                "error_file"
             ],
             "propagate": false
         }

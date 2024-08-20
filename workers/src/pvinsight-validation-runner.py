@@ -539,18 +539,23 @@ def run(  # noqa: C901
 
     # raise Exception("Finished Successfully")
 
-    number_of_errors = loop_over_files_and_generate_results(
+    number_of_submission_errors = loop_over_files_and_generate_results(
         func_arguments_list
     )
-    logger.info(f"number_of_errors: {number_of_errors}")
+    logger.info(f"number_of_submission_errors: {number_of_submission_errors}")
 
     # raise Exception("Finished Successfully")
 
-    results_list = loop_over_results_and_generate_metrics(
-        data_dir=data_dir,
-        results_dir=results_dir,
-        current_evaluation_dir=current_evaluation_dir,
+    results_list, number_of_metrics_errors = (
+        loop_over_results_and_generate_metrics(
+            data_dir=data_dir,
+            results_dir=results_dir,
+            current_evaluation_dir=current_evaluation_dir,
+        )
     )
+    logger.info(f"number_of_metrics_errors: {number_of_metrics_errors}")
+
+    number_of_errors = number_of_submission_errors + number_of_metrics_errors
 
     # raise Exception("Finished Successfully")
 
@@ -714,49 +719,6 @@ def run(  # noqa: C901
         logger.error("Error generating private report for submission.")
         logger.exception(e)
 
-    # Loop through all of the plot dictionaries and generate plots and
-    # associated tables for reporting
-    # for plot in config_data["plots"]:
-    #     if plot["type"] == "histogram":
-    #         if "color_code" in plot:
-    #             color_code = plot["color_code"]
-    #         else:
-    #             color_code = None
-    #         gen_plot = generate_histogram(
-    #             results_df_private, plot["x_val"], plot["title"], color_code
-    #         )
-    #         # Save the plot
-    #         gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
-    #         plt.close()
-    #         plt.clf()
-    #         # Write the stratified results to a table for private reporting
-    #         # (if color_code param is not None)
-    #         if color_code:
-    #             stratified_results_tbl = pd.DataFrame(
-    #                 results_df_private.groupby(color_code)[
-    #                     plot["x_val"]
-    #                 ].mean()
-    #             )
-    #             stratified_results_tbl.to_csv(
-    #                 os.path.join(
-    #                     results_dir,
-    #                     module_name
-    #                     + "_"
-    #                     + str(color_code)
-    #                     + "_"
-    #                     + plot["x_val"]
-    #                     + ".csv",
-    #                 )
-    #             )
-    #     if plot["type"] == "scatter_plot":
-    #         gen_plot = generate_scatter_plot(
-    #             results_df_private, plot["x_val"], plot["y_val"], plot["title"]
-    #         )
-    #         # Save the plot
-    #         gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
-    #         plt.close()
-    #         plt.clf()
-
     logger.info(f"number_of_errors: {number_of_errors}")
 
     success_rate = (
@@ -767,7 +729,7 @@ def run(  # noqa: C901
         f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
     )
 
-    # public_metrics_dict["success_rate"] = success_rate
+    public_metrics_dict["success_rate"] = success_rate
     return public_metrics_dict
 
 
@@ -1083,8 +1045,9 @@ def loop_over_results_and_generate_metrics(
     data_dir: str,
     results_dir: str,
     current_evaluation_dir: str,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], int]:
     all_results: list[dict[str, Any]] = []
+    number_of_errors = 0
 
     file_metadata_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir, "metadata", "file_metadata.csv")
@@ -1128,20 +1091,28 @@ def loop_over_results_and_generate_metrics(
 
         function_parameters = ["time_series", *config_data["allowable_kwargs"]]
 
-        result = generate_performance_metrics_for_submission(
-            file_name,
-            config_data,
-            system_metadata_dict,
-            results_dir,
-            data_dir,
-            submission_runtime,
-            function_parameters,
-        )
+        try:
+            result = generate_performance_metrics_for_submission(
+                file_name,
+                config_data,
+                system_metadata_dict,
+                results_dir,
+                data_dir,
+                submission_runtime,
+                function_parameters,
+            )
 
-        logger.info(f"{file_name}: {result}")
-        all_results.append(result)
+            logger.info(f"{file_name}: {result}")
+            all_results.append(result)
+        except Exception as e:
+            number_of_errors += 1
+            # TODO: add error code
+            logger.error(
+                f"Error generating performance metrics for {file_name}"
+            )
+            logger.exception(e)
 
-    return all_results
+    return all_results, number_of_errors
 
 
 def generate_performance_metrics_for_submission(

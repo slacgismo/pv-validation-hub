@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base
+FROM python:3.10-slim
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
@@ -6,7 +6,7 @@ RUN mkdir admin
 WORKDIR /root/admin
 COPY . .
 
-ENV PORT 7000
+ENV PORT=7000
 EXPOSE 7000
 
 RUN apt-get update -qq

@@ -821,32 +821,43 @@ def main():
                 stop_event.set()
                 t.join()
 
-            log_file = os.path.join(LOG_FILE_DIR, "submission.log")
-            json_log_file = os.path.join(LOG_FILE_DIR, "submission.log.jsonl")
-
-            # push log files to s3
-
-            push_to_s3(
-                log_file,
-                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
-                analysis_id,
-                submission_id,
-            )
-            push_to_s3(
-                json_log_file,
-                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
-                analysis_id,
-                submission_id,
-            )
-
-            # Remove all log files
-            os.remove(log_file)
-            os.remove(json_log_file)
+            upload_logs_to_s3(user_id, analysis_id, submission_id)
 
             is_finished = True
             break
 
         time.sleep(1)
+
+
+def upload_logs_to_s3(user_id, analysis_id, submission_id):
+    log_file = os.path.join(LOG_FILE_DIR, "submission.log")
+    error_log_file = os.path.join(LOG_FILE_DIR, "submission.error.log")
+    json_log_file = os.path.join(LOG_FILE_DIR, "submission.log.jsonl")
+
+    # push log files to s3
+
+    push_to_s3(
+        log_file,
+        f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
+        analysis_id,
+        submission_id,
+    )
+    push_to_s3(
+        error_log_file,
+        f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.error.log",
+        analysis_id,
+        submission_id,
+    )
+    push_to_s3(
+        json_log_file,
+        f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
+        analysis_id,
+        submission_id,
+    )
+
+    # Remove all log files
+    os.remove(log_file)
+    os.remove(json_log_file)
 
 
 if __name__ == "__main__":
