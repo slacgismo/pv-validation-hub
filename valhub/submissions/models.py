@@ -58,4 +58,12 @@ class Submission(models.Model):
         blank=False,
         default="3.11",
     )
+
+    # Fields for calculating the submission progress
+    start_time = models.DateTimeField(null=True, blank=True)
+    current_file_count = models.IntegerField(null=True, blank=True)
+    progress = models.IntegerField(
+        null=True, blank=True
+    )  # Time in seconds remaining
+
     worker_version = models.FloatField(null=False, blank=False, default=1.0)

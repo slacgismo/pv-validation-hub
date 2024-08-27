@@ -7,7 +7,10 @@ class ErrorReport(models.Model):
     submission = models.ForeignKey(
         Submission, on_delete=models.CASCADE, related_name="error_report"
     )
-    error_code = models.CharField(max_length=100)
-    error_type = models.CharField(max_length=100)
+    # Breaking errors
+    error_code = models.CharField(max_length=100, blank=True)
+    error_type = models.CharField(max_length=100, blank=True)
     error_message = models.TextField(null=True, blank=True)
+    # Non breaking errors
     error_rate = models.FloatField(null=True, blank=True)
+    file_errors = models.JSONField(blank=True, default=dict)
