@@ -631,11 +631,12 @@ def run(  # noqa: C901
         "median": m_median,
     }
 
-    perfomance_metrics_mapping = [
-        "mean_absolute_error",
-        "absolute_error",
-        "runtime",
-    ]
+    # perfomance_metrics_mapping = [
+    #     "mean_absolute_error",
+    #     "absolute_error",
+    #     "error",
+    #     "runtime",
+    # ]
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -643,63 +644,63 @@ def run(  # noqa: C901
     # are valid keys, anything else breaks our results processing
     for metric in performance_metrics:
 
-        if metric not in perfomance_metrics_mapping:
+        # if metric not in perfomance_metrics_mapping:
 
-            logger.error(
-                f"metric {metric} not found in perfomance_metrics_mapping"
-            )
-            # TODO: add error code
+        #     logger.error(
+        #         f"metric `{metric}` not found in perfomance_metrics_mapping"
+        #     )
+        #     # TODO: add error code
 
-            raise RunnerException(
-                *get_error_by_code(500, runner_error_codes, logger)
-            )
+        #     raise RunnerException(
+        #         *get_error_by_code(500, runner_error_codes, logger)
+        #     )
 
         metrics_operations: dict[str, dict[str, str]] = config_data.get(
             "metrics_operations", {}
         )
 
-        if metric not in metrics_operations:
-            # TODO: add error code
-            logger.error(
-                f"metric {metric} not found in metrics_operations within config.json"
-            )
-            raise RunnerException(
-                *get_error_by_code(500, runner_error_codes, logger)
-            )
+        for val in config_data["ground_truth_compare"]:
 
-        operations = metrics_operations[metric]
+            if metric == "runtime":
+                key = "runtime"
+            else:
+                key = f"{metric}_{val}"
 
-        for operation in operations:
-            if operation not in metric_operations_mapping:
+            if key not in results_df.columns:
+
+                logger.error(f"key {key} not found in results_df columns")
+
+                # TODO: add error code
+                raise RunnerException(
+                    *get_error_by_code(500, runner_error_codes, logger)
+                )
+
+            if key not in metrics_operations:
                 # TODO: add error code
                 logger.error(
-                    f"operation {operation} not found in metric_operations_mapping"
+                    f"metric {metric} not found in metrics_operations within config.json"
                 )
                 raise RunnerException(
                     *get_error_by_code(500, runner_error_codes, logger)
                 )
 
-            operation_function = metric_operations_mapping[operation]
+            operations = metrics_operations[key]
 
-            for val in config_data["ground_truth_compare"]:
-
-                if metric == "runtime":
-                    key = "runtime"
-                else:
-                    key = f"{metric}_{val}"
-
-                if key not in results_df.columns:
-
-                    logger.error(f"key {key} not found in results_df columns")
-
+            for operation in operations:
+                if operation not in metric_operations_mapping:
                     # TODO: add error code
+                    logger.error(
+                        f"operation {operation} not found in metric_operations_mapping"
+                    )
                     raise RunnerException(
                         *get_error_by_code(500, runner_error_codes, logger)
                     )
 
+                operation_function = metric_operations_mapping[operation]
+
                 metric_result = operation_function(results_df, key)
 
-                metric_result_dict = {f"{operation}_{metric}": metric_result}
+                metric_result_dict = {f"{operation}_{key}": metric_result}
                 metrics_dict.update(metric_result_dict)
 
     public_metrics_dict["metrics"] = metrics_dict
@@ -1260,9 +1261,14 @@ def generate_performance_metrics_for_submission(
         mean_absolute_error = np.mean(absolute_difference)
         return mean_absolute_error
 
+    def p_error(output: pd.Series, ground_truth: pd.Series):
+        difference = output - ground_truth
+        return difference
+
     performance_metrics_map = {
         "absolute_error": p_absolute_error,
         "mean_absolute_error": p_mean_absolute_error,
+        "error": p_error,
     }
 
     for metric in performance_metrics:
@@ -1274,7 +1280,7 @@ def generate_performance_metrics_for_submission(
 
         if metric not in performance_metrics_map:
             logger.error(
-                f"performance metric {metric} not found in performance_metrics_map, Unhandled metric"
+                f"performance metric `{metric}` not found in performance_metrics_map, Unhandled metric"
             )
             # TODO: add error code
 
@@ -1285,12 +1291,14 @@ def generate_performance_metrics_for_submission(
         performance_metric_function = performance_metrics_map[metric]
 
         for val in config_data["ground_truth_compare"]:
-
+            logger.info(f'"{metric}_{val}" is being calculated')
             results_dictionary[metric + "_" + val] = (
                 performance_metric_function(
                     output_dictionary[val], ground_truth_dict[val]
                 )
             )
+
+    logger.info(f"results_dictionary: {results_dictionary}")
 
     return results_dictionary
 

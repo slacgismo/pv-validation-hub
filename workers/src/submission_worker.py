@@ -686,13 +686,12 @@ def main():
     logger.info("Listening for messages...")
     # infinite loop to listen and process messages
     while not is_finished:
-        logger.info("Polling for messages...")
+        print("Polling for messages...")
         messages = queue.receive_messages(
             MaxNumberOfMessages=1, VisibilityTimeout=43200
         )
-        logger.info(f"Received {len(messages)} messages")
+        print(f"Received {len(messages)} messages")
 
-        logger.info(f"Processing messages...")
         for message in messages:
             logger.info(f"Received message: {message.body}")
 
