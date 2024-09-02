@@ -1,15 +1,19 @@
 from importlib import import_module
 import inspect
 import pathlib
-from re import sub
 import sys
+import json
 import pandas as pd
 import numpy as np
 from time import perf_counter
-from functools import wraps
-from typing import Any, ParamSpec, Union, Tuple, TypeVar, Callable, cast
+from typing import Any, Union, Tuple, TypeVar, Callable, cast, Optional
 from logging import Logger
 import logging
+
+if sys.version_info < (3, 10):
+    from typing_extensions import ParamSpec
+else:
+    from typing import ParamSpec
 
 T = TypeVar("T")
 
@@ -17,7 +21,7 @@ P = ParamSpec("P")
 
 
 def logger_if_able(
-    message: object, logger: Logger | None = None, level: str = "INFO"
+    message: object, logger: Optional[Logger] = None, level: str = "INFO"
 ):
     if logger is not None:
         levels_dict = {
@@ -116,7 +120,7 @@ def import_submission_function(submission_file_name: str, function_name: str):
 
     try:
         submission_function: Callable[
-            [pd.Series, Any], np.ndarray | tuple[float, float]
+            [pd.Series, Any], Union[np.ndarray, tuple[float, float]]
         ] = getattr(submission_module, function_name)
         function_parameters = list(
             inspect.signature(submission_function).parameters.keys()
@@ -140,6 +144,8 @@ def main():
     submission_file_name = args[0]
     function_name = args[1]
     data_file_name = args[2]
+
+    print(args)
 
     print("Getting submission function...")
 
@@ -170,17 +176,30 @@ def main():
 
     print(f"Execution time: {execution_time}")
 
-    # save results to csv file
+    # Save information about the submission function for later use with worker
+    submission_info_file = pathlib.Path(
+        f"{results_dir}/submission_function_info.json"
+    )
+    if not submission_info_file.exists():
+        submission_function_info = {
+            "data_file_name": data_file_name,
+            "function_name": function_name,
+            "function_parameters": function_parameters,
+        }
 
-    print(f"Saving results to {results_dir}/{data_file_name}")
+        with open(f"{results_dir}/submission_function_info.json", "w") as fp:
+            json.dump(submission_function_info, fp)
+
+    # save results to csv file
+    results_file_path = f"{results_dir}/files/{data_file_name}"
+    print(f"Saving results to {results_file_path}")
     if isinstance(results, tuple):
 
         results_df = pd.DataFrame([results])
     else:
         results_df = pd.DataFrame(results)
     print(f"Results: {results_df}")
-    results_file = f"{results_dir}/{data_file_name}"
-    results_df.to_csv(results_file, header=True)
+    results_df.to_csv(results_file_path, header=True)
 
     columns = ["file_name", "execution_time"]
 

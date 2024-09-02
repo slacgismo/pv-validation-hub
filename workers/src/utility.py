@@ -998,6 +998,27 @@ def submission_task(
             error_code = 500
             logger_if_able(f"Error: {e}", None, "ERROR")
 
+    # Finished a file for submission
+    # TODO: Add timestamp to API
+    # +1 file completed to API
+    # json = {
+    #     "timestamp": datetime.now().isoformat(),
+    #     "file": submission_file_name,
+    # }
+
+    # TODO: Send to API
+    # Create an error report for all non breaking errors and send to API
+
+    file_error_report = {
+        "error_code": error_code,
+        "error_type": SubmissionException,
+        "error_message": error,
+        "file_name": submission_file_name,
+    }
+
+    # # Send error report to API
+    # send_error_report_to_API(json_errors, error_rate)
+
     return error, error_code
 
 
@@ -1058,6 +1079,7 @@ def create_docker_image(
                 path=dir_path,
                 tag=tag,
                 rm=True,
+                nocache=True,
                 dockerfile="Dockerfile",
                 buildargs={
                     "zip_file": f"{submission_file_name}",
@@ -1108,8 +1130,8 @@ class DockerClientContextManager:
 def initialize_docker_client():
     base_url = os.environ.get("DOCKER_HOST", None)
 
-    if not base_url:
-        logger_if_able("Docker host not set", None, "WARNING")
+    # if not base_url:
+    #     logger_if_able("Docker host not set", None, "WARNING")
 
     # cert_path = os.environ.get("DOCKER_CERT_PATH")
     # if not cert_path:

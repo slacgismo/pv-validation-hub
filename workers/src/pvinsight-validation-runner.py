@@ -16,7 +16,16 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import Any, Callable, Sequence, Tuple, TypeVar, cast, ParamSpec
+from typing import (
+    Any,
+    Callable,
+    Sequence,
+    Tuple,
+    TypeVar,
+    TypedDict,
+    cast,
+    ParamSpec,
+)
 import pandas as pd
 import os
 from importlib import import_module
@@ -345,6 +354,7 @@ def run(  # noqa: C901
 
     # Ensure results directory exists
     os.makedirs(results_dir, exist_ok=True)
+    os.makedirs(os.path.join(results_dir, "files"), exist_ok=True)
 
     # Ensure results directory exists
     os.makedirs(data_dir, exist_ok=True)
@@ -559,6 +569,28 @@ def run(  # noqa: C901
 
     # raise Exception("Finished Successfully")
 
+    # Get information about the submission function
+
+    class SubmissionFunctionInfo(TypedDict):
+        data_file_name: str
+        function_name: str
+        function_parameters: list[str]
+
+    try:
+        with open(f"{results_dir}/submission_function_info.json", "r") as fp:
+            submission_function_info: SubmissionFunctionInfo = json.load(fp)
+    except FileNotFoundError as e:
+        logger.error("submission_function_info.json not found")
+        logger.exception(e)
+
+        # logger.info(f"update submission status to {FAILED}")
+        # update_submission_status(submission_id, FAILED)
+        # TODO: add error code
+        error_code = 500
+        raise RunnerException(
+            *get_error_by_code(error_code, runner_error_codes, logger)
+        )
+
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
     results_df = pd.DataFrame(results_list)
@@ -576,9 +608,11 @@ def run(  # noqa: C901
     # Get the mean and median run times
     public_metrics_dict["mean_runtime"] = results_df["runtime"].mean()
     public_metrics_dict["median_runtime"] = results_df["runtime"].median()
-    public_metrics_dict["function_parameters"] = [
-        "time_series",
-        *config_data["allowable_kwargs"],
+    logger.info(
+        f'function_parameters: {submission_function_info["function_parameters"]}'
+    )
+    public_metrics_dict["function_parameters"] = submission_function_info[
+        "function_parameters"
     ]
     public_metrics_dict["data_requirements"] = results_df[
         "data_requirements"
@@ -721,15 +755,15 @@ def run(  # noqa: C901
 
     logger.info(f"number_of_errors: {number_of_errors}")
 
-    success_rate = (
-        (total_number_of_files - number_of_errors) / total_number_of_files
-    ) * 100
-    logger.info(f"success_rate: {success_rate}%")
-    logger.info(
-        f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
-    )
+    # success_rate = (
+    #     (total_number_of_files - number_of_errors) / total_number_of_files
+    # ) * 100
+    # logger.info(f"success_rate: {success_rate}%")
+    # logger.info(
+    #     f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
+    # )
 
-    public_metrics_dict["success_rate"] = success_rate
+    # public_metrics_dict["success_rate"] = success_rate
     return public_metrics_dict
 
 
@@ -988,8 +1022,8 @@ def loop_over_files_and_generate_results(
         logger=logger,
     )
 
-    errors = [error for error, error_code in test_errors]
-    number_of_errors += sum(errors)
+    is_errors_list = [error for error, error_code in test_errors]
+    number_of_errors += sum(is_errors_list)
 
     if number_of_errors == NUM_FILES_TO_TEST:
         logger.error(
@@ -1029,8 +1063,9 @@ def loop_over_files_and_generate_results(
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
-    errors = [error for error, error_code in rest_errors]
-    number_of_errors += sum(errors)
+    is_errors_list = [error for error, error_code in rest_errors]
+
+    number_of_errors += sum(is_errors_list)
 
     # test_errors = [result for result, _ in test_errors if result is not None]
     # rest_errors = [result for result, _ in rest_errors if result is not None]
@@ -1048,6 +1083,8 @@ def loop_over_results_and_generate_metrics(
 ) -> tuple[list[dict[str, Any]], int]:
     all_results: list[dict[str, Any]] = []
     number_of_errors = 0
+
+    result_files_dir = os.path.join(results_dir, "files")
 
     file_metadata_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir, "metadata", "file_metadata.csv")
@@ -1096,7 +1133,7 @@ def loop_over_results_and_generate_metrics(
                 file_name,
                 config_data,
                 system_metadata_dict,
-                results_dir,
+                result_files_dir,
                 data_dir,
                 submission_runtime,
                 function_parameters,
