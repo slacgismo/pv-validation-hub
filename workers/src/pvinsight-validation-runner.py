@@ -532,6 +532,7 @@ def run(  # noqa: C901
     logger.info(f"volume_host_results_dir:{volume_host_results_dir}")
 
     func_arguments_list = prepare_function_args_for_parallel_processing(
+        submission_id=submission_id,
         image_tag=image_tag,
         memory_limit=memory_limit,
         submission_file_name=submission_module_name,
@@ -877,6 +878,7 @@ def append_to_list(item: T, array: list[T] | None = None):
 
 
 def prepare_function_args_for_parallel_processing(
+    submission_id: int,
     image_tag: str,
     memory_limit: str,
     submission_file_name: str,
@@ -931,6 +933,7 @@ def prepare_function_args_for_parallel_processing(
         logger.info(f"submission_args: {submission_args}")
 
         function_args = (
+            submission_id,
             image_tag,
             memory_limit,
             submission_file_name,

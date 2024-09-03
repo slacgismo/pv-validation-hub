@@ -61,8 +61,9 @@ class Submission(models.Model):
 
     # Fields for calculating the submission progress
     start_time = models.DateTimeField(null=True, blank=True)
-    current_file_count = models.IntegerField(null=True, blank=True)
-    progress = models.IntegerField(
+    avg_file_exec_time = models.FloatField(default=0.0)  # in seconds
+    current_file_count = models.IntegerField(default=0)
+    progress = models.FloatField(
         null=True, blank=True
     )  # Time in seconds remaining
 

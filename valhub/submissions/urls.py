@@ -14,6 +14,11 @@ urlpatterns = [
         name="submission_detail",
     ),
     path(
+        "submission/<int:submission_id>/progress_increment",
+        views.increment_submission_progress,
+        name="increment_submission_progress",
+    ),
+    path(
         "change_submission_status/<int:submission_id>",
         views.change_submission_status,
         name="change_submission_status",
