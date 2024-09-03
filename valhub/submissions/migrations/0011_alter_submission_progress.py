@@ -6,13 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('submissions', '0010_submission_current_file_count_submission_progress_and_more'),
+        (
+            "submissions",
+            "0010_submission_current_file_count_submission_progress_and_more",
+        ),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='submission',
-            name='progress',
+            model_name="submission",
+            name="progress",
             field=models.IntegerField(blank=True, null=True),
         ),
     ]

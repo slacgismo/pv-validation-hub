@@ -6,23 +6,23 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('submissions', '0009_alter_submission_python_version'),
+        ("submissions", "0009_alter_submission_python_version"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='submission',
-            name='current_file_count',
+            model_name="submission",
+            name="current_file_count",
             field=models.IntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='submission',
-            name='progress',
+            model_name="submission",
+            name="progress",
             field=models.FloatField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='submission',
-            name='start_time',
+            model_name="submission",
+            name="start_time",
             field=models.DateTimeField(blank=True, null=True),
         ),
     ]

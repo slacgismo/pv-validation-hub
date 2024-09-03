@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('analyses', '0004_alter_analysis_display_errors'),
+        ("analyses", "0004_alter_analysis_display_errors"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='analysis',
-            name='total_files',
+            model_name="analysis",
+            name="total_files",
             field=models.IntegerField(default=1),
         ),
     ]
