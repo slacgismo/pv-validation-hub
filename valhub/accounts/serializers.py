@@ -17,6 +17,9 @@ class AccountSerializer(serializers.ModelSerializer):
             "acceptTerms",
             "githubLink",
             "webLinks",
+            "organization",
+            "title",
+            "profileImage",
         )
 
     def create(self, validated_data):

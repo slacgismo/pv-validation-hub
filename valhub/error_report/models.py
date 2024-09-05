@@ -5,9 +5,13 @@ from submissions.models import Submission
 class ErrorReport(models.Model):
     error_id = models.AutoField(primary_key=True)
     submission = models.ForeignKey(
-        Submission, on_delete=models.CASCADE, related_name="error_report"
+        Submission,
+        on_delete=models.CASCADE,
+        related_name="error_report",
+        blank=True,
     )
-    error_code = models.CharField(max_length=100)
-    error_type = models.CharField(max_length=100)
+    error_code = models.CharField(max_length=100, blank=True)
+    error_type = models.CharField(max_length=100, blank=True)
     error_message = models.TextField(null=True, blank=True)
     error_rate = models.FloatField(null=True, blank=True)
+    file_errors = models.JSONField(default=dict, blank=True)
