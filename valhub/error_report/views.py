@@ -1,3 +1,4 @@
+from typing import Any, TypedDict, cast
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -207,16 +208,104 @@ def ErrorReportPrivateList(request: Request, pk):
 @csrf_exempt
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-def ErrorReportNew(request: Request, pk):
-    #    queryset = ErrorReport.objects.all()
-    #    serializer_class = ErrorReportSerializer
+def ErrorReportNew(request: Request):
+    # Create a new blank error report
 
-    #        return ErrorReport.objects.filter(submission__user=self.request.user)
-    # Placeholder return value
-    ret = {
-        "error_code": "Error123",
-        "error_type": "TypeError",
-        "error_message": "Data is of the type: NoneType, Expected: int",
-        "error_rate": 12.34,
-    }
-    return JsonResponse(ret, status=status.HTTP_200_OK)
+    data = request.data
+
+    serializer = ErrorReportSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return JsonResponse(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+            safe=False,
+        )
+    else:
+        return JsonResponse(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class NonBreakingErrorReport(TypedDict):
+    error_code: int
+    error_type: str
+    error_message: str
+    file_name: str
+
+
+@api_view(["POST"])
+@csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def update_non_breaking(request: Request, submission_id: int):
+
+    error_report: ErrorReportModel | None = None
+
+    try:
+        error_reports = ErrorReportModel.objects.filter(
+            submission=submission_id
+        )
+
+        # Get first error report to check if it exists
+        error_report = error_reports.first()
+
+        if error_report is None:
+            raise ErrorReportModel.DoesNotExist
+
+    except ErrorReportModel.DoesNotExist:
+        return JsonResponse(
+            {"error": "Error report not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    data = cast(NonBreakingErrorReport | None, request.data)
+
+    if data is None:
+        return JsonResponse(
+            {"error": "Request data is empty"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    required_fields = [
+        "error_code",
+        "error_type",
+        "error_message",
+        "file_name",
+    ]
+
+    for field in required_fields:
+        if field not in data:
+            return JsonResponse(
+                {"error": f"{field} is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    non_breaking_errors: dict[str, Any] = error_report.file_errors
+
+    logger.info(f"Non-breaking errors: {non_breaking_errors}")
+    logger.info(type(non_breaking_errors))
+
+    current_errors_list = non_breaking_errors.get("errors", [])
+    current_errors_list.append(data)
+
+    non_breaking_errors["errors"] = current_errors_list
+
+    error_report.file_errors = non_breaking_errors
+
+    number_of_non_breaking_errors = len(current_errors_list)
+
+    # Number of files in analysis
+    number_of_files_in_task = error_report.submission.analysis.total_files
+
+    # Calculate error rate
+    error_rate = number_of_non_breaking_errors / number_of_files_in_task
+
+    error_report.error_rate = error_rate
+    error_report.save()
+
+    return JsonResponse(
+        {"message": "Non-breaking error added"},
+        status=status.HTTP_200_OK,
+    )

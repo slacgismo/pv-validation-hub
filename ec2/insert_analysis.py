@@ -370,6 +370,7 @@ class InsertAnalysis:
             #     display_errors.append(display_error)
 
             print("display_errors", display_errors)
+            print("number of files", len(self.new_file_metadata_df))
 
             body = {
                 "analysis_name": self.config["category_name"],
@@ -863,6 +864,11 @@ if __name__ == "__main__":
         config = json.load(file)
 
         is_local = True
+
+        if is_local == False:
+            input(
+                "Are you sure you want to create/update a task on production?"
+            )
 
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]

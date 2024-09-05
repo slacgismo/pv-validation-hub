@@ -47,6 +47,7 @@ from utility import (
     RUNNER_ERROR_PREFIX,
     RunnerException,
     SubmissionException,
+    create_blank_error_report,
     create_docker_image_for_submission,
     dask_multiprocess,
     generate_private_report_for_submission,
@@ -322,6 +323,17 @@ def run(  # noqa: C901
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ) -> dict[str, Any]:
+
+    # Create an Error Report
+    try:
+
+        create_blank_error_report(submission_id, logger=logger)
+    except Exception as e:
+        logger.error("Error creating blank error report")
+        logger.exception(e)
+
+        
+
     # If a path is provided, set the directories to that path, otherwise use default
     if current_evaluation_dir is not None:
         results_dir = (
