@@ -40,7 +40,9 @@ from .serializers import (
 )
 from .models import Submission
 
+from base.logger import setup_logging
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Create your views here.
@@ -245,6 +247,65 @@ def change_submission_status(request: Request, submission_id: str):
         return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
     response_data = {
         "success": f"submission {submission_id} status changed to {new_status}"
+    }
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@csrf_exempt
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def increment_submission_progress(request: Request, submission_id: str):
+    try:
+        submission = Submission.objects.get(submission_id=submission_id)
+    except Submission.DoesNotExist:
+        response_data = {"error": "submission does not exist"}
+        return Response(response_data, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    # Get total number of files for the analysis
+    total_files = submission.analysis.total_files
+    if total_files == 0:
+        response_data = {"error": "total_files is 0"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    request_data = cast(dict[str, Any] | None, request.data)
+
+    if request_data is None:
+        response_data = {"error": "No data provided"}
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    required_fields = ["file_exec_time"]
+
+    for field in required_fields:
+        if field not in request_data:
+            response_data = {"error": f"{field} is required"}
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    file_exec_time: str = request_data.get("file_exec_time", "0")
+    current_file_count = submission.current_file_count
+    avg_file_exec_time = submission.avg_file_exec_time
+
+    logger.info(f"current_file_count = {current_file_count}")
+    logger.info(f"avg_file_exec_time = {avg_file_exec_time}")
+
+    new_current_file_count = current_file_count + 1
+    # Itterative average calculation
+    new_avg_file_exec_time = (
+        avg_file_exec_time
+        + (float(file_exec_time) - avg_file_exec_time) / new_current_file_count
+    )
+
+    logger.info(f"new_current_file_count = {new_current_file_count}")
+    logger.info(f"new_avg_file_exec_time = {new_avg_file_exec_time}")
+
+    submission.current_file_count = new_current_file_count
+    submission.avg_file_exec_time = new_avg_file_exec_time
+    submission.progress = (
+        total_files - new_current_file_count
+    ) * new_avg_file_exec_time
+    submission.save()
+    response_data = {
+        "success": f"submission {submission_id} progress incremented by 0.1"
     }
     return Response(response_data, status=status.HTTP_200_OK)
 

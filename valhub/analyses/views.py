@@ -8,6 +8,7 @@ from rest_framework.decorators import (
 )
 from django.http import JsonResponse
 
+
 from .models import Analysis
 from submissions.models import Submission
 from submissions.serializers import SubmissionDetailSerializer
@@ -26,6 +27,9 @@ from rest_framework.authentication import (
 )
 
 
+from base.logger import setup_logging
+
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Create your views here.

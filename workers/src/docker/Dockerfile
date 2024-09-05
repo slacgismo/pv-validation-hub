@@ -12,9 +12,10 @@ RUN apt-get update && apt-get install -y \
     libhdf5-dev \
     python3-dev \
     cmake \
-    pkg-config
+    pkg-config \
+    unzip
 
-COPY unzip.py .
+# COPY unzip.py .
 COPY requirements.txt .
 
 # Install the Python dependencies for the submission wrapper
@@ -27,12 +28,14 @@ COPY $zip_file .
 
 # Unzip the submission package
 
-RUN python -m unzip $zip_file submission
+RUN unzip -j $zip_file -d submission
 
 WORKDIR /app/submission
 
 # Install the Python dependencies
+RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
+RUN pip install typing-extensions
 
 
 # Set the working directory in the container

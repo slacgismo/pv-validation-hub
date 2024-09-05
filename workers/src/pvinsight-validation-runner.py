@@ -16,7 +16,16 @@ script, the following occurs:
       This section will be dependent on the type of analysis being run.
 """
 
-from typing import Any, Callable, Sequence, Tuple, TypeVar, cast, ParamSpec
+from typing import (
+    Any,
+    Callable,
+    Sequence,
+    Tuple,
+    TypeVar,
+    TypedDict,
+    cast,
+    ParamSpec,
+)
 import pandas as pd
 import os
 from importlib import import_module
@@ -345,6 +354,7 @@ def run(  # noqa: C901
 
     # Ensure results directory exists
     os.makedirs(results_dir, exist_ok=True)
+    os.makedirs(os.path.join(results_dir, "files"), exist_ok=True)
 
     # Ensure results directory exists
     os.makedirs(data_dir, exist_ok=True)
@@ -499,18 +509,30 @@ def run(  # noqa: C901
     volume_host_results_dir = os.environ.get("DOCKER_HOST_VOLUME_RESULTS_DIR")
 
     if volume_host_data_dir is None:
+        logger.error(
+            "DOCKER_HOST_VOLUME_DATA_DIR environment variable not found"
+        )
         # TODO: add error code
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
 
     if volume_host_results_dir is None:
+        logger.error(
+            "DOCKER_HOST_VOLUME_RESULTS_DIR environment variable not found"
+        )
         # TODO: add error code
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
 
+    logger.info(f"data_dir:{data_dir}")
+    logger.info(f"results_dir:{results_dir}")
+    logger.info(f"volume_host_data_dir:{volume_host_data_dir}")
+    logger.info(f"volume_host_results_dir:{volume_host_results_dir}")
+
     func_arguments_list = prepare_function_args_for_parallel_processing(
+        submission_id=submission_id,
         image_tag=image_tag,
         memory_limit=memory_limit,
         submission_file_name=submission_module_name,
@@ -528,20 +550,47 @@ def run(  # noqa: C901
 
     # raise Exception("Finished Successfully")
 
-    number_of_errors = loop_over_files_and_generate_results(
+    number_of_submission_errors = loop_over_files_and_generate_results(
         func_arguments_list
     )
-    logger.info(f"number_of_errors: {number_of_errors}")
+    logger.info(f"number_of_submission_errors: {number_of_submission_errors}")
 
     # raise Exception("Finished Successfully")
 
-    results_list = loop_over_results_and_generate_metrics(
-        data_dir=data_dir,
-        results_dir=results_dir,
-        current_evaluation_dir=current_evaluation_dir,
+    results_list, number_of_metrics_errors = (
+        loop_over_results_and_generate_metrics(
+            data_dir=data_dir,
+            results_dir=results_dir,
+            current_evaluation_dir=current_evaluation_dir,
+        )
     )
+    logger.info(f"number_of_metrics_errors: {number_of_metrics_errors}")
+
+    number_of_errors = number_of_submission_errors + number_of_metrics_errors
 
     # raise Exception("Finished Successfully")
+
+    # Get information about the submission function
+
+    class SubmissionFunctionInfo(TypedDict):
+        data_file_name: str
+        function_name: str
+        function_parameters: list[str]
+
+    try:
+        with open(f"{results_dir}/submission_function_info.json", "r") as fp:
+            submission_function_info: SubmissionFunctionInfo = json.load(fp)
+    except FileNotFoundError as e:
+        logger.error("submission_function_info.json not found")
+        logger.exception(e)
+
+        # logger.info(f"update submission status to {FAILED}")
+        # update_submission_status(submission_id, FAILED)
+        # TODO: add error code
+        error_code = 500
+        raise RunnerException(
+            *get_error_by_code(error_code, runner_error_codes, logger)
+        )
 
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
@@ -560,9 +609,11 @@ def run(  # noqa: C901
     # Get the mean and median run times
     public_metrics_dict["mean_runtime"] = results_df["runtime"].mean()
     public_metrics_dict["median_runtime"] = results_df["runtime"].median()
-    public_metrics_dict["function_parameters"] = [
-        "time_series",
-        *config_data["allowable_kwargs"],
+    logger.info(
+        f'function_parameters: {submission_function_info["function_parameters"]}'
+    )
+    public_metrics_dict["function_parameters"] = submission_function_info[
+        "function_parameters"
     ]
     public_metrics_dict["data_requirements"] = results_df[
         "data_requirements"
@@ -581,11 +632,12 @@ def run(  # noqa: C901
         "median": m_median,
     }
 
-    perfomance_metrics_mapping = [
-        "mean_absolute_error",
-        "absolute_error",
-        "runtime",
-    ]
+    # perfomance_metrics_mapping = [
+    #     "mean_absolute_error",
+    #     "absolute_error",
+    #     "error",
+    #     "runtime",
+    # ]
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -593,63 +645,63 @@ def run(  # noqa: C901
     # are valid keys, anything else breaks our results processing
     for metric in performance_metrics:
 
-        if metric not in perfomance_metrics_mapping:
+        # if metric not in perfomance_metrics_mapping:
 
-            logger.error(
-                f"metric {metric} not found in perfomance_metrics_mapping"
-            )
-            # TODO: add error code
+        #     logger.error(
+        #         f"metric `{metric}` not found in perfomance_metrics_mapping"
+        #     )
+        #     # TODO: add error code
 
-            raise RunnerException(
-                *get_error_by_code(500, runner_error_codes, logger)
-            )
+        #     raise RunnerException(
+        #         *get_error_by_code(500, runner_error_codes, logger)
+        #     )
 
         metrics_operations: dict[str, dict[str, str]] = config_data.get(
             "metrics_operations", {}
         )
 
-        if metric not in metrics_operations:
-            # TODO: add error code
-            logger.error(
-                f"metric {metric} not found in metrics_operations within config.json"
-            )
-            raise RunnerException(
-                *get_error_by_code(500, runner_error_codes, logger)
-            )
+        for val in config_data["ground_truth_compare"]:
 
-        operations = metrics_operations[metric]
+            if metric == "runtime":
+                key = "runtime"
+            else:
+                key = f"{metric}_{val}"
 
-        for operation in operations:
-            if operation not in metric_operations_mapping:
+            if key not in results_df.columns:
+
+                logger.error(f"key {key} not found in results_df columns")
+
+                # TODO: add error code
+                raise RunnerException(
+                    *get_error_by_code(500, runner_error_codes, logger)
+                )
+
+            if key not in metrics_operations:
                 # TODO: add error code
                 logger.error(
-                    f"operation {operation} not found in metric_operations_mapping"
+                    f"metric {metric} not found in metrics_operations within config.json"
                 )
                 raise RunnerException(
                     *get_error_by_code(500, runner_error_codes, logger)
                 )
 
-            operation_function = metric_operations_mapping[operation]
+            operations = metrics_operations[key]
 
-            for val in config_data["ground_truth_compare"]:
-
-                if metric == "runtime":
-                    key = "runtime"
-                else:
-                    key = f"{metric}_{val}"
-
-                if key not in results_df.columns:
-
-                    logger.error(f"key {key} not found in results_df columns")
-
+            for operation in operations:
+                if operation not in metric_operations_mapping:
                     # TODO: add error code
+                    logger.error(
+                        f"operation {operation} not found in metric_operations_mapping"
+                    )
                     raise RunnerException(
                         *get_error_by_code(500, runner_error_codes, logger)
                     )
 
+                operation_function = metric_operations_mapping[operation]
+
                 metric_result = operation_function(results_df, key)
 
-                metric_result_dict = {f"{operation}_{metric}": metric_result}
+                metric_result_dict = {f"{operation}_{key}": metric_result}
                 metrics_dict.update(metric_result_dict)
 
     public_metrics_dict["metrics"] = metrics_dict
@@ -703,58 +755,15 @@ def run(  # noqa: C901
         logger.error("Error generating private report for submission.")
         logger.exception(e)
 
-    # Loop through all of the plot dictionaries and generate plots and
-    # associated tables for reporting
-    # for plot in config_data["plots"]:
-    #     if plot["type"] == "histogram":
-    #         if "color_code" in plot:
-    #             color_code = plot["color_code"]
-    #         else:
-    #             color_code = None
-    #         gen_plot = generate_histogram(
-    #             results_df_private, plot["x_val"], plot["title"], color_code
-    #         )
-    #         # Save the plot
-    #         gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
-    #         plt.close()
-    #         plt.clf()
-    #         # Write the stratified results to a table for private reporting
-    #         # (if color_code param is not None)
-    #         if color_code:
-    #             stratified_results_tbl = pd.DataFrame(
-    #                 results_df_private.groupby(color_code)[
-    #                     plot["x_val"]
-    #                 ].mean()
-    #             )
-    #             stratified_results_tbl.to_csv(
-    #                 os.path.join(
-    #                     results_dir,
-    #                     module_name
-    #                     + "_"
-    #                     + str(color_code)
-    #                     + "_"
-    #                     + plot["x_val"]
-    #                     + ".csv",
-    #                 )
-    #             )
-    #     if plot["type"] == "scatter_plot":
-    #         gen_plot = generate_scatter_plot(
-    #             results_df_private, plot["x_val"], plot["y_val"], plot["title"]
-    #         )
-    #         # Save the plot
-    #         gen_plot.savefig(os.path.join(results_dir, plot["save_file_path"]))
-    #         plt.close()
-    #         plt.clf()
-
     logger.info(f"number_of_errors: {number_of_errors}")
 
-    success_rate = (
-        (total_number_of_files - number_of_errors) / total_number_of_files
-    ) * 100
-    logger.info(f"success_rate: {success_rate}%")
-    logger.info(
-        f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
-    )
+    # success_rate = (
+    #     (total_number_of_files - number_of_errors) / total_number_of_files
+    # ) * 100
+    # logger.info(f"success_rate: {success_rate}%")
+    # logger.info(
+    #     f"{total_number_of_files - number_of_errors} out of {total_number_of_files} files processed successfully"
+    # )
 
     # public_metrics_dict["success_rate"] = success_rate
     return public_metrics_dict
@@ -869,6 +878,7 @@ def append_to_list(item: T, array: list[T] | None = None):
 
 
 def prepare_function_args_for_parallel_processing(
+    submission_id: int,
     image_tag: str,
     memory_limit: str,
     submission_file_name: str,
@@ -923,6 +933,7 @@ def prepare_function_args_for_parallel_processing(
         logger.info(f"submission_args: {submission_args}")
 
         function_args = (
+            submission_id,
             image_tag,
             memory_limit,
             submission_file_name,
@@ -936,6 +947,7 @@ def prepare_function_args_for_parallel_processing(
         function_args_list = append_to_list(function_args, function_args_list)
 
     if function_args_list is None:
+        logger.error("function_args_list is None")
         # TODO: add error code
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
@@ -1000,7 +1012,7 @@ def loop_over_files_and_generate_results(
         func_arguments_list[NUM_FILES_TO_TEST:],
     )
 
-    results: list[dict[str, Any]] = []
+    # results: list[dict[str, Any]] = []
     number_of_errors = 0
 
     # Test the first two files
@@ -1008,14 +1020,14 @@ def loop_over_files_and_generate_results(
     test_errors = dask_multiprocess(
         submission_task,
         test_func_argument_list,
-        n_workers=NUM_FILES_TO_TEST,
+        # n_workers=NUM_FILES_TO_TEST,
         threads_per_worker=1,
         # memory_limit="16GiB",
         logger=logger,
     )
 
-    errors = [error for error, error_code in test_errors]
-    number_of_errors += sum(errors)
+    is_errors_list = [error for error, error_code in test_errors]
+    number_of_errors += sum(is_errors_list)
 
     if number_of_errors == NUM_FILES_TO_TEST:
         logger.error(
@@ -1055,8 +1067,9 @@ def loop_over_files_and_generate_results(
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
-    errors = [error for error, error_code in rest_errors]
-    number_of_errors += sum(errors)
+    is_errors_list = [error for error, error_code in rest_errors]
+
+    number_of_errors += sum(is_errors_list)
 
     # test_errors = [result for result, _ in test_errors if result is not None]
     # rest_errors = [result for result, _ in rest_errors if result is not None]
@@ -1071,8 +1084,11 @@ def loop_over_results_and_generate_metrics(
     data_dir: str,
     results_dir: str,
     current_evaluation_dir: str,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], int]:
     all_results: list[dict[str, Any]] = []
+    number_of_errors = 0
+
+    result_files_dir = os.path.join(results_dir, "files")
 
     file_metadata_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir, "metadata", "file_metadata.csv")
@@ -1116,20 +1132,28 @@ def loop_over_results_and_generate_metrics(
 
         function_parameters = ["time_series", *config_data["allowable_kwargs"]]
 
-        result = generate_performance_metrics_for_submission(
-            file_name,
-            config_data,
-            system_metadata_dict,
-            results_dir,
-            data_dir,
-            submission_runtime,
-            function_parameters,
-        )
+        try:
+            result = generate_performance_metrics_for_submission(
+                file_name,
+                config_data,
+                system_metadata_dict,
+                result_files_dir,
+                data_dir,
+                submission_runtime,
+                function_parameters,
+            )
 
-        logger.info(f"{file_name}: {result}")
-        all_results.append(result)
+            logger.info(f"{file_name}: {result}")
+            all_results.append(result)
+        except Exception as e:
+            number_of_errors += 1
+            # TODO: add error code
+            logger.error(
+                f"Error generating performance metrics for {file_name}"
+            )
+            logger.exception(e)
 
-    return all_results
+    return all_results, number_of_errors
 
 
 def generate_performance_metrics_for_submission(
@@ -1240,9 +1264,14 @@ def generate_performance_metrics_for_submission(
         mean_absolute_error = np.mean(absolute_difference)
         return mean_absolute_error
 
+    def p_error(output: pd.Series, ground_truth: pd.Series):
+        difference = output - ground_truth
+        return difference
+
     performance_metrics_map = {
         "absolute_error": p_absolute_error,
         "mean_absolute_error": p_mean_absolute_error,
+        "error": p_error,
     }
 
     for metric in performance_metrics:
@@ -1254,7 +1283,7 @@ def generate_performance_metrics_for_submission(
 
         if metric not in performance_metrics_map:
             logger.error(
-                f"performance metric {metric} not found in performance_metrics_map, Unhandled metric"
+                f"performance metric `{metric}` not found in performance_metrics_map, Unhandled metric"
             )
             # TODO: add error code
 
@@ -1265,12 +1294,14 @@ def generate_performance_metrics_for_submission(
         performance_metric_function = performance_metrics_map[metric]
 
         for val in config_data["ground_truth_compare"]:
-
+            logger.info(f'"{metric}_{val}" is being calculated')
             results_dictionary[metric + "_" + val] = (
                 performance_metric_function(
                     output_dictionary[val], ground_truth_dict[val]
                 )
             )
+
+    logger.info(f"results_dictionary: {results_dictionary}")
 
     return results_dictionary
 

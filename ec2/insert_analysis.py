@@ -374,6 +374,7 @@ class InsertAnalysis:
             body = {
                 "analysis_name": self.config["category_name"],
                 "display_errors": display_errors,
+                "total_files": len(self.new_file_metadata_df),
             }
 
             print("body", body)

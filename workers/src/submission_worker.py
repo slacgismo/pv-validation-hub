@@ -228,9 +228,13 @@ def extract_analysis_data(  # noqa: C901
         tmp_path = pull_from_s3(
             IS_LOCAL, S3_BUCKET_NAME, file, BASE_TEMP_DIR, logger
         )
+        dest_path = os.path.join(
+            current_evaluation_dir, tmp_path.split("/")[-1]
+        )
+        logger.info(f"move file {tmp_path} to {dest_path}")
         shutil.move(
             tmp_path,
-            os.path.join(current_evaluation_dir, tmp_path.split("/")[-1]),
+            dest_path,
         )
 
     # create data directory and sub directories
@@ -335,6 +339,7 @@ def extract_analysis_data(  # noqa: C901
         tmp_path = pull_from_s3(
             IS_LOCAL, S3_BUCKET_NAME, analytical, BASE_TEMP_DIR, logger
         )
+        logger.info(f"move analysis file {tmp_path} to {file_data_dir}")
         shutil.move(
             tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
         )
@@ -343,6 +348,9 @@ def extract_analysis_data(  # noqa: C901
 
         tmp_path = pull_from_s3(
             IS_LOCAL, S3_BUCKET_NAME, ground_truth, BASE_TEMP_DIR, logger
+        )
+        logger.info(
+            f'move ground truth file "{tmp_path}" to "{validation_data_dir}"'
         )
         shutil.move(
             tmp_path,
@@ -514,6 +522,7 @@ def get_or_create_sqs_queue(queue_name):
     Returns:
         Returns the SQS Queue object
     """
+    logger.info(f"Getting or creating SQS queue: {queue_name}")
     # Use the Docker endpoint URL for local development
     if IS_LOCAL:
         sqs: SQSServiceResource = boto3.resource(
@@ -530,12 +539,16 @@ def get_or_create_sqs_queue(queue_name):
             "sqs",  # type: ignore
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
-
+    logger.info(f"Retrieved SQS resource")
     if queue_name == "":
         queue_name = "valhub_submission_queue.fifo"
     # Check if the queue exists. If no, then create one
+    logger.info(f"Getting queue by name: {queue_name}")
+
     try:
-        queue = sqs.get_queue_by_name(QueueName=queue_name)
+        queue = sqs.get_queue_by_name(
+            QueueName=queue_name,
+        )
     except botocore.exceptions.ClientError as ex:
         if (
             ex.response.get("Error", {}).get("Code")
@@ -546,6 +559,7 @@ def get_or_create_sqs_queue(queue_name):
             QueueName=queue_name, Attributes={"FifoQueue": "true"}
         )
 
+    logger.info(f"Queue retrieved")
     return queue
 
 
@@ -664,18 +678,21 @@ def main():
         f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
-    # print(queue)
+    logger.info(f'Retrieved queue "valhub_submission_queue.fifo"')
+    logger.info(f"SQS queue URL: {queue.url}")
 
     is_finished = False
 
+    logger.info("Listening for messages...")
     # infinite loop to listen and process messages
     while not is_finished:
+        print("Polling for messages...")
         messages = queue.receive_messages(
             MaxNumberOfMessages=1, VisibilityTimeout=43200
         )
+        print(f"Received {len(messages)} messages")
 
         for message in messages:
-
             logger.info(f"Received message: {message.body}")
 
             json_message: dict[str, Any] = json.loads(message.body)
@@ -803,32 +820,43 @@ def main():
                 stop_event.set()
                 t.join()
 
-            log_file = os.path.join(LOG_FILE_DIR, "submission.log")
-            json_log_file = os.path.join(LOG_FILE_DIR, "submission.log.jsonl")
-
-            # push log files to s3
-
-            push_to_s3(
-                log_file,
-                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
-                analysis_id,
-                submission_id,
-            )
-            push_to_s3(
-                json_log_file,
-                f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
-                analysis_id,
-                submission_id,
-            )
-
-            # Remove all log files
-            os.remove(log_file)
-            os.remove(json_log_file)
+            upload_logs_to_s3(user_id, analysis_id, submission_id)
 
             is_finished = True
             break
 
-        time.sleep(0.1)
+        time.sleep(1)
+
+
+def upload_logs_to_s3(user_id, analysis_id, submission_id):
+    log_file = os.path.join(LOG_FILE_DIR, "submission.log")
+    error_log_file = os.path.join(LOG_FILE_DIR, "submission.error.log")
+    json_log_file = os.path.join(LOG_FILE_DIR, "submission.log.jsonl")
+
+    # push log files to s3
+
+    push_to_s3(
+        log_file,
+        f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
+        analysis_id,
+        submission_id,
+    )
+    push_to_s3(
+        error_log_file,
+        f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.error.log",
+        analysis_id,
+        submission_id,
+    )
+    push_to_s3(
+        json_log_file,
+        f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
+        analysis_id,
+        submission_id,
+    )
+
+    # Remove all log files
+    os.remove(log_file)
+    os.remove(json_log_file)
 
 
 if __name__ == "__main__":

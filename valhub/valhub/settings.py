@@ -137,7 +137,6 @@ try:
         raise Exception("DJANGO_SECRET_KEY not in secret")
     SECRET_KEY = secret["DJANGO_SECRET_KEY"]
 
-
 except:
     SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
@@ -267,7 +266,6 @@ except Exception as e:
     logger.error(
         "Error retrieving secrets from AWS Secrets Manager, using default values"
     )
-    logger.exception(e)
 
     DATABASES = {
         "default": {

@@ -524,7 +524,7 @@ def move_file_to_directory(
 IS_LOCAL = is_local()
 
 API_BASE_URL = (
-    "http://api:8005" if IS_LOCAL else "http://api.pv-validation-hub.org"
+    "http://api:8005" if IS_LOCAL else "https://api.pv-validation-hub.org"
 )
 
 S3_BASE_URL = "http://s3:5000/get_object/" if IS_LOCAL else "s3://"
@@ -849,7 +849,7 @@ class DockerContainerContextManager:
         client: docker.DockerClient,
         image: Image | str,
         command: str | list[str],
-        volumes: dict[str, dict[str, str]] | list[str],
+        volumes: dict[str, str] | list[str],
         mem_limit: str | None = None,
     ) -> None:
         self.client = client
@@ -906,10 +906,14 @@ def docker_task(
     # results_dir = os.path.join(os.path.dirname(__file__), "results")
     # data_dir = os.path.join(os.path.dirname(__file__), "data")
 
-    volumes = {
-        results_dir: {"bind": "/app/results/", "mode": "rw"},
-        data_dir: {"bind": "/app/data/", "mode": "ro"},
-    }
+    # volumes = {
+    #     results_dir: {"bind": "/app/results", "mode": "rw"},
+    #     data_dir: {"bind": "/app/data", "mode": "ro"},
+    # }
+
+    volumes = [f"{results_dir}:/app/results", f"{data_dir}:/app/data"]
+
+    logger_if_able(f"volumes: {volumes}", logger)
 
     command: list[str] = [
         "python",
@@ -936,7 +940,7 @@ def docker_task(
             logger_if_able(line.strip(), logger)
 
         try:
-            container_dict: dict[str, Any] = container.wait()
+            container_dict = container.wait()
         except Exception as e:
             error_raised = True
             error_code = 500
@@ -958,7 +962,32 @@ def docker_task(
     return error_raised, error_code
 
 
+def update_submission_progress(
+    submission_id: str, data: dict[str, Any], logger: Logger | None = None
+):
+    result = request_to_API_w_credentials(
+        "POST",
+        f"submissions/submission/{submission_id}/progress_increment",
+        data=data,
+        logger=None,
+    )
+    return result
+
+
+def update_submission_non_breaking_error_report(
+    error_report_id: str, data: dict[str, Any], logger: Logger | None = None
+):
+    result = request_to_API_w_credentials(
+        "POST",
+        f"error_report/error_report/{error_report_id}/update_non_breaking",
+        data=data,
+        logger=None,
+    )
+    return result
+
+
 def submission_task(
+    submission_id: str,
     image_tag: str,
     memory_limit: str,
     submission_file_name: str,
@@ -971,10 +1000,13 @@ def submission_task(
 
     error = False
     error_code: int | None = None
+    execution_time: float | None = None
 
     with DockerClientContextManager() as client:
         try:
-            error_raised, error_code_raised = docker_task(
+            [error_raised, error_code_raised], execution_time = timing()(
+                docker_task
+            )(
                 client=client,
                 image=image_tag,
                 memory_limit=memory_limit,
@@ -993,6 +1025,35 @@ def submission_task(
             error = True
             error_code = 500
             logger_if_able(f"Error: {e}", None, "ERROR")
+
+    try:
+        result = update_submission_progress(
+            submission_id, {"file_exec_time": execution_time}, logger
+        )
+        logger_if_able(f"Progress update: {result}", logger)
+    except Exception as e:
+        # error = True
+        # error_code = 500
+        logger_if_able(f"Error: {e}", logger, "ERROR")
+
+    # TODO: Send to API
+    # Create an error report for all non breaking errors and send to API
+
+    if error:
+        file_error_report = {
+            "error_code": error_code,
+            "error_type": SubmissionException,
+            "error_message": error,
+            "file_name": submission_file_name,
+        }
+
+        logger_if_able(f"Error: {file_error_report}", logger, "ERROR")
+        # error, error_code = create_error_report(
+        #     submission_file_name, error_code, logger
+        # )
+
+    # # Send error report to API
+    # send_error_report_to_API(json_errors, error_rate)
 
     return error, error_code
 
@@ -1054,6 +1115,7 @@ def create_docker_image(
                 path=dir_path,
                 tag=tag,
                 rm=True,
+                nocache=True,
                 dockerfile="Dockerfile",
                 buildargs={
                     "zip_file": f"{submission_file_name}",
@@ -1104,8 +1166,8 @@ class DockerClientContextManager:
 def initialize_docker_client():
     base_url = os.environ.get("DOCKER_HOST", None)
 
-    if not base_url:
-        logger_if_able("Docker host not set", None, "WARNING")
+    # if not base_url:
+    #     logger_if_able("Docker host not set", None, "WARNING")
 
     # cert_path = os.environ.get("DOCKER_CERT_PATH")
     # if not cert_path:
