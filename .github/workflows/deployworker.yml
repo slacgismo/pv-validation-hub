@@ -6,69 +6,72 @@ on:
     types: [published]
 
 env:
-  AWS_REGION: us-west-2                    
-  ECR_WORKER_REPOSITORY: pv-validation-hub-worker           
-  ECS_WORKER_SERVICE: valhub-worker-service
-  ECS_WORKER_CLUSTER: pv-validation-hub-worker-cluster      
-  WORKER_CONTAINER_NAME: pv-validation-hub-worker-task
+  AWS_REGION: us-west-2
+  ECR_WORKER_REPOSITORY: pv-validation-hub-worker
+  ECS_WORKER_SERVICE: worker-service
+  ECS_WORKER_CLUSTER: pv-validation-hub-worker-cluster-prod
+  WORKER_CONTAINER_NAME: pv-validation-hub-worker-task-ec2
   AK: ${{ secrets.API_AK }}
   SAK: ${{ secrets.API_SAK }}
+  DOCKER_HOST_VOLUME_DATA_DIR: ${{ vars.DOCKER_HOST_VOLUME_DATA_DIR }}
+  DOCKER_HOST_VOLUME_RESULTS_DIR: ${{ vars.DOCKER_HOST_VOLUME_RESULTS_DIR }}
 
 jobs:
-    deploy_worker:
-        name: Deploy Worker
-        runs-on: ubuntu-latest
-        environment: production
-        steps:
-          - name: Checkout
-            uses: actions/checkout@v3
-    
-          - name: Configure AWS credentials
-            uses: aws-actions/configure-aws-credentials@v1
-            with:
-              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-              aws-region: ${{ env.AWS_REGION }}
-    
-          - name: Login to Amazon ECR
-            id: login-ecr
-            uses: aws-actions/amazon-ecr-login@v1
-    
-          - name: Build, tag, and push image to Amazon ECR
-            id: build-image-worker
-            env:
-              ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-              ECR_REPOSITORY: ${{ env.ECR_WORKER_REPOSITORY }}
-              IMAGE_TAG: latest
-            run: |
-              cd workers
-              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-              --build-arg region=${{ env.AWS_REGION }} \
-              --build-arg ak=${{ env.AK }} \
-              --build-arg sak=${{ env.SAK }} \
-               -f Dockerfile.prod .
-              docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-              echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+  deploy_worker:
+    name: Deploy Worker
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-          # needed for the task-definition.json file, update task family here
-          # can also use the CLI to manually generate the task, new def forces new deployment of containers 
-          - name: Download task definition
-            run: |
-              aws ecs describe-task-definition --task-definition ${{ env.WORKER_CONTAINER_NAME }} --query taskDefinition > task-definition.json
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-          - name: Fill in the new image ID in the Amazon ECS task definition
-            id: task-def
-            uses: aws-actions/amazon-ecs-render-task-definition@v1
-            with:
-              task-definition: task-definition.json
-              container-name: ${{ env.WORKER_CONTAINER_NAME }}
-              image: ${{ env.IMAGE }}
-    
-          - name: Deploy Amazon ECS task definition
-            uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-            with:
-              task-definition: ${{ steps.task-def.outputs.task-definition }}
-              service: ${{ env.ECS_WORKER_SERVICE }}
-              cluster: ${{ env.ECS_WORKER_CLUSTER }}
-              wait-for-service-stability: true
-    
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image-worker
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_WORKER_REPOSITORY }}
+          IMAGE_TAG: latest
+        run: |
+          cd workers
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          --build-arg region=${{ env.AWS_REGION }} \
+          --build-arg ak=${{ env.AK }} \
+          --build-arg sak=${{ env.SAK }} \
+          --build-arg DOCKER_HOST_VOLUME_DATA_DIR=${{ env.DOCKER_HOST_VOLUME_DATA_DIR }} \
+          --build-arg DOCKER_HOST_VOLUME_RESULTS_DIR=${{ env.DOCKER_HOST_VOLUME_RESULTS_DIR }} \
+           -f Dockerfile.prod .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+      # needed for the task-definition.json file, update task family here
+      # can also use the CLI to manually generate the task, new def forces new deployment of containers
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.WORKER_CONTAINER_NAME }} --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.WORKER_CONTAINER_NAME }}
+          image: ${{ env.IMAGE }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_WORKER_SERVICE }}
+          cluster: ${{ env.ECS_WORKER_CLUSTER }}
+          wait-for-service-stability: true

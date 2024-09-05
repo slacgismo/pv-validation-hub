@@ -1,4 +1,3 @@
-from django.views.generic import ListView, DetailView
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from .models import ValidationTests
 from .serializers import ValidationTestsSerializer
@@ -25,7 +24,8 @@ class ValidationTestsUploadCSV(APIView):
     def post(self, request, *args, **kwargs):
         if "file" not in request.FILES:
             return Response(
-                {"detail": "CSV file is required"}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "CSV file is required"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         csv_file = request.FILES["file"]
@@ -43,7 +43,9 @@ class ValidationTestsUploadCSV(APIView):
                 validation_test.full_clean()
                 validation_test.save()
             except ValidationError as e:
-                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                )
 
         return Response(
             {"detail": "Validation tests uploaded successfully"},

@@ -1,38 +1,44 @@
-from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
 
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
 )
-from rest_framework.parsers import JSONParser
+from django.http import JsonResponse
 
-import boto3
-import os
 
 from .models import Analysis
 from submissions.models import Submission
 from submissions.serializers import SubmissionDetailSerializer
 from .serializers import AnalysisSerializer
-from base.utils import upload_to_s3_bucket
-from accounts.models import Account
 import logging
+
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import (
+    TokenAuthentication,
+    SessionAuthentication,
+)
+
+
+from base.logger import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
 
-@api_view(["POST"])
-@csrf_exempt
-def create_analysis(request):
-    # dead route, replaced. Needs full cleansing later.
-    return Response("dead route.", status=status.HTTP_400_BAD_REQUEST)
-
-
+# Public route, leaderboard cards
 @api_view(["GET"])
 @csrf_exempt
-def list_analysis(request):
+def list_analysis(request: Request):
     analyses = Analysis.objects.all()
     # print(analyses)
     # response_data = serializers.serialize('json', analyses)
@@ -41,6 +47,7 @@ def list_analysis(request):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+# Public route, leaderboard details
 @api_view(["GET"])
 @csrf_exempt
 def analysis_detail(request, analysis_id):
@@ -52,6 +59,7 @@ def analysis_detail(request, analysis_id):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+# Public Route, leaderboard
 @api_view(["GET"])
 @csrf_exempt
 def leaderboard(request, analysis_id):
@@ -59,17 +67,23 @@ def leaderboard(request, analysis_id):
 
     if _analysis is None:
         response_data = {"error": "analysis does not exist"}
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-    submission_list = Submission.objects.filter(analysis=_analysis)
+    submission_list = Submission.objects.filter(
+        analysis=_analysis, result__isnull=False, status=Submission.FINISHED
+    )
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    response_data = {"submissions": serializer.data}
+
+    return JsonResponse(response_data, status=status.HTTP_200_OK)
 
 
 # Update this later to only accept route calls from within localhost or own container
 @api_view(["POST"])
-def create_new_analysis(request):
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def create_new_analysis(request: Request):
     # Remove user_id related code
     serializer = AnalysisSerializer(data=request.data)
     if serializer.is_valid():

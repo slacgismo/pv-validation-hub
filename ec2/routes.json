@@ -1,21 +1,18 @@
 {
     "local": {
         "db": "db:5432",
-        "s3": "s3:5000",
-        "puser": "valhub",
-        "ppass": "valhub",
+        "s3": "http://s3:5000",
         "api": "http://api:8005"
     },
     "prod": {
-        "db": "db.pv-validation-hub.org",
         "s3": "s3://pv-validation-hub-bucket",
-        "api": "api.pv-validation-hub.org"
+        "api": "https://api.pv-validation-hub.org"
     },
-    "config_file_path": "./test_analysis/config.json",
-    "file_data_path": "./test_analysis/file_data",
-    "sys_metadata_file_path": "./test_analysis/system_metadata.csv",
-    "file_metadata_file_path": "./test_analysis/file_metadata.csv",
-    "evaluation_scripts_path": "./test_analysis/evaluation_scripts",
-    "validation_tests_file_path": "./test_analysis/validation_tests.csv",
-    "validation_data_path": "./test_analysis/validation_data"
+    "config_file_path": "./time-shift-validation-hub/config.json",
+    "file_data_folder_path": "./time-shift-validation-hub/data/file_data",
+    "sys_metadata_file_path": "./time-shift-validation-hub/data/system_metadata.csv",
+    "file_metadata_file_path": "./time-shift-validation-hub/data/file_metadata.csv",
+    "evaluation_scripts_folder_path": "./evaluation_scripts",
+    "validation_data_folder_path": "./time-shift-validation-hub/data/validation_data",
+    "private_report_template_file_path": "./time-shift-validation-hub/template.py"
 }

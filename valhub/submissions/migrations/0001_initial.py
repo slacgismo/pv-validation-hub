@@ -19,7 +19,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Submission",
             fields=[
-                ("submission_id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "submission_id",
+                    models.AutoField(primary_key=True, serialize=False),
+                ),
                 (
                     "submitted_at",
                     models.DateTimeField(auto_now_add=True, db_index=True),
@@ -28,11 +31,16 @@ class Migration(migrations.Migration):
                     "algorithm",
                     models.FileField(
                         max_length=1000,
-                        upload_to=base.utils.RandomFileName("submission_files"),
+                        upload_to=base.utils.RandomFileName(
+                            "submission_files"
+                        ),
                     ),
                 ),
                 ("algorithm_s3_path", models.URLField(max_length=1000)),
-                ("result", models.TextField(blank=True, default="", null=True)),
+                (
+                    "result",
+                    models.TextField(blank=True, default="", null=True),
+                ),
                 (
                     "status",
                     models.CharField(

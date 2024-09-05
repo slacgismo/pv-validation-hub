@@ -13,8 +13,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Analysis",
             fields=[
-                ("analysis_id", models.AutoField(primary_key=True, serialize=False)),
-                ("analysis_name", models.CharField(default="analysis", max_length=100)),
+                (
+                    "analysis_id",
+                    models.AutoField(primary_key=True, serialize=False),
+                ),
+                (
+                    "analysis_name",
+                    models.CharField(default="analysis", max_length=100),
+                ),
                 (
                     "max_concurrent_submission_evaluation",
                     models.IntegerField(default=100),

@@ -13,7 +13,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="SystemMetadata",
             fields=[
-                ("system_id", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "system_id",
+                    models.AutoField(primary_key=True, serialize=False),
+                ),
                 ("name", models.CharField(max_length=256)),
                 ("azimuth", models.FloatField()),
                 ("tilt", models.FloatField()),

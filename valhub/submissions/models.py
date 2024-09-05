@@ -1,8 +1,10 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 from analyses.models import Analysis
 from base.utils import RandomFileName
 from accounts.models import Account
+from decimal import Decimal
 
 import uuid
 
@@ -34,14 +36,35 @@ class Submission(models.Model):
         max_length=1000, upload_to=RandomFileName("submission_files")
     )
     algorithm_s3_path = models.URLField(max_length=1000)
-    result = models.TextField(null=True, blank=True, default="")
+    result = models.JSONField(null=True, blank=True, default=dict)
+    # json object of key/value pairs {"mae": 50, "error2", 5}
+    # keyname, error value
     status = models.CharField(
-        max_length=30, choices=STATUS_OPTIONS, db_index=True, default=SUBMITTING
+        max_length=30,
+        choices=STATUS_OPTIONS,
+        db_index=True,
+        default=SUBMITTING,
+    )
+    alt_name = models.TextField(null=True, blank=True, default="")
+    # mrt - mean run time
+    mrt = models.FloatField(null=True, blank=True)
+    data_requirements = ArrayField(
+        models.CharField(max_length=100), blank=True, default=list
+    )
+    archived = models.BooleanField(default=False)
+    python_version = models.CharField(
+        max_length=10,
+        null=False,
+        blank=False,
+        default="3.11",
     )
 
-    # mae - mean average error
-    # mrt - mean run time
+    # Fields for calculating the submission progress
+    start_time = models.DateTimeField(null=True, blank=True)
+    avg_file_exec_time = models.FloatField(default=0.0)  # in seconds
+    current_file_count = models.IntegerField(default=0)
+    progress = models.FloatField(
+        null=True, blank=True
+    )  # Time in seconds remaining
 
-    mae = models.FloatField(null=True, blank=True)
-    mrt = models.FloatField(null=True, blank=True)
-    data_requirements = models.JSONField(null=True, blank=True)
+    worker_version = models.FloatField(null=False, blank=False, default=1.0)

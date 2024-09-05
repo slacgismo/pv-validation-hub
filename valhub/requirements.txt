@@ -1,9 +1,9 @@
-Django==3.2.16
-mysqlclient==2.1.1
-boto3==1.26.16
-requests==2.28.1
-djangorestframework==3.14.0
-django-cors-headers==3.13.0
+Django
+mysqlclient
+boto3
+requests
+djangorestframework
+django-cors-headers
 psycopg2-binary
 psycopg2
 django-storages[boto3]

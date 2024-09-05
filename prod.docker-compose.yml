@@ -1,0 +1,101 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: valhub
+      POSTGRES_PASSWORD: valhub
+      POSTGRES_USER: valhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - valhub:/data/db
+
+  api:
+    build:
+      context: ./valhub
+      dockerfile: prod.Dockerfile
+      args:
+        djangosk: ${djangosk}
+    env_file:
+      - .env
+    environment:
+      PGDATABASE: valhub
+      PGUSER: valhub
+      PGHOST: db
+      PG_DATABASE_URI: "postgresql://valhub:valhub@db/valhub"
+      DJANGO_SUPERUSER_USERNAME: ${admin_username}
+      DJANGO_SUPERUSER_PASSWORD: ${admin_password}
+      DJANGO_SUPERUSER_EMAIL: ${admin_email}
+      DJANGO_SECRET_KEY: ${djangosk}
+    ports:
+      - "8005:8005"
+    depends_on:
+      - db
+      - sqs
+
+  s3:
+    build:
+      context: ./s3Emulator
+      dockerfile: prod.Dockerfile
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "5000:5000"
+    depends_on:
+      - api
+
+  ec2:
+    build:
+      context: ./ec2
+      dockerfile: prod.Dockerfile
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+    ports:
+      - "7000:7000"
+    depends_on:
+      - api
+
+  react-client:
+    stdin_open: true
+    build:
+      context: ./frontend
+      dockerfile: prod.Dockerfile
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      - ./frontend:/opt/app:delegated
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+      - s3
+
+  sqs:
+    image: softwaremill/elasticmq:latest
+    ports:
+      - "9324:9324"
+    environment:
+      - "ELASTICMQ_OPTS=-Dconfig.file=/opt/elasticmq.conf"
+    volumes:
+      - ./custom.conf:/opt/elasticmq.conf
+      - ./application.ini:/opt/docker/conf/application.ini
+
+  worker:
+    build:
+      context: ./workers
+      dockerfile: prod.Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8500:8500"
+    depends_on:
+      - api
+      - s3
+      - sqs
+
+volumes:
+  valhub:

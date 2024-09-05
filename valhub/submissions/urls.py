@@ -9,19 +9,34 @@ urlpatterns = [
         name="analysis_submission",
     ),
     path(
-        "analysis/<int:analysis_id>/submission/<int:submission_id>",
+        "submission/<int:submission_id>",
         views.submission_detail,
         name="submission_detail",
     ),
     path(
-        "analysis/<int:analysis_id>/change_submission_status/<int:submission_id>",
+        "submission/<int:submission_id>/progress_increment",
+        views.increment_submission_progress,
+        name="increment_submission_progress",
+    ),
+    path(
+        "change_submission_status/<int:submission_id>",
         views.change_submission_status,
         name="change_submission_status",
     ),
     path(
-        "analysis/<int:analysis_id>/update_submission_result/<int:submission_id>",
+        "update_submission_result/<int:submission_id>",
         views.update_submission_result,
         name="update_submission_result",
+    ),
+    path(
+        "set_submission_name/<int:user_id>/<int:submission_id>",
+        views.set_submission_name,
+        name="set_submission_name",
+    ),
+    path(
+        "archive_submission/<int:user_id>/<int:submission_id>",
+        views.archive_submission,
+        name="archive_submission",
     ),
     path(
         "user_submission/<int:user_id>",
@@ -34,15 +49,24 @@ urlpatterns = [
         name="analysis_user_submission",
     ),
     path("leaderboard", views.leaderboard_update, name="leaderboard_update"),
-    path("preload_submissions", views.preload_submissions, name="preload_submissions"),
+    path(
+        "preload_submissions",
+        views.preload_submissions,
+        name="preload_submissions",
+    ),
     path(
         "submission_results/<int:submission_id>",
         views.get_submission_results,
         name="get_submission_results",
     ),
     path(
-        "user/<int:user_id>/submissions",
+        "user/<int:user_id>/submissions/<int:analysis_id>",
         views.get_user_submissions,
         name="get_user_submissions",
+    ),
+    path(
+        "user/<int:user_id>/submissions/archived",
+        views.get_archived_user_submissions,
+        name="get_archived_user_submissions",
     ),
 ]

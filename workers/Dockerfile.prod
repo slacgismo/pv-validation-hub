@@ -8,9 +8,20 @@ RUN apt-get update && apt-get install -y gawk
 ARG region=us-west-2
 ARG ak
 ARG sak
+ARG DOCKER_HOST_VOLUME_DATA_DIR
+ARG DOCKER_HOST_VOLUME_RESULTS_DIR
 # Copy AWS configuration if needed
 RUN mkdir -p .aws
 RUN mkdir worker
+
+WORKDIR /home
+
+# # Set environment variables for prod
+# RUN awk -v DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR} -v DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR} \
+#     'BEGIN {print "export DOCKER_HOST_VOLUME_DATA_DIR=" DOCKER_HOST_VOLUME_DATA_DIR "\nexport DOCKER_HOST_VOLUME_RESULTS_DIR=" DOCKER_HOST_VOLUME_RESULTS_DIR > "/home/.profile"}'
+# Set environment variables for prod
+ENV DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR}
+ENV DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR}
 
 WORKDIR /root/.aws
 
@@ -20,8 +31,12 @@ RUN awk -v ak="${ak}" -v sak="${sak}" \
 RUN awk -v region=${region} \
     'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
+
+
 WORKDIR /root/worker
 COPY . .
+
+RUN mkdir -p /root/worker/logs
 
 # Set environment variables for prod
 ENV PROD=true
@@ -33,10 +48,42 @@ EXPOSE 65535
 RUN apt-get update -qq
 RUN apt-get install -y libpq-dev python3-psycopg2
 # RUN apt-get --assume-yes install python3-pip
-RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client
-RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake
+RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client libopenblas-dev
+RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential cmake git libhdf5-dev pkg-config
+
+# Setup virtual environment
+RUN python3 -m venv .venv
+RUN . .venv/bin/activate
+
+# Install dependencies
 RUN python3 -m pip install --upgrade pip
-WORKDIR /root/worker
 RUN python3 -m pip install -r requirements.txt
+
+RUN apt-get update -qq && \
+    apt-get install -y apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg2 \
+    software-properties-common \
+    && \
+    apt-get clean
+
+RUN apt-get update
+RUN apt-get install -y ca-certificates curl
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+RUN apt-get update
+
+
+
+RUN apt install -y docker-ce git
+RUN apt-get clean
+
+# # Create a new user
+# RUN useradd -ms /bin/bash worker
+# RUN chown -R worker:worker /root/worker
+# USER worker
 
 CMD ["/bin/sh", "/root/worker/docker-entrypoint.sh"]

@@ -1,0 +1,3 @@
+[submodule "pv-validation-hub-client"]
+	path = pv-validation-hub-client
+	url = https://github.com/slacgismo/pv-validation-hub-client.git

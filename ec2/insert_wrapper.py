@@ -1,15 +1,13 @@
-import pandas as pd
-import os
 import json
-import requests
 
 from insert_analysis import InsertAnalysis
 
-
-def get_input_or_default(prompt, default_value):
-    """Query user for input, return default if none provided."""
-    value = input(prompt + f" (Default: {default_value}): ")
-    return value if value else default_value
+from logging import Logger
+from time import perf_counter, sleep, time
+import os
+from typing import Any, Callable, Tuple, TypeVar, Union
+import logging
+import requests
 
 
 def is_local():
@@ -22,79 +20,206 @@ def is_local():
     return "AWS_EXECUTION_ENV" not in os.environ
 
 
-# Fetch data from the remote API
-def fetch_data_from_api(endpoint):
-    response = requests.get(f"{api_url}{endpoint}")
-    if response.status_code == 200:
-        return pd.DataFrame(response.json())
+IS_LOCAL = is_local()
+
+T = TypeVar("T")
+
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+API_BASE_URL = (
+    "http://api:8005" if IS_LOCAL else "http://api.pv-validation-hub.org"
+)
+
+
+def logger_if_able(
+    message: str, logger: Logger | None = None, level: str = "INFO"
+):
+    if logger is not None:
+        levels_dict = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+        }
+
+        level = level.upper()
+
+        if level not in levels_dict:
+            raise Exception(f"Invalid log level: {level}")
+
+        log_level = levels_dict[level]
+
+        logger.log(log_level, message)
     else:
+        print(message)
+
+
+def get_input_or_default(prompt, default_value):
+    """Query user for input, return default if none provided."""
+    value = input(prompt + f" (Default: {default_value}): ")
+    return value if value else default_value
+
+
+def login_to_API(username: str, password: str, logger: Logger | None = None):
+
+    login_url = f"{API_BASE_URL}/login"
+
+    json_body = request_handler(
+        "POST", login_url, {"username": username, "password": password}
+    )
+
+    if "token" not in json_body:
+        logger_if_able("Token not in response", logger, "ERROR")
+        raise Exception("Token not in response")
+    token: str = json_body["token"]
+    return token
+
+
+def with_credentials(logger: Logger | None = None):
+
+    username = os.environ.get("admin_username")
+    password = os.environ.get("admin_password")
+
+    if not username or not password:
+        raise Exception("Missing admin credentials")
+
+    api_auth_token = None
+    headers = {}
+
+    def decorator(func: Callable[..., T]):
+        # @wraps(func)
+        def wrapper(*args, **kwargs):
+            nonlocal api_auth_token
+            if not api_auth_token:
+                logger_if_able("Logging in", logger)
+                api_auth_token = login_to_API(username, password, logger)
+                headers["Authorization"] = f"Token {api_auth_token}"
+            kwargs["auth"] = headers
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+@with_credentials()
+def request_to_API_w_credentials(
+    method: str,
+    endpoint: str,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
+    logger: Logger | None = None,
+    **kwargs: Any,
+):
+
+    url = f"{API_BASE_URL}/{endpoint}"
+
+    auth_header: dict[str, str] | None = (
+        kwargs["auth"] if "auth" in kwargs else None
+    )
+
+    if auth_header is None:
+        raise Exception("No auth header found")
+
+    if headers is None:
+        headers = {}
+
+    headers = {**headers, **auth_header}
+
+    data = request_handler(method, url, data, headers, logger)
+    return data
+
+
+def request_handler(
+    method: str,
+    endpoint: str,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
+    logger: Logger | None = None,
+):
+
+    r = method_request(method, endpoint, headers=headers, data=data)
+    if not r.ok:
+        logger_if_able(f"Error: {r.text}", logger, "ERROR")
+        raise Exception("Failed to get data")
+    json_body: dict[str, Any] = json.loads(r.text)
+    return json_body
+
+
+def method_request(
+    method: str,
+    url: str,
+    data: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
+    logger: Logger | None = None,
+):
+
+    logger_if_able(f"{method} request to {url}", logger)
+
+    base_headers = {
+        "Content-Type": "application/json",
+    }
+
+    all_headers = {**base_headers, **headers} if headers else base_headers
+
+    body = json.dumps(data) if data else None
+
+    response = requests.request(method, url, headers=all_headers, data=body)
+
+    return response
+
+
+if __name__ == "__main__":
+
+    # Load default paths from routes.json
+    with open("routes.json", "r") as file:
+
+        config = json.load(file)
+
+        # is_local = True
+
+        force = True
+
+        api_url = config["local"]["api"] if is_local else config["prod"]["api"]
+        s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
+
+        config_file_path = config["config_file_path"]
+        file_data_folder_path = config["file_data_folder_path"]
+        evaluation_scripts_folder_path = config[
+            "evaluation_scripts_folder_path"
+        ]
+        sys_metadata_file_path = config["sys_metadata_file_path"]
+        file_metadata_file_path = config["file_metadata_file_path"]
+        validation_data_folder_path = config["validation_data_folder_path"]
+        private_report_template_file_path = config[
+            "private_report_template_file_path"
+        ]
+
+        print(f"s3_url: {s3_url}")
+        print(f"api_url: {api_url}")
+        print(f"config_file_path: {config_file_path}")
+        print(f"file_data_folder_path: {file_data_folder_path}")
         print(
-            f"Error fetching data from {endpoint}. Status code: {response.status_code}"
+            f"evaluation_scripts_folder_path: {evaluation_scripts_folder_path}"
         )
-        return pd.DataFrame()
+        print(f"sys_metadata_file_path: {sys_metadata_file_path}")
+        print(f"file_metadata_file_path: {file_metadata_file_path}")
+        print(f"validation_data_folder_path: {validation_data_folder_path}")
 
+        # exit()
 
-# Load default paths from routes.json
-with open("routes.json", "r") as file:
-    config = json.load(file)
-
-is_s3_emulation = is_local()
-
-s3_url = config["local"]["s3"] if is_s3_emulation else config["prod"]["s3"]
-
-api_url = config["local"]["api"] if is_s3_emulation else config["prod"]["api"]
-
-# Fetching the data
-db_metadata_df = fetch_data_from_api("/system_metadata/systemmetadata/")
-db_file_metadata_df = fetch_data_from_api("/file_metadata/filemetadata/")
-
-
-# Query user for paths or use defaults
-config_file_path = get_input_or_default(
-    "Enter path for config_file", config["config_file_path"]
-)
-file_data_path = get_input_or_default(
-    "Enter path for file_data", config["file_data_path"]
-)
-evaluation_scripts_path = get_input_or_default(
-    "Enter path for evaluation_scripts", config["evaluation_scripts_path"]
-)
-validation_data_path = get_input_or_default(
-    "Enter path for validation_data", config["validation_data_path"]
-)
-sys_metadata_file_path = get_input_or_default(
-    "Enter path for sys_metadata_file", config["sys_metadata_file_path"]
-)
-file_metadata_file_path = get_input_or_default(
-    "Enter path for file_metadata_file", config["file_metadata_file_path"]
-)
-validation_tests_file_path = get_input_or_default(
-    "Enter path for validation_tests", config["validation_tests_file_path"]
-)
-
-print(
-    f"db_metadata_df: {db_metadata_df}\n"
-    f"db_file_metadata_df: {db_file_metadata_df}\n"
-    f"config_file_path: {config_file_path}\n"
-    f"file_data_path: {file_data_path}\n"
-    f"sys_metadata_file_path: {sys_metadata_file_path}\n"
-    f"file_metadata_file_path: {file_metadata_file_path}\n"
-    f"evaluation_scripts_path: {evaluation_scripts_path}\n"
-    f"validation_tests_file_path: {validation_tests_file_path}\n"
-)
-
-# exit()
-
-
-r = InsertAnalysis(
-    db_metadata_df,
-    db_file_metadata_df,
-    config_file_path=config_file_path,
-    file_data_path=file_data_path,
-    sys_metadata_file_path=sys_metadata_file_path,
-    file_metadata_file_path=file_metadata_file_path,
-    validation_tests_file_path=validation_tests_file_path,
-    validation_data_path=validation_data_path,
-    evaluation_scripts_path=evaluation_scripts_path,
-)
-r.insertData(api_url)
+        r = InsertAnalysis(
+            config_file_path=config_file_path,
+            file_data_folder_path=file_data_folder_path,
+            sys_metadata_file_path=sys_metadata_file_path,
+            file_metadata_file_path=file_metadata_file_path,
+            validation_data_folder_path=validation_data_folder_path,
+            evaluation_scripts_folder_path=evaluation_scripts_folder_path,
+            private_report_template_file_path=private_report_template_file_path,
+            s3_bucket_name="pv-validation-hub-bucket",
+            api_url=api_url,
+            s3_url=s3_url,
+            is_local=is_local(),
+        )
+        r.insertData(force)
