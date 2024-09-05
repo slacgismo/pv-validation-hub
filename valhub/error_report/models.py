@@ -5,7 +5,10 @@ from submissions.models import Submission
 class ErrorReport(models.Model):
     error_id = models.AutoField(primary_key=True)
     submission = models.ForeignKey(
-        Submission, on_delete=models.CASCADE, related_name="error_report"
+        Submission,
+        on_delete=models.CASCADE,
+        related_name="error_report",
+        blank=True,
     )
     # Breaking errors
     error_code = models.CharField(max_length=100, blank=True)

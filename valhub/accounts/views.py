@@ -21,6 +21,8 @@ from base.logger import setup_logging
 
 from .serializers import AccountSerializer, AccountSerializerClean
 from .models import Account
+from submissions.models import Submission
+from analyses.models import Analysis
 import json
 import logging
 
@@ -173,8 +175,28 @@ def get_account(request):
         account = Account.objects.get(username=username)
         # Exclude sensitive fields
         serializer = AccountSerializerClean(account)
-        logger.info(f"account: {serializer.data}")
-        return JsonResponse(serializer.data)
+
+        # Retrieve all unique Analysis foreign keys from the Submission model for the given account
+        submissions = (
+            Submission.objects.filter(created_by=account)
+            .values_list("analysis", flat=True)
+            .distinct()
+        )
+
+        # Retrieve the name for each unique Analysis instance
+        submitted_tasks = {
+            analysis.analysis_id: analysis.analysis_name
+            for analysis in Analysis.objects.filter(
+                analysis_id__in=submissions
+            )
+        }
+
+        # Add the submitted_tasks to the serializer data
+        response_data = serializer.data
+        response_data["submitted_tasks"] = submitted_tasks
+
+        logger.info(f"account: {response_data}")
+        return JsonResponse(response_data)
     except ObjectDoesNotExist:
         return JsonResponse({"error": "Account not found"}, status=404)
 
