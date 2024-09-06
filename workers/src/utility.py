@@ -21,6 +21,7 @@ from typing import (
     Sequence,
     Tuple,
     TypeVar,
+    TypedDict,
     Union,
     cast,
 )
@@ -473,7 +474,7 @@ def get_error_by_code(
             logger,
             "ERROR",
         )
-        raise KeyError(f"Error code {error_code} not found in error codes")
+        error_code_str = "500"
     return error_code, error_codes_dict[error_code_str]
 
 
@@ -969,21 +970,50 @@ def update_submission_progress(
         "POST",
         f"submissions/submission/{submission_id}/progress_increment",
         data=data,
-        logger=None,
+        logger=logger,
     )
     return result
 
 
-def update_submission_non_breaking_error_report(
-    error_report_id: str, data: dict[str, Any], logger: Logger | None = None
+class NonBreakingErrorReport(TypedDict):
+    error_code: int
+    error_type: str
+    error_message: str
+    file_name: str
+
+
+def update_error_report_non_breaking(
+    submission_id: str,
+    data: NonBreakingErrorReport,
+    logger: Logger | None = None,
 ):
     result = request_to_API_w_credentials(
         "POST",
-        f"error_report/error_report/{error_report_id}/update_non_breaking",
-        data=data,
-        logger=None,
+        f"error/error_report/{submission_id}/update_non_breaking",
+        data=data,  # type: ignore
+        logger=logger,
     )
     return result
+
+
+def create_blank_error_report(
+    submission_id: int,
+    logger: Logger | None = None,
+):
+    error_report = {
+        "submission": submission_id,
+        "error_code": "",
+        "error_type": "",
+        # "error_message": "",
+        # "error_rate": '',
+        "file_errors": {"errors": []},
+    }
+
+    request_to_API_w_credentials(
+        "POST", "error/error_report/new", error_report
+    )
+
+    return error_report
 
 
 def submission_task(
@@ -1039,18 +1069,28 @@ def submission_task(
     # TODO: Send to API
     # Create an error report for all non breaking errors and send to API
 
-    if error:
-        file_error_report = {
-            "error_code": error_code,
-            "error_type": SubmissionException,
-            "error_message": error,
-            "file_name": submission_file_name,
-        }
+    if error and error_code:
+        try:
+            _, error_message = get_error_by_code(
+                error_code, submission_error_codes, logger
+            )
 
-        logger_if_able(f"Error: {file_error_report}", logger, "ERROR")
-        # error, error_code = create_error_report(
-        #     submission_file_name, error_code, logger
-        # )
+            file_error_report: NonBreakingErrorReport = {
+                "error_code": error_code,
+                "error_type": SubmissionException.__name__,
+                "error_message": error_message,
+                "file_name": submission_args[0],
+            }
+
+            logger_if_able(f"Error: {file_error_report}", logger, "ERROR")
+            # error, error_code = create_error_report(
+            #     submission_file_name, error_code, logger
+            # )
+            update_error_report_non_breaking(
+                submission_id, file_error_report, logger
+            )
+        except Exception as e:
+            logger_if_able(f"Error: {e}", logger, "ERROR")
 
     # # Send error report to API
     # send_error_report_to_API(json_errors, error_rate)

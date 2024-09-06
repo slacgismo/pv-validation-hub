@@ -21,4 +21,9 @@ urlpatterns = [
         views.ErrorReportPrivateList,
         name="error_report_private_list",
     ),
+    path(
+        "error_report/<int:submission_id>/update_non_breaking",
+        views.update_non_breaking,
+        name="update_non_breaking",
+    ),
 ]

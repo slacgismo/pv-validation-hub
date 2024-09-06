@@ -305,7 +305,7 @@ def increment_submission_progress(request: Request, submission_id: str):
     ) * new_avg_file_exec_time
     submission.save()
     response_data = {
-        "success": f"submission {submission_id} progress incremented by 0.1"
+        "success": f"submission {submission_id} progress incremented"
     }
     return Response(response_data, status=status.HTTP_200_OK)
 
