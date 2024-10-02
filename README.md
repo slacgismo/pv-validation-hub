@@ -42,6 +42,10 @@ Developers manage their tasks using our Jira board, linked below:
 
 [Sprint Board](https://pv-validation-hub.atlassian.net/jira/software/projects/PVH/boards/1/)
 
+Make sure to install pre-commit, following their installation steps in order to maintain testing and linting standards:
+
+[pre-commit](https://pre-commit.com/)
+
 
 ## Documentation
 
