@@ -38,6 +38,8 @@ cd preload
 
 ## Jira link:
 
+Developers manage their tasks using our Jira board, linked below:
+
 [Sprint Board](https://pv-validation-hub.atlassian.net/jira/software/projects/PVH/boards/1/)
 
 
