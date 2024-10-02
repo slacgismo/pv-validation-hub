@@ -332,8 +332,6 @@ def run(  # noqa: C901
         logger.error("Error creating blank error report")
         logger.exception(e)
 
-        
-
     # If a path is provided, set the directories to that path, otherwise use default
     if current_evaluation_dir is not None:
         results_dir = (

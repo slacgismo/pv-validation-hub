@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('error_report', '0003_auto_20240827_1856'),
+        ("error_report", "0003_auto_20240827_1856"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='errorreport',
-            name='file_errors',
+            model_name="errorreport",
+            name="file_errors",
             field=models.JSONField(blank=True, default=dict),
-        ),
+        )
     ]
