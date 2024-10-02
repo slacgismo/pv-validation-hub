@@ -133,7 +133,7 @@ def list_s3_bucket(s3_dir: str):
 
     if IS_LOCAL:
         s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
-        # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
+        # s3_dir_full_path = 'http://127.0.0.1:5000/list_bucket/' + s3_dir
     else:
         s3_dir_full_path = "s3://" + s3_dir
 

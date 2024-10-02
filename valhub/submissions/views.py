@@ -530,7 +530,7 @@ def get_submission_results(request: Request, submission_id: str):
         # Update for actual S3 usage as well
         if is_emulation:
             storage_endpoint_url = "http://s3:5000/"
-            static_endpoint_url = "http://localhost:5000/"
+            static_endpoint_url = "http://127.0.0.1:5000/"
             directory_url = urljoin(
                 storage_endpoint_url, f"{bucket_name}/{results_directory}/list"
             )

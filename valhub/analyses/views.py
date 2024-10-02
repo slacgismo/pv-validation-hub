@@ -79,7 +79,7 @@ def leaderboard(request, analysis_id):
     return JsonResponse(response_data, status=status.HTTP_200_OK)
 
 
-# Update this later to only accept route calls from within localhost or own container
+# Update this later to only accept route calls from within 127.0.0.1 or own container
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])

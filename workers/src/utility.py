@@ -417,7 +417,7 @@ def pull_from_s3(
     if IS_LOCAL:
         logger.info("running locally")
         s3_file_full_path = "http://s3:5000/get_object/" + s3_file_path
-        # s3_file_full_path = 'http://localhost:5000/get_object/' + s3_file_path
+        # s3_file_full_path = 'http://127.0.0.1:5000/get_object/' + s3_file_path
     else:
         logger.info("running in ecs")
         s3_file_full_path = "s3://" + s3_file_path
