@@ -68,6 +68,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["analysis"] = {
             "analysis_id": instance.analysis.analysis_id,
             "analysis_name": instance.analysis.analysis_name,
+            "total_files": instance.analysis.total_files,
         }
         data["created_by"] = {
             "uuid": instance.created_by.uuid,
@@ -80,6 +81,9 @@ class SubmissionSerializer(serializers.ModelSerializer):
         data["archived"] = instance.archived
         data["python_version"] = instance.python_version
         data["worker_version"] = instance.worker_version
+        data["start_time"] = instance.start_time
+        data["avg_file_exec_time"] = instance.avg_file_exec_time
+        data["current_file_count"] = instance.current_file_count
 
         # Update worker_version to use the value from Versions model with PK 1
         try:
