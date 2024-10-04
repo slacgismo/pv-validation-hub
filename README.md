@@ -8,43 +8,103 @@ Meanwhile, researchers will be able to benefit from receiving personal, high-fid
 
 Finally, both industry and academia will be able to enjoy the assurance of accurate results through protection and anonymization of the used data-sets. By only providing results, industry and academia can be assured of the validity of an algorithm, as it would prevent the possibility of tailoring an algorithm to match the data.
 
-## Developer quick-start
+## Quick Start Instructions
 
-To begin development on the validation hub, a new developer would need to install the Docker client on their system. If you installed docker only for the command line tools, then you will need to also make sure to install ```docker-compose``` and to update both to the latest versions. You will need to generate a secret key for Django before you proceed. From the repository root, run the following:
+To get a local version of the PV Validation Hub running you will need to have Docker installed on your host machine.
 
-~~~
-cp .env.example .env
-nano .env
-// replace the placeholder text in the djangosk variable with your secret key
-docker-compose up
-~~~
 
-Following those steps, you should now be able to access your local development version at ```127.0.0.1:3000```!
+### Pre-commit and Black formatting
 
-You can also manually install all the services locally for faster developmental iterations at your own discretion.
+Install the base python packages using `python pip install -r requirements.txt` in the base directory of the repository.
 
-### Additional Prep
+To make sure pre-commit is active for submitting changes to the Github repository you will need to install pre-commit using the following command.
 
-There are some additional steps to complete now that you have the validation hub up and running on your system. In the ```s3Emulator/preload``` directory, you will find several script files that will preload the database with all the basic elements needs to use an analysis as well as to create a test user and an example submission. If you set up a local build instead of the docker network, you will have to modify the scripts and configurations on your own.
+    pre-commit install
 
-- First, you will need to create a super-user. Open a shell in the api using either ```docker exec <container-id> bash``` or by using the terminal button next to the api container in docker desktop. Then run ```python3 manage.py createsuperuser``` and follow each of the steps. Since this is for local use, choose very simple and easy values to remember.
-- Next, open ```127.0.0.1:8005/admin``` on your browser. You can sign in with the credentials you just created. This will let you see everything you will do next to populate the database.
-- Now, you will need to open a shell in the s3 emulator container, and run the following commands.
-~~~
-cd preload
-./loaddb.sh
-~~~
-- After the entire script has finished running, you will see "preload complete" print onto the terminal. This will now have the entire validation hub prepped for local development and use.
-
-## Jira link:
-
-Developers manage their tasks using our Jira board, linked below:
-
-[Sprint Board](https://pv-validation-hub.atlassian.net/jira/software/projects/PVH/boards/1/)
-
-Make sure to install pre-commit, following their installation steps in order to maintain testing and linting standards:
+Additional information is located here:
 
 [pre-commit](https://pre-commit.com/)
+
+### ENV File
+
+Here is an example .env file which you should fill out with your own values
+
+    djangosk=django-insecure-y&pp1if&0y)pxtmqf_@o1br(&-6mrxv**f5%&73d@d51kscvg!
+    POSTGRES_PASSWORD=valhub
+    POSTGRES_USER=valhub
+    admin_username=admin
+    admin_password=admin
+    admin_email=admin@admin.com
+    DOCKER_HOST_VOLUME_DATA_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/data"
+    DOCKER_HOST_VOLUME_RESULTS_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/results"
+
+### Docker compose
+
+To get all the environments up and running all you will need to do is to use `docker compose up` or `docker compose up --watch`.
+
+Using this will download the images required for each service and spin then up in the correct order automatically.
+
+There are many different bind mounts for each service which will create a symbolic link between the files on the host directory and the files attributed within the docker containers for debugging purposes. These various bind mounts can be seen within the `docker-compose.yml` file.
+
+### Website links
+
+The frontend port is 3000 and the Django API port is 8005. So you can access the frontend at [localhost:3000](http://localhost:3000) and the admin dashboard at [localhost:8005/admin](http://localhost:8005/admin)
+
+### Django API Fixes
+
+There may be two different issues that could come up when running docker compose.
+
+#### Admin not found
+
+If you are unable to login to the admin dashboard or into your profile on the frontend after including the `admin_username`, `admin_password`, and `admin_email` from within the .env file you will need to do so manually.
+
+To fix this issue you will need to create a shell inside the docker container for the Django API. You can do this easily using the Docker Desktop program by clicking on the 3 dots on the side of the running container and opening a terminal. You can also do so by creating a shell using VS code with the Docker extension by right clicking on the running container within the extension sidebar and creating a shell.
+
+Once you have an active shell inside the Django API docker container there is a `manage.py` script that allows you to manually edit and manage the Django API. The command that you will need will be the following:
+
+    python manage.py createsuperuser
+
+After running this inside the root directory of the docker container you will need to follow the prompts to provide a username and password for the admin account.
+
+After doing so you will have made a valid admin user and you should be able to login to both the admin dashboard to change and check the state of the database but also to login the frontend to upload submission zip files to tasks.
+
+#### Migrate Django API
+
+When model changes occur that require the database to be modified in a major way you will be prompted to migrate the changes when running docker compose.
+
+To do so you can follow the instructions on how to get an interactive shell inside the Django API docker container listed in the [Admin not found](#admin-not-found) section.
+
+Once you have a valid shell inside the container you will need to run two different commands in the base directory to merge the new changes.
+
+    python manage.py makemigrations
+
+    python manage.py migrate
+
+With these two commands in order the database should create the new changes and commit them with the rest of the existing data.
+
+#### Valid Python versions
+
+If there are no valid python versions in the frontend analysis task when propmted to submit a zip file you will need to create them manually.
+
+This is done by logging into the Django admin dashboard and finding the versions section within the list of database objects.
+
+You can then click `add` or `add versions` and the database object will autopopulate with the default information including `Python versions`. If you click `save` you will then be able to see the python versions on the frontend submission page.
+
+### Uploading an analysis
+
+To upload a new analysis to the PV Validation Hub you will need to create a shell inside the running EC2 docker container in the same way described on how to do so listed in the [Admin not found](#admin-not-found) section.
+
+Once you have a valid shell inside the docker container you will notice that there is an `insert_analysis.py` and this will be your main entrypoint to uploading a new analysis.
+
+You will also need all the files required for a valid analysis. All of this is described within the [README.md](/ec2/README.md) within the `ec2` folder within this repository.
+
+### Debugging and Troubleshooting
+
+When uploading a submission zip to the analysis task you created you can view the logs both in the docker desktop for the worker container but also within the `worker/logs` folder.
+
+After the submission has been processed the logs are reset for the next submission and the logs are added to the submission S3 artifacts. In the repository for example a submission is located here `s3Emulator/pv-validation-hub-bucket/submission_files/submission_user_{###}/submission_{###}/logs`.
+
+
 
 
 ## Documentation

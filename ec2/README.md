@@ -151,3 +151,9 @@ def create_df_from_cli_args():
         df = pd.DataFrame.from_records(rows)
         return df
 ```
+
+### Regarding Frontend Images and Markdown
+
+To update analytic task images and markdown on the frontend you will need to do so within the frontend client repository. Using the analysis ID that is within the URL or within the admin dashboard in the analysis section.
+
+Within the pv-validation-hub-client you will need to create a new folder using the ID for the task in the `public/static/assets/{ID}` folder. You can use the `development` folder and the markdown and images as a reference. Once the files are updated you may need to redeploy the frontend docker container for the changes to show.
