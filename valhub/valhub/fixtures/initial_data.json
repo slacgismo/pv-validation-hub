@@ -1,0 +1,17 @@
+[
+    {
+        "model": "versions.versions",
+        "pk": 1,
+        "fields": {
+            "python_versions": [
+                "3.6",
+                "3.7",
+                "3.8",
+                "3.9"
+            ],
+            "old_python_versions": {},
+            "cur_worker_version": "1.0",
+            "old_worker_versions": {}
+        }
+    }
+]

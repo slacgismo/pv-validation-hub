@@ -196,6 +196,8 @@ REST_FRAMEWORK = {
     ],
 }
 
+FIXTURE_DIRS = (os.path.join(BASE_DIR, "valhub/fixtures"),)
+
 CORS_ORIGIN_ALLOW_ALL = True
 # CORS_ALLOWED_ORIGINS = [
 #     "https://domain.com",

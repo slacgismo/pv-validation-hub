@@ -82,9 +82,6 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - "HOST=0.0.0.0"
     ports:
       - "3000:3000"
     depends_on:
@@ -129,9 +126,6 @@ services:
       - ./workers/tmp:/tmp
       - ./workers/requirements.txt:/root/worker/requirements.txt
       - ./workers/src:/root/worker/src
-      # - type: bind
-      #   source: ~/.aws
-      #   target: /root/.aws
     restart: unless-stopped
     develop:
       watch:
