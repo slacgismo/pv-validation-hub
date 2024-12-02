@@ -17,6 +17,7 @@ Finally, both industry and academia will be able to enjoy the assurance of accur
     - [Pre-commit and Black formatting](#pre-commit-and-black-formatting)
     - [ENV File](#env-file)
     - [Docker compose](#docker-compose)
+      - [Increasing memory limit](#increasing-memory-limit)
     - [Website links](#website-links)
     - [Uploading an analysis](#uploading-an-analysis)
     - [Debugging and Troubleshooting](#debugging-and-troubleshooting)
@@ -77,6 +78,10 @@ To get all the environments up and running all you will need to do is to use `do
 Using this will download the images required for each service and spin then up in the correct order automatically.
 
 There are many different bind mounts for each service which will create a symbolic link between the files on the host directory and the files attributed within the docker containers for debugging purposes. These various bind mounts can be seen within the `docker-compose.yml` file.
+
+#### Increasing memory limit
+
+If you find that there is not enough memory when running submissions you can change the memory limit within Docker Desktop. You can increase the memory allocation for Docker through the Settings > Resources > Memory Limit slider.
 
 ### Website links
 

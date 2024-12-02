@@ -667,7 +667,7 @@ class InsertAnalysis:
         print(df_modified.head(5))
         return df_modified
 
-    def buildFileMetadata(self):
+    def buildFileMetadata(self, limit: int | None = None):
         """
         Check for duplicates in the file metadata table. Build non duplicated
         file metadata for insert into the file_metadata table.
@@ -676,6 +676,9 @@ class InsertAnalysis:
         overlapping_files = self.getOverlappingMetadataFiles()
 
         df_new = self.new_file_metadata_df.copy()
+
+        if limit:
+            df_new = df_new.head(limit)
 
         # Remove the repeat systems from the metadata we want to insert
         df_new = df_new[
@@ -832,31 +835,42 @@ class InsertAnalysis:
         )
         return file_test_link_path
 
-    def insertData(self, force=False):
+    def insertData(self, force=False, limit=None):
         """
         Insert all the data into the API and S3.
         """
 
+        print("Creating analysis")
         db_analyses_df = self.getAllAnalyses()
         self.createAnalysis(db_analyses_df, force)
 
         if not self.analysis_id:
             raise ValueError("Analysis ID not found or created.")
 
+        print(f"Created analysis with ID {self.analysis_id}")
+
         # exit()
+        print("Creating system metadata")
         new_sys_metadata_df = self.buildSystemMetadata()
         self.createSystemMetadata(new_sys_metadata_df)
         self.updateSystemMetadataIDs()
+        print("System metadata created")
 
-        new_file_metadata_df = self.buildFileMetadata()
+        print("Creating file metadata")
+        new_file_metadata_df = self.buildFileMetadata(limit)
         self.createFileMetadata(new_file_metadata_df)
         self.updateFileMetadataIDs()
         self.uploadValidationData()
+        print("File metadata created")
 
+        print("Creating evaluation scripts")
         self.prepareFileTestLinker()
         self.prepareConfig()
         self.prepareTemplate()
         self.createEvaluationScripts()
+        print("Evaluation scripts created")
+
+        print("Data inserted successfully")
 
 
 if __name__ == "__main__":
@@ -864,6 +878,8 @@ if __name__ == "__main__":
         config = json.load(file)
 
         is_local = True
+        force = False
+        limit = None
 
         if is_local == False:
             input(
@@ -898,4 +914,4 @@ if __name__ == "__main__":
             s3_url=s3_url,
             is_local=is_local,
         )
-        r.insertData()
+        r.insertData(force=force, limit=limit)
