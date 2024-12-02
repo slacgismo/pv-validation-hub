@@ -196,6 +196,7 @@ class InsertAnalysis:
         api_url: str,
         s3_url: str,
         is_local: bool,
+        limit: int | None = None,
     ):
 
         config: dict[str, Any] = json.load(open(config_file_path, "r"))
@@ -216,6 +217,12 @@ class InsertAnalysis:
         self.db_sys_metadata_df = db_sys_metadata_df
         self.db_file_metadata_df = db_file_metadata_df
         self.config_file_path = config_file_path
+
+        if limit:
+            db_file_metadata_df = db_file_metadata_df.head(limit)
+            category_name = f"{config['category_name']} - {limit} File(s)"
+            config["category_name"] = category_name
+
         self.private_report_template_file_path = (
             private_report_template_file_path
         )
@@ -667,7 +674,7 @@ class InsertAnalysis:
         print(df_modified.head(5))
         return df_modified
 
-    def buildFileMetadata(self, limit: int | None = None):
+    def buildFileMetadata(self):
         """
         Check for duplicates in the file metadata table. Build non duplicated
         file metadata for insert into the file_metadata table.
@@ -676,9 +683,6 @@ class InsertAnalysis:
         overlapping_files = self.getOverlappingMetadataFiles()
 
         df_new = self.new_file_metadata_df.copy()
-
-        if limit:
-            df_new = df_new.head(limit)
 
         # Remove the repeat systems from the metadata we want to insert
         df_new = df_new[
@@ -835,7 +839,7 @@ class InsertAnalysis:
         )
         return file_test_link_path
 
-    def insertData(self, force=False, limit=None):
+    def insertData(self, force=False):
         """
         Insert all the data into the API and S3.
         """
@@ -857,7 +861,7 @@ class InsertAnalysis:
         print("System metadata created")
 
         print("Creating file metadata")
-        new_file_metadata_df = self.buildFileMetadata(limit)
+        new_file_metadata_df = self.buildFileMetadata()
         self.createFileMetadata(new_file_metadata_df)
         self.updateFileMetadataIDs()
         self.uploadValidationData()
@@ -877,9 +881,11 @@ if __name__ == "__main__":
     with open("routes.json", "r") as file:
         config = json.load(file)
 
+        ########################################################################
         is_local = True
         force = False
         limit = None
+        ########################################################################
 
         if is_local == False:
             input(
@@ -913,5 +919,6 @@ if __name__ == "__main__":
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
+            limit=limit,
         )
-        r.insertData(force=force, limit=limit)
+        r.insertData(force=force)
