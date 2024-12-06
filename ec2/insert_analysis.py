@@ -14,11 +14,17 @@ import requests
 import boto3
 import sys
 import requests
+import argparse
 
 from utility import (
     request_to_API_w_credentials as request_to_API_w_auth,
     with_credentials,
 )
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def request_to_API_w_credentials(
@@ -98,11 +104,11 @@ def upload_to_s3_bucket(
         with open(local_path, "rb") as f:
             file_content = f.read()
 
-            print(s3_file_full_path, file_content[:100])
+            logger.info(s3_file_full_path, file_content[:100])
             # exit()
             r = requests.put(s3_file_full_path, data=file_content)
             if r.status_code != 204:
-                print(
+                logger.info(
                     f"error put file {upload_path} to s3, status code {r.status_code} {r.content}",
                     file=sys.stderr,
                 )
@@ -116,11 +122,15 @@ def upload_to_s3_bucket(
         s3 = boto3.client("s3")
 
         try:
-            print(f"uploading {local_path} to {bucket_name}/{upload_path}")
+            logger.info(
+                f"uploading {local_path} to {bucket_name}/{upload_path}"
+            )
             s3.upload_file(local_path, bucket_name, upload_path)
-            print(f"uploaded {local_path} to {bucket_name}/{upload_path}")
+            logger.info(
+                f"uploaded {local_path} to {bucket_name}/{upload_path}"
+            )
         except Exception as e:
-            print(
+            logger.info(
                 f"error uploading {local_path} to {bucket_name}/{upload_path}"
             )
             raise e
@@ -131,7 +141,7 @@ def upload_to_s3_bucket(
         object_url = "https://{}.s3.{}.amazonaws.com/{}".format(
             bucket_name, bucket_location["LocationConstraint"], upload_path
         )
-        print(
+        logger.info(
             f"uploaded {local_path} to {bucket_name}/{upload_path} returns {object_url}"
         )
         return object_url
@@ -140,7 +150,7 @@ def upload_to_s3_bucket(
 def list_s3_bucket(
     is_s3_emulation: bool, s3_bucket_name: str, s3_dir: str
 ) -> list[str]:
-    print(f"list s3 bucket {s3_dir}")
+    logger.info(f"list s3 bucket {s3_dir}")
     if s3_dir.startswith("/"):
         s3_dir = s3_dir[1:]
 
@@ -160,7 +170,9 @@ def list_s3_bucket(
         # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
         s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        print(f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}")
+        logger.info(
+            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
+        )
 
         s3 = boto3.client("s3")
         paginator = s3.get_paginator("list_objects_v2")
@@ -176,7 +188,7 @@ def list_s3_bucket(
         if len(all_files) > 0 and all_files[0] == s3_dir:
             all_files.pop(0)
 
-    print(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
+    logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
     return all_files
 
 
@@ -184,6 +196,7 @@ class InsertAnalysis:
 
     def __init__(
         self,
+        markdown_files_folder_path: str,
         config_file_path: str,
         file_data_folder_path: str,
         validation_data_folder_path: str,
@@ -191,6 +204,7 @@ class InsertAnalysis:
         sys_metadata_file_path: str,
         file_metadata_file_path: str,
         private_report_template_file_path: str,
+        front_end_assets_folder_path: str,
         # validation_tests_file_path: str,
         s3_bucket_name: str,
         api_url: str,
@@ -242,6 +256,9 @@ class InsertAnalysis:
         self.s3_bucket_name = s3_bucket_name
         self.validation_data_folder_path = validation_data_folder_path
 
+        self.markdown_files_folder_path = markdown_files_folder_path
+        self.front_end_assets_folder_path = front_end_assets_folder_path
+
         self.hasAllValidNewAnalysisData()
 
     def hasAllValidNewAnalysisData(self):
@@ -252,6 +269,7 @@ class InsertAnalysis:
         -------
         bool: True if we have all the required data, False otherwise.
         """
+
         file_metadata_files = self.new_file_metadata_df["file_name"]
 
         # are there any duplicates?
@@ -293,7 +311,45 @@ class InsertAnalysis:
                 "The private report template file does not exist."
             )
 
-        print("All files are in the right place.")
+        required_markdown_files = [
+            "banner.png",
+            "cardCover.png",
+            "description.md",
+            "shortdesc.md",
+            "SubmissionInstructions.md",
+        ]
+
+        markdown_files = os.listdir(self.markdown_files_folder_path)
+
+        for file in required_markdown_files:
+            if file not in markdown_files:
+                raise ValueError(
+                    f"Missing markdown file {file} in the markdown files folder."
+                )
+
+        logger.error(
+            f"Frontend assets folder: {os.path.abspath(self.front_end_assets_folder_path)}"
+        )
+
+        front_end_analysis_assets_folder_exists = os.path.exists(
+            os.path.join(self.front_end_assets_folder_path, "analysis")
+        )
+
+        if not front_end_analysis_assets_folder_exists:
+            raise ValueError(
+                "The analysis folder does not exist in the front end assets folder."
+            )
+
+        frontend_development_assets_folder_exists = os.path.exists(
+            os.path.join(self.front_end_assets_folder_path, "development")
+        )
+
+        if not frontend_development_assets_folder_exists:
+            raise ValueError(
+                "The development folder does not exist in the front end assets folder."
+            )
+
+        logger.info("All files are in the right place.")
 
         return True
 
@@ -340,16 +396,16 @@ class InsertAnalysis:
                     0
                 ],
             )
-            print(
+            logger.info(
                 f'Analysis {self.config["category_name"]} already exists with id {db_analysis_id}'
             )
-            print(f"{db_analysis_id} is { type(db_analysis_id)}")
+            logger.info(f"{db_analysis_id} is { type(db_analysis_id)}")
             self.analysis_id = db_analysis_id
 
         else:
 
             if force:
-                print("Force is True. Creating a new analysis.")
+                logger.info("Force is True. Creating a new analysis.")
 
             performance_metrics: list[str] | None = self.config.get(
                 "performance_metrics", None
@@ -376,8 +432,8 @@ class InsertAnalysis:
             #     display_error = (metric, display)
             #     display_errors.append(display_error)
 
-            print("display_errors", display_errors)
-            print("number of files", len(self.new_file_metadata_df))
+            logger.info("display_errors", display_errors)
+            logger.info("number of files", len(self.new_file_metadata_df))
 
             body = {
                 "analysis_name": self.config["category_name"],
@@ -385,12 +441,12 @@ class InsertAnalysis:
                 "total_files": len(self.new_file_metadata_df),
             }
 
-            print("body", body)
+            logger.info("body", body)
 
             res = post_data_to_api_to_df(
                 self.api_url, "analysis/create/", body
             )
-            print("Analysis created")
+            logger.info("Analysis created")
             self.analysis_id = res["analysis_id"].values[0]
 
     def createSystemMetadata(self, sys_metadata_df: pd.DataFrame):
@@ -417,11 +473,11 @@ class InsertAnalysis:
             json_body["longitude"] = system["longitude"]
             json_body["tracking"] = system["tracking"]
             if "dc_capacity" in system:
-                print(system["dc_capacity"])
+                logger.info(system["dc_capacity"])
                 if system["dc_capacity"] is not None:
                     json_body["dc_capacity"] = system["dc_capacity"]
 
-            print(json_body)
+            logger.info(json_body)
 
             post_data_to_api_to_df(
                 self.api_url, "/system_metadata/systemmetadata/", json_body
@@ -452,7 +508,7 @@ class InsertAnalysis:
                 "subissue": metadata["subissue"],
             }
 
-            print(json_body)
+            logger.info(json_body)
 
             post_data_to_api_to_df(
                 self.api_url, "/file_metadata/filemetadata/", json_body
@@ -671,7 +727,7 @@ class InsertAnalysis:
 
         # Return the system data ready for insertion
         df_modified = addNAtoMissingColumns(df_new, system_metadata_columns)
-        print(df_modified.head(5))
+        logger.info(df_modified.head(5))
         return df_modified
 
     def buildFileMetadata(self):
@@ -839,58 +895,147 @@ class InsertAnalysis:
         )
         return file_test_link_path
 
+    def updateFrontEndAssets(self):
+        """
+        Update the front end assets.
+        """
+
+        # Copy the markdown files to the new folder
+        markdown_files = os.listdir(self.markdown_files_folder_path)
+
+        valid_file_types = ["md", "png", "PNG"]
+
+        filtered_assets = [
+            file
+            for file in markdown_files
+            if file.split(".")[-1] in valid_file_types
+        ]
+        logger.info(f"filtered_assets {filtered_assets}")
+
+        analysis_assets_folder = os.path.join(
+            self.front_end_assets_folder_path, "analysis"
+        )
+
+        id_analysis_assets_folder = os.path.join(
+            analysis_assets_folder, str(self.analysis_id)
+        )
+
+        # Clear any existing assets associated with the analysis in the front end assets folder
+
+        if os.path.exists(id_analysis_assets_folder):
+            shutil.rmtree(id_analysis_assets_folder)
+
+        # Create the new folder
+        os.makedirs(id_analysis_assets_folder)
+
+        # Copy the files to the new folder
+        for file in filtered_assets:
+            shutil.copy(
+                os.path.join(self.markdown_files_folder_path, file),
+                os.path.join(id_analysis_assets_folder, file),
+            )
+
     def insertData(self, force=False):
         """
         Insert all the data into the API and S3.
         """
 
-        print("Creating analysis")
+        logger.info("Creating analysis")
         db_analyses_df = self.getAllAnalyses()
         self.createAnalysis(db_analyses_df, force)
 
         if not self.analysis_id:
             raise ValueError("Analysis ID not found or created.")
 
-        print(f"Created analysis with ID {self.analysis_id}")
+        logger.info(f"Created analysis with ID {self.analysis_id}")
 
         # exit()
-        print("Creating system metadata")
+        logger.info("Creating system metadata")
         new_sys_metadata_df = self.buildSystemMetadata()
         self.createSystemMetadata(new_sys_metadata_df)
         self.updateSystemMetadataIDs()
-        print("System metadata created")
+        logger.info("System metadata created")
 
-        print("Creating file metadata")
+        logger.info("Creating file metadata")
         new_file_metadata_df = self.buildFileMetadata()
         self.createFileMetadata(new_file_metadata_df)
         self.updateFileMetadataIDs()
         self.uploadValidationData()
-        print("File metadata created")
+        logger.info("File metadata created")
 
-        print("Creating evaluation scripts")
+        logger.info("Creating evaluation scripts")
         self.prepareFileTestLinker()
         self.prepareConfig()
         self.prepareTemplate()
         self.createEvaluationScripts()
-        print("Evaluation scripts created")
+        logger.info("Evaluation scripts created")
 
-        print("Data inserted successfully")
+        logger.info("Update assets for front end")
+        self.updateFrontEndAssets()
+        logger.info("Front end assets updated")
+
+        logger.info("Data inserted successfully")
+
+        logger.warning(
+            "***** WARNING: IF YOU ARE RUNNING THIS IN A DEVELOPMENT ENVIRONMENT, REMEMBER TO REBUILD THE FRONT END USING THE COMMAND `DOCKER COMPOSE BUILD REACT-CLIENT` THEN REDEPLOY THE FRONTEND CONTAINER. *****"
+        )
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Insert analysis data")
+    parser.add_argument(
+        "--dry-run",
+        help="Run in dry-run mode",
+        default=False,
+    )
+    parser.add_argument(
+        "--force",
+        help="Force the operation",
+        default=False,
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="Limit the number of records",
+        default=0,
+    )
+    parser.add_argument(
+        "--prod",
+        help="Set to production mode",
+        default=False,
+    )
+
+    args, unknown = parser.parse_known_args()
+    logger.info(dict(args._get_kwargs()))
+
+    def convert_bool(val) -> bool:
+        if val == "True":
+            return True
+        elif val == "False":
+            return False
+        else:
+            raise ValueError(f"Invalid boolean value {val}")
+
+    def convert_int(val) -> int:
+        try:
+            return int(val)
+        except ValueError:
+            raise ValueError(f"Invalid integer value {val}")
+
     with open("routes.json", "r") as file:
         config = json.load(file)
 
         ########################################################################
-        is_local = True
-        force = False
-        limit = None
+        is_local = not convert_bool(args.prod)
+        is_force = convert_bool(args.force)
+        limit = convert_int(args.limit)
+        is_dry_run = convert_bool(args.dry_run)
         ########################################################################
 
-        if is_local == False:
-            input(
-                "Are you sure you want to create/update a task on production?"
-            )
+        logger.info("is_dry_run", is_dry_run, type(is_dry_run))
+        logger.info("is_force", is_force, type(is_force))
+        logger.info("limit", limit, type(limit))
+        logger.info("is_local", is_local, type(is_local))
 
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
@@ -907,7 +1052,13 @@ if __name__ == "__main__":
             "private_report_template_file_path"
         ]
 
+        analysis_markdown_files_folder_path = config[
+            "analysis_markdown_files_folder_path"
+        ]
+        front_end_assets_folder_path = config["front_end_assets_folder_path"]
+
         r = InsertAnalysis(
+            markdown_files_folder_path=analysis_markdown_files_folder_path,
             config_file_path=config_file_path,
             file_data_folder_path=file_data_folder_path,
             sys_metadata_file_path=sys_metadata_file_path,
@@ -915,10 +1066,25 @@ if __name__ == "__main__":
             validation_data_folder_path=validation_data_folder_path,
             evaluation_scripts_folder_path=evaluation_scripts_folder_path,
             private_report_template_file_path=private_report_template_file_path,
+            front_end_assets_folder_path=front_end_assets_folder_path,
             s3_bucket_name="pv-validation-hub-bucket",
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
             limit=limit,
         )
-        r.insertData(force=force)
+
+        if not is_local:
+            response = input(
+                "Are you sure you want to create/update a task on production? (yes/no): "
+            )
+            if response.lower() != "yes":
+                logger.info("Exiting...")
+                exit()
+
+        if is_dry_run:
+            logger.info("Dry run mode enabled. No data will be inserted.")
+        else:
+            r.insertData(
+                force=is_force,
+            )

@@ -74,6 +74,9 @@ services:
       - type: bind
         source: ~/.aws
         target: /root/.aws
+      - type: bind
+        source: ./pv-validation-hub-client/public/static/assets
+        target: /root/admin/front_end_assets
 
   react-client:
     stdin_open: true

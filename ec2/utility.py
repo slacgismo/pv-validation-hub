@@ -64,7 +64,7 @@ def request_handler(
     if not r.ok:
         logger_if_able(f"Error: {r.text}", logger, "ERROR")
         raise Exception("Failed to get data")
-    print(r.text)
+    logger_if_able(r.text, logger)
     json_body: dict[str, Any] = json.loads(r.text)
     return json_body
 

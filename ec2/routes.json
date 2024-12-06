@@ -8,11 +8,13 @@
         "s3": "s3://pv-validation-hub-bucket",
         "api": "https://api.pv-validation-hub.org"
     },
+    "analysis_markdown_files_folder_path": "./pvinsight_validation_hub_markdowns/time_shifts",
     "config_file_path": "./time-shift-validation-hub/config.json",
     "file_data_folder_path": "./time-shift-validation-hub/data/file_data",
     "sys_metadata_file_path": "./time-shift-validation-hub/data/system_metadata.csv",
     "file_metadata_file_path": "./time-shift-validation-hub/data/file_metadata.csv",
     "evaluation_scripts_folder_path": "./evaluation_scripts",
     "validation_data_folder_path": "./time-shift-validation-hub/data/validation_data",
-    "private_report_template_file_path": "./time-shift-validation-hub/template.py"
+    "private_report_template_file_path": "./time-shift-validation-hub/template.py",
+    "front_end_assets_folder_path": "./front_end_assets"
 }
