@@ -39,7 +39,7 @@ To get a local version of the PV Validation Hub running you will need to have Do
 To have the front-end client build properly you will need to pull the latest changes from the repo. Since it exists as a submodule you can pull all the latest changes from main with the following git command
 
 ```bash
-    git submodule update --init --recursive
+git submodule update --init --recursive
 ```
 
 ### Pre-commit and Black formatting
@@ -49,7 +49,7 @@ Install the base python packages using `python pip install -r requirements.txt` 
 To make sure pre-commit is active for submitting changes to the Github repository you will need to install pre-commit using the following command.
 
 ```bash
-    pre-commit install
+pre-commit install
 ```
 
 Additional information is located here:
@@ -60,15 +60,15 @@ Additional information is located here:
 
 Here is an example .env file which you should fill out with your own values
 
-```env
-    djangosk=django-insecure-y&pp1if&0y)pxtmqf_@o1br(&-6mrxv**f5%&73d@d51kscvg!
-    POSTGRES_PASSWORD=valhub
-    POSTGRES_USER=valhub
-    admin_username=admin
-    admin_password=admin
-    admin_email=admin@admin.com
-    DOCKER_HOST_VOLUME_DATA_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/data"
-    DOCKER_HOST_VOLUME_RESULTS_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/results"
+```bash
+djangosk=django-insecure-y&pp1if&0y)pxtmqf_@o1br(&-6mrxv**f5%&73d@d51kscvg!
+POSTGRES_PASSWORD=valhub
+POSTGRES_USER=valhub
+admin_username=admin
+admin_password=admin
+admin_email=admin@admin.com
+DOCKER_HOST_VOLUME_DATA_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/data"
+DOCKER_HOST_VOLUME_RESULTS_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/results"
 ```
 
 ### Docker compose
@@ -91,7 +91,11 @@ The frontend port is 3000 and the Django API port is 8005. So you can access the
 
 To upload a new analysis to the PV Validation Hub you will need to create a shell inside the running EC2 docker container in the same way described on how to do so listed in the [Admin not found](#admin-not-found) section.
 
-Once you have a valid shell inside the docker container you will notice that there is an `insert_analysis.py` and this will be your main entrypoint to uploading a new analysis.
+Once you have a valid shell inside the docker container you will notice that there is an `manage.sh` bash script. This will be your main entrypoint to uploading a new analysis.
+
+```bash
+bash manage.sh {insert} [--dry-run] [--force] [--prod] [--limit <number>]
+```
 
 You will also need all the files required for a valid analysis. All of this is described within the [README.md](/ec2/README.md) within the `ec2` folder within this repository.
 
@@ -116,7 +120,7 @@ To fix this issue you will need to create a shell inside the docker container fo
 Once you have an active shell inside the Django API docker container there is a `manage.py` script that allows you to manually edit and manage the Django API. The command that you will need will be the following:
 
 ```bash
-    python manage.py createsuperuser
+python manage.py createsuperuser
 ```
 
 After running this inside the root directory of the docker container you will need to follow the prompts to provide a username and password for the admin account.
@@ -132,8 +136,8 @@ To do so you can follow the instructions on how to get an interactive shell insi
 Once you have a valid shell inside the container you will need to run two different commands in the base directory to merge the new changes.
 
 ```bash
-    python manage.py makemigrations
-    python manage.py migrate
+python manage.py makemigrations
+python manage.py migrate
 ```
 
 With these two commands in order the database should create the new changes and commit them with the rest of the existing data.

@@ -3,7 +3,7 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 function usage() {
-    echo "Usage: $0 {insert} [--dry-run] [--force] [--limit <number>]"
+    echo "Usage: $0 {insert} [--dry-run] [--force] [--prod] [--limit <number>]"
     exit 1
 }
 
