@@ -31,6 +31,9 @@ echo "Creating superuser..."
     echo "Superuser already exists, skipping creation."
 }
 
-# Run valhub_webserver
-echo "Starting webserver..."
-python3 manage.py runserver 0.0.0.0:8005
+# Starting supervisord
+echo "Starting supervisord..."
+supervisord -c /root/valhub/supervisord.conf -n
+
+# # Keep the container running
+# tail -f /dev/null
