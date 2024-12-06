@@ -11,6 +11,7 @@ VOLUME /root/valhub
 
 COPY . .
 
+RUN chmod +x /root/valhub/startup.sh
 
 # Set Django admin username, password, and other environment variables
 ENV PORT=8005
