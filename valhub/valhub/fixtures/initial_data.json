@@ -4,10 +4,10 @@
         "pk": 1,
         "fields": {
             "python_versions": [
-                "3.6",
-                "3.7",
-                "3.8",
-                "3.9"
+                "3.9",
+                "3.10",
+                "3.11",
+                "3.12"
             ],
             "old_python_versions": {},
             "cur_worker_version": "1.0",
