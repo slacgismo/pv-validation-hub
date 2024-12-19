@@ -4,7 +4,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 function usage() {
-    echo "Usage: $0 {insert} {time-shift-detection|az-tilt-estimation} [--dry-run] [--force] [--prod] [--limit <number>]"
+    echo "Usage: $0 {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--limit <number>]"
     exit 1
 }
 
@@ -17,12 +17,11 @@ FORCE=False
 LIMIT=0
 PROD=False
 
-TASK_DIR="./analysis-tasks"
-TIME_SHIFT_DIR="$TASK_DIR/time-shift-detection"
-AZ_TILT_DIR="$TASK_DIR/az-tilt-estimation"
+
+TASK_DIR=./analysis-tasks
 
 COMMAND=$1
-TASK=$2
+TASK_FOLDER_NAME=$2
 shift 2
 
 while [[ "$#" -gt 0 ]]; do
@@ -36,22 +35,16 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+if [ "$COMMAND" == "insert" ]; then
+    if [ -z "$TASK_DIR/$TASK_FOLDER_NAME" ]; then
+        echo "Missing directory"
+        usage
+    fi
+fi
+
 case "$COMMAND" in
     insert)
-        case "$TASK" in
-            time-shift-detection)
-                echo "Inserting time-shift-detection task"
-                python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit $LIMIT --prod $PROD --dir $TIME_SHIFT_DIR
-                ;;
-            az-tilt-estimation)
-                echo "Inserting az-tilt-estimation task"
-                python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit $LIMIT --prod $PROD --dir $AZ_TILT_DIR
-                ;;
-            *)
-                usage
-                ;;
-        esac
-        ;;
+        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit $LIMIT --prod $PROD --dir $TASK_DIR/$DIR
     *)
         usage
         ;;
