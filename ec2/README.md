@@ -72,28 +72,6 @@ Example JSON:
     "mean_absolute_error_time_series",
     "data_sampling_frequency",
     "issue"
-  ],
-  "plots": [ 
-    {
-      "type": "histogram",
-      "x_val": "mean_absolute_error_time_series",
-      "color_code": "issue",
-      "title": "Time Series MAE Distribution by Issue",
-      "save_file_path": "mean_absolute_error_time_series_dist.png"
-    },
-    {
-      "type": "histogram",
-      "x_val": "mean_absolute_error_time_series",
-      "color_code": "data_sampling_frequency",
-      "title": "Time Series MAE Distribution by Sampling Frequency",
-      "save_file_path": "mean_absolute_error_time_series_dist.png"
-    },
-    {
-      "type": "histogram",
-      "x_val": "run_time",
-      "title": "Run Time Distribution",
-      "save_file_path": "run_time_dist.png"
-    }
   ]
 }
 ```
@@ -111,12 +89,11 @@ Example JSON:
   - The formatting is as follows `<performance_metric>_<ground_truth_type>`
   - e.g. `mean_absolute_error_time_series`
 - "allowable_kwargs" - kwargs for the submission function that are allowed
-- "ground_truth_compare" - comparrison type that is used for calculating metrics
+- "ground_truth_compare" - results from submission function
 - "public_results_table" - name of json result file that contains information about submission results
 - "private_results_columns" - name of columns that will be in final dataframe that is passed to marimo template
   - will need to contain final metric name to be used in marimo template
   - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
-- "plots" - not currently used as marimo template is most recent way to visualize results
 
 ### system_metadata.csv
 

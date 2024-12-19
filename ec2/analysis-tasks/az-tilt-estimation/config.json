@@ -58,44 +58,5 @@
 		"error_tilt",
 		"issue",
 		"number_days"
-	],
-	"plots": [
-		{
-			"type": "histogram",
-			"x_val": "absolute_error_azimuth",
-			"title": "Azimuth Absolute Error Distribution",
-			"save_file_path": "absolute_error_az_dist.png"
-		},
-		{
-			"type": "histogram",
-			"x_val": "absolute_error_tilt",
-			"title": "Tilt Absolute Error Distribution",
-			"save_file_path": "absolute_error_tilt_dist.png"
-		},
-		{
-			"type": "histogram",
-			"x_val": "error_azimuth",
-			"title": "Azimuth Error Distribution",
-			"save_file_path": "absolute_error_az_dist.png"
-		},
-		{
-			"type": "histogram",
-			"x_val": "error_tilt",
-			"title": "Tilt Error Distribution",
-			"save_file_path": "error_tilt_dist.png"
-		},
-		{
-			"type": "histogram",
-			"x_val": "run_time",
-			"title": "Run Time Distribution",
-			"save_file_path": "run_time_dist.png"
-		},
-		{
-			"type": "scatter_plot",
-			"x_val": "run_time",
-			"y_val": "number_days",
-			"title": "Run Time vs. Number Days in Data Set",
-			"save_file_path": "run_time_number_days.png"
-		}
 	]
 }
