@@ -109,8 +109,7 @@ def upload_to_s3_bucket(
             r = requests.put(s3_file_full_path, data=file_content)
             if r.status_code != 204:
                 logger.info(
-                    f"error put file {upload_path} to s3, status code {r.status_code} {r.content}",
-                    file=sys.stderr,
+                    f"error put file {upload_path} to s3, status code {r.status_code} {r.content}"
                 )
                 return None
             else:
@@ -1004,6 +1003,10 @@ if __name__ == "__main__":
         help="Set to production mode",
         default=False,
     )
+    parser.add_argument(
+        "--dir",
+        help="Directory of the task",
+    )
 
     args, unknown = parser.parse_known_args()
     logger.info(dict(args._get_kwargs()))
@@ -1030,32 +1033,39 @@ if __name__ == "__main__":
         is_force = convert_bool(args.force)
         limit = convert_int(args.limit)
         is_dry_run = convert_bool(args.dry_run)
+        task_dir = args.dir
         ########################################################################
 
         logger.info("is_dry_run", is_dry_run, type(is_dry_run))
         logger.info("is_force", is_force, type(is_force))
         logger.info("limit", limit, type(limit))
         logger.info("is_local", is_local, type(is_local))
+        logger.info("task_dir", task_dir, type(task_dir))
+
+        if not os.path.exists(task_dir):
+            raise ValueError(f"Directory {task_dir} does not exist")
 
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
 
-        config_file_path = config["config_file_path"]
-        file_data_folder_path = config["file_data_folder_path"]
-        evaluation_scripts_folder_path = config[
-            "evaluation_scripts_folder_path"
-        ]
-        sys_metadata_file_path = config["sys_metadata_file_path"]
-        file_metadata_file_path = config["file_metadata_file_path"]
-        validation_data_folder_path = config["validation_data_folder_path"]
-        private_report_template_file_path = config[
-            "private_report_template_file_path"
-        ]
+        config_file_path = os.path.join(task_dir, "config.json")
+        file_data_folder_path = os.path.join(task_dir, "data/files/")
+        evaluation_scripts_folder_path = "./evaluation_scripts/"
+        sys_metadata_file_path = os.path.join(
+            task_dir, "data/system_metadata.csv"
+        )
+        file_metadata_file_path = os.path.join(
+            task_dir, "data/file_metadata.csv"
+        )
+        validation_data_folder_path = os.path.join(
+            task_dir, "data/ground-truth/"
+        )
+        private_report_template_file_path = os.path.join(
+            task_dir, "template.py"
+        )
 
-        analysis_markdown_files_folder_path = config[
-            "analysis_markdown_files_folder_path"
-        ]
-        front_end_assets_folder_path = config["front_end_assets_folder_path"]
+        analysis_markdown_files_folder_path = os.path.join(task_dir, "assets")
+        front_end_assets_folder_path = "./front_end_assets"
 
         r = InsertAnalysis(
             markdown_files_folder_path=analysis_markdown_files_folder_path,

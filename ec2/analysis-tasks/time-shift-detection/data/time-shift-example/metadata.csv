@@ -1,0 +1,2 @@
+system_id,file_name,timezone,data_sampling_frequency,issue,subissue,name,azimuth,tilt,elevation,latitude,longitude,tracking,climate_type,dc_capacity
+4,4_ac_power__315_15min_full_DST.csv,Etc/GMT+7,15,Full DST,,Sanyo1,180,40,1795.3,39.7406,-105.1774,FALSE,BSk,1

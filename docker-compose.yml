@@ -66,6 +66,7 @@ services:
       - "7000:7000"
     depends_on:
       - api
+      - s3
     volumes:
       - type: bind
         source: ./ec2

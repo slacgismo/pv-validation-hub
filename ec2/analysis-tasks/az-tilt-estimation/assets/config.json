@@ -1,0 +1,46 @@
+{
+	"category_name": "az_tilt_estimation",
+	"function_name": "estimate_az_tilt",
+	"comparison_type": "scalar",
+	"performance_metrics": [ "runtime", "absolute_error" ],
+	"allowable_kwargs": [ "latitude", "longitude", "data_sampling_frequency"],
+	"ground_truth_compare": [ "azimuth", "tilt" ],
+	"public_results_table": "az-tilt-public-metrics.json",
+	"private_results_columns": [
+		"system_id",
+		"file_name",
+		"run_time",
+		"data_requirements",
+		"absolute_error_azimuth",
+		"absolute_error_tilt",
+		"issue",
+		"number_days"
+	],
+	"plots": [
+		{
+			"type": "histogram",
+			"x_val": "absolute_error_azimuth",
+			"title": "Azimuth Absolute Error Distribution",
+			"save_file_path": "absolute_error_az_dist.png"
+		},
+		{
+			"type": "histogram",
+			"x_val": "absolute_error_tilt",
+			"title": "Tilt Absolute Error Distribution",
+			"save_file_path": "absolute_error_tilt_dist.png"
+		},
+		{
+			"type": "histogram",
+			"x_val": "run_time",
+			"title": "Run Time Distribution",
+			"save_file_path": "run_time_dist.png"
+		},
+		{
+			"type": "scatter_plot",
+			"x_val": "run_time",
+			"y_val": "number_days",
+			"title": "Run Time vs. Number Days in Data Set",
+			"save_file_path": "run_time_number_days.png"
+		}
+	]
+}

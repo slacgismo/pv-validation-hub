@@ -1,0 +1,276 @@
+,file_name,mean_absolute_error_azimuth,mean_absolute_error_tilt,run_time,data_requirements,issue
+0,4_ac_power__315.csv,1.63796651836617,2.8398994676204126,3.834057092666626,"['time_series', 'latitude', 'longitude']",
+1,1332_inv3_ac_power__2650.csv,0.8778557385103909,7.992075772584641,4.42669415473938,"['time_series', 'latitude', 'longitude']",clipping
+2,1332_inv1_ac_power__2642.csv,5.106120823884822,6.191673785775702,4.254189968109131,"['time_series', 'latitude', 'longitude']",snow
+3,1332_inv2_ac_power__2646.csv,5.356227118180783,5.933522424990084,4.403230905532837,"['time_series', 'latitude', 'longitude']",snow
+4,1332_inv_total_ac_power__2654.csv,2.4849781340579398,0.616357044564456,3.6367738246917725,"['time_series', 'latitude', 'longitude']",snow
+5,1403_ac_power__5034.csv,0.019320552784989786,4.2121725499008065,3.528177261352539,"['time_series', 'latitude', 'longitude']",
+6,1403_inv1_ac_power__4207.csv,0.0591964924114734,0.6795037314110246,4.222646951675415,"['time_series', 'latitude', 'longitude']",
+7,1403_inv2_ac_power__4213.csv,0.2928506020345196,0.7966364849140177,3.9297640323638916,"['time_series', 'latitude', 'longitude']",
+8,4902_ac_power_inv_14538.csv,2.273136466112163,5.932147057986381,4.146368980407715,"['time_series', 'latitude', 'longitude']",
+9,5016_ac_power_inv_2086.csv,3.5972740935391982,7.489730075449373,5.813232898712158,"['time_series', 'latitude', 'longitude']",clipping
+10,5016_ac_power_inv_2107.csv,7.533073660867927,5.78332669929285,5.887441873550415,"['time_series', 'latitude', 'longitude']",clipping
+11,5016_ac_power_inv_2102.csv,3.32634702159271,7.723783902777729,5.431228160858154,"['time_series', 'latitude', 'longitude']",clipping
+12,5016_ac_power_inv_2098.csv,3.709168907188058,7.732203340397096,4.937665700912476,"['time_series', 'latitude', 'longitude']",clipping
+13,5016_ac_power_inv_2100.csv,3.772970116154312,8.763175264965035,5.769911766052246,"['time_series', 'latitude', 'longitude']",clipping
+14,5016_ac_power_inv_2103.csv,3.172541633311596,8.517456196440339,5.734786033630371,"['time_series', 'latitude', 'longitude']",clipping
+15,5057_ac_power_inv_2236.csv,3.5222627824563233,5.090458824335933,7.480131149291992,"['time_series', 'latitude', 'longitude']",
+16,5061_ac_power_inv_2270.csv,4.989220037234247,0.781659503609184,7.9781434535980225,"['time_series', 'latitude', 'longitude']",clipping
+17,5061_ac_power_inv_2269.csv,5.290490438192194,2.4759993805450797,7.288733959197998,"['time_series', 'latitude', 'longitude']",clipping
+18,5070_ac_power_inv_2293.csv,0.8694842513712047,4.205746089222252,8.493777990341187,"['time_series', 'latitude', 'longitude']",
+19,5070_ac_power_inv_2292.csv,7.317063640059558,5.372916715845175,7.337457180023193,"['time_series', 'latitude', 'longitude']",
+20,5081_ac_power_inv_2321.csv,6.6940801959022735,6.722775088662878,7.351606130599976,"['time_series', 'latitude', 'longitude']",clipping
+21,5099_ac_power_inv_2358.csv,4.656964768404038,6.660817961831452,9.009215831756592,"['time_series', 'latitude', 'longitude']",clipping
+22,5099_ac_power_inv_2357.csv,5.16910004593106,5.914464012638849,7.184633016586304,"['time_series', 'latitude', 'longitude']",clipping
+23,5114_ac_power_inv_2397.csv,5.5887810746745,6.66253426646359,7.45397686958313,"['time_series', 'latitude', 'longitude']",clipping
+24,5114_ac_power_inv_2405.csv,5.831999897215866,6.594021598351139,7.51435399055481,"['time_series', 'latitude', 'longitude']",clipping
+25,5114_ac_power_inv_2404.csv,6.222815606001689,6.448166582172107,7.3559699058532715,"['time_series', 'latitude', 'longitude']",clipping
+26,5114_ac_power_inv_2401.csv,5.643873645330103,6.598983162019861,7.451449871063232,"['time_series', 'latitude', 'longitude']",clipping
+27,5114_ac_power_inv_2396.csv,6.555325631213577,6.603529617039559,7.3702239990234375,"['time_series', 'latitude', 'longitude']",clipping
+28,5114_ac_power_inv_2403.csv,6.044139800266265,6.318698766346474,7.6130290031433105,"['time_series', 'latitude', 'longitude']",clipping
+29,5129_ac_power_inv_2496.csv,2.6484519510721327,6.189864259472472,7.462504863739014,"['time_series', 'latitude', 'longitude']",clipping
+30,5129_ac_power_inv_2493.csv,3.560289878226399,1.1233356285676237,7.343249082565308,"['time_series', 'latitude', 'longitude']",clipping
+31,5129_ac_power_inv_2494.csv,3.6011364548784854,1.6550032454348695,6.906387805938721,"['time_series', 'latitude', 'longitude']",clipping
+32,5129_ac_power_inv_2495.csv,3.1595707440758076,1.5855482764079802,7.307687997817993,"['time_series', 'latitude', 'longitude']",clipping
+33,5129_ac_power_inv_2492.csv,3.983830518955699,1.5179604866250926,7.417691707611084,"['time_series', 'latitude', 'longitude']",clipping
+34,5129_ac_power_inv_2497.csv,4.48080777157233,1.7100149580478679,7.429037094116211,"['time_series', 'latitude', 'longitude']",clipping
+35,5133_ac_power_inv_2526.csv,48.07006853184993,0.3365295825713437,7.209776163101196,"['time_series', 'latitude', 'longitude']",
+36,5133_ac_power_inv_2523.csv,47.06681456223987,0.29607150163359286,7.189143180847168,"['time_series', 'latitude', 'longitude']",
+37,5133_ac_power_inv_2524.csv,50.4879813821056,0.5152075399245915,7.425513982772827,"['time_series', 'latitude', 'longitude']",
+38,5138_ac_power_inv_2543.csv,3.9185462221101375,6.288743107759879,7.336256980895996,"['time_series', 'latitude', 'longitude']",clipping
+39,5138_ac_power_inv_2545.csv,4.319582605420692,6.715967421339155,7.435866832733154,"['time_series', 'latitude', 'longitude']",clipping
+40,5138_ac_power_inv_2546.csv,3.8372497956960103,6.580596282623839,7.4337310791015625,"['time_series', 'latitude', 'longitude']",clipping
+41,5138_ac_power_inv_2544.csv,5.392539318736482,5.047201648605913,7.365262985229492,"['time_series', 'latitude', 'longitude']",clipping
+42,5150_ac_power_inv_2649.csv,6.219141429459398,7.321988736238662,7.610117197036743,"['time_series', 'latitude', 'longitude']",clipping
+43,5150_ac_power_inv_2642.csv,6.058549824308216,7.365342563882937,7.503493070602417,"['time_series', 'latitude', 'longitude']",clipping
+44,5150_ac_power_inv_2639.csv,5.4033450801017295,9.222777964562596,7.08646297454834,"['time_series', 'latitude', 'longitude']",clipping
+45,5150_ac_power_inv_2640.csv,5.990736358807112,7.917074261759311,7.635194778442383,"['time_series', 'latitude', 'longitude']",clipping
+46,5150_ac_power_inv_2637.csv,5.618603573610784,7.105254514926809,7.439976215362549,"['time_series', 'latitude', 'longitude']",clipping
+47,5150_ac_power_inv_2646.csv,6.487277673688141,6.381181435792737,7.774746894836426,"['time_series', 'latitude', 'longitude']",clipping
+48,5159_ac_power_inv_2720.csv,4.16954701292849,10.26244221167962,8.055937051773071,"['time_series', 'latitude', 'longitude']",clipping
+49,5159_ac_power_inv_2717.csv,3.847136277996924,10.012160211415672,7.637136697769165,"['time_series', 'latitude', 'longitude']",clipping
+50,5159_ac_power_inv_2718.csv,3.697157999640581,10.78090005459881,7.600696802139282,"['time_series', 'latitude', 'longitude']",clipping
+51,5159_ac_power_inv_2716.csv,4.948223467044983,8.151234577879197,7.446627140045166,"['time_series', 'latitude', 'longitude']",clipping
+52,5159_ac_power_inv_2715.csv,3.955136220640952,10.404012300129043,7.437105178833008,"['time_series', 'latitude', 'longitude']",clipping
+53,5162_ac_power_inv_2770.csv,2.9842337604237343,9.373502187163178,7.420869827270508,"['time_series', 'latitude', 'longitude']",clipping
+54,5162_ac_power_inv_2759.csv,2.841782460502543,9.68640992801903,8.136234998703003,"['time_series', 'latitude', 'longitude']",clipping
+55,5162_ac_power_inv_2762.csv,2.5260582403472824,10.054949332445728,7.286018133163452,"['time_series', 'latitude', 'longitude']",clipping
+56,5162_ac_power_inv_2765.csv,2.980150482199633,7.543836407918631,6.864850997924805,"['time_series', 'latitude', 'longitude']",clipping
+57,5162_ac_power_inv_2760.csv,2.3207780747844993,9.255354366821882,7.640852212905884,"['time_series', 'latitude', 'longitude']",clipping
+58,5162_ac_power_inv_2756.csv,2.776897553175189,7.611714942495675,7.007060289382935,"['time_series', 'latitude', 'longitude']",clipping
+59,5184_ac_power_inv_3059.csv,5.756512887060438,8.89922730039969,8.282027006149292,"['time_series', 'latitude', 'longitude']",clipping
+60,5184_ac_power_inv_3051.csv,5.323611710770564,9.490613721148485,8.318381071090698,"['time_series', 'latitude', 'longitude']",clipping
+61,5184_ac_power_inv_3052.csv,5.511780285703367,9.003172324136894,7.270485877990723,"['time_series', 'latitude', 'longitude']",clipping
+62,5196_ac_power_inv_3163.csv,7.04971174861015,8.726721552453942,7.0641069412231445,"['time_series', 'latitude', 'longitude']",clipping
+63,5196_ac_power_inv_3157.csv,7.26451844901996,7.008301876312515,7.978797197341919,"['time_series', 'latitude', 'longitude']",clipping
+64,5196_ac_power_inv_3161.csv,7.19262705000105,8.079745081613268,6.9131269454956055,"['time_series', 'latitude', 'longitude']",clipping
+65,5196_ac_power_inv_3162.csv,7.226375686633958,7.015352370545411,7.253100872039795,"['time_series', 'latitude', 'longitude']",clipping
+66,5196_ac_power_inv_3160.csv,7.511345365188674,7.720263219424119,8.256052017211914,"['time_series', 'latitude', 'longitude']",clipping
+67,5222_ac_power_inv_3332.csv,50.927131059970435,0.32958709714369494,6.4835193157196045,"['time_series', 'latitude', 'longitude']",
+68,5222_ac_power_inv_3335.csv,49.1349691762631,0.1701469075919526,6.503964185714722,"['time_series', 'latitude', 'longitude']",
+69,5222_ac_power_inv_3334.csv,50.458720579603124,0.4506996864002897,6.485266208648682,"['time_series', 'latitude', 'longitude']",
+70,5222_ac_power_inv_3333.csv,49.70050230632927,0.2835966422260343,6.528527021408081,"['time_series', 'latitude', 'longitude']",
+71,5226_ac_power_inv_3355.csv,2.7776094314674253,1.3051423816810654,4.321017742156982,"['time_series', 'latitude', 'longitude']","clipping, shading"
+72,5226_ac_power_inv_3356.csv,2.4456981979899695,0.7999821633324089,4.748728036880493,"['time_series', 'latitude', 'longitude']","clipping, shading"
+73,5226_ac_power_inv_3357.csv,4.792145643305872,1.486379775069338,4.562787055969238,"['time_series', 'latitude', 'longitude']","clipping, shading"
+74,5226_ac_power_inv_3358.csv,2.3518958566705237,0.753150543009312,4.281507968902588,"['time_series', 'latitude', 'longitude']","clipping, shading"
+75,5226_ac_power_inv_3359.csv,2.8332976566632624,2.375541092881008,3.810716152191162,"['time_series', 'latitude', 'longitude']",shading
+76,5226_ac_power_inv_3360.csv,2.5828179595900167,0.9093371339270604,4.620602130889893,"['time_series', 'latitude', 'longitude']","clipping, shading"
+77,5226_ac_power_inv_3361.csv,2.725077406623001,1.3128519497622442,4.605094909667969,"['time_series', 'latitude', 'longitude']","clipping, shading"
+78,5226_ac_power_inv_3362.csv,4.532332702133857,1.5482647960825027,4.8408379554748535,"['time_series', 'latitude', 'longitude']","clipping, shading"
+79,5226_ac_power_inv_3363.csv,3.290296876524593,0.1643364862725214,4.523720741271973,"['time_series', 'latitude', 'longitude']","clipping, shading"
+80,5226_ac_power_inv_3364.csv,2.5780926433212414,0.764388433765852,4.389189958572388,"['time_series', 'latitude', 'longitude']","clipping, shading"
+81,5231_ac_power_inv_3391.csv,55.140441360839446,2.7952622767180504,6.5856592655181885,"['time_series', 'latitude', 'longitude']","shading, clipping"
+82,5231_ac_power_inv_3392.csv,15.03400235786927,7.385863750645417,6.75379490852356,"['time_series', 'latitude', 'longitude']","shading, clipping"
+83,5231_ac_power_inv_3393.csv,14.39083593124434,6.173209410631017,6.463701963424683,"['time_series', 'latitude', 'longitude']","shading, clipping"
+84,5231_ac_power_inv_3394.csv,14.36809243862163,7.750078714104351,6.519136667251587,"['time_series', 'latitude', 'longitude']","shading, clipping"
+85,5242_ac_power_inv_3573.csv,16.6818073322909,3.1155503890285647,6.084561347961426,"['time_series', 'latitude', 'longitude']",clipping
+86,5242_ac_power_inv_3574.csv,18.48753896815387,2.3276128767334843,5.919522047042847,"['time_series', 'latitude', 'longitude']",clipping
+87,5242_ac_power_inv_3575.csv,13.03039609187752,2.5033560789137965,5.8582680225372314,"['time_series', 'latitude', 'longitude']",clipping
+88,5242_ac_power_inv_3576.csv,14.400649093609303,4.429100479951435,5.947604179382324,"['time_series', 'latitude', 'longitude']",clipping
+89,5242_ac_power_inv_3577.csv,15.884600731349394,5.317479391133478,6.698030710220337,"['time_series', 'latitude', 'longitude']",clipping
+90,5242_ac_power_inv_3578.csv,16.948937479338156,6.019205291486212,6.236663103103638,"['time_series', 'latitude', 'longitude']",clipping
+91,5242_ac_power_inv_3579.csv,14.114953550969489,4.717459596196521,6.010369062423706,"['time_series', 'latitude', 'longitude']",clipping
+92,5242_ac_power_inv_3580.csv,13.998824767928653,3.69826390025265,5.938902854919434,"['time_series', 'latitude', 'longitude']",clipping
+93,5242_ac_power_inv_3581.csv,14.00756752821519,4.002357945590729,6.081054925918579,"['time_series', 'latitude', 'longitude']",clipping
+94,5242_ac_power_inv_3582.csv,13.232069103546792,3.764567684573981,5.888751983642578,"['time_series', 'latitude', 'longitude']",clipping
+95,5242_ac_power_inv_3583.csv,16.598261840100122,6.147938644090781,6.816768169403076,"['time_series', 'latitude', 'longitude']",clipping
+96,5242_ac_power_inv_3584.csv,15.796193117837902,3.3215161615615845,6.195527791976929,"['time_series', 'latitude', 'longitude']",clipping
+97,5242_ac_power_inv_3585.csv,19.26273654857897,3.2430267684516387,6.442659139633179,"['time_series', 'latitude', 'longitude']",clipping
+98,5242_ac_power_inv_3586.csv,14.618234882167428,4.3472628436902045,6.291708946228027,"['time_series', 'latitude', 'longitude']",clipping
+99,5242_ac_power_inv_3587.csv,15.0452950329734,5.936840066546852,6.6698901653289795,"['time_series', 'latitude', 'longitude']",clipping
+100,5242_ac_power_inv_3588.csv,12.514578147431877,2.9312081614119165,5.993255853652954,"['time_series', 'latitude', 'longitude']",clipping
+101,5242_ac_power_inv_3589.csv,15.088726720179437,3.951682924798069,6.012297868728638,"['time_series', 'latitude', 'longitude']",clipping
+102,5242_ac_power_inv_3590.csv,12.548063918788102,3.523394507634846,5.7308030128479,"['time_series', 'latitude', 'longitude']",clipping
+103,5242_ac_power_inv_3591.csv,15.854096695631029,3.8401862805813423,6.257829904556274,"['time_series', 'latitude', 'longitude']",clipping
+104,5242_ac_power_inv_3592.csv,13.31485733564466,4.932650832006882,6.062819004058838,"['time_series', 'latitude', 'longitude']",clipping
+105,5242_ac_power_inv_3593.csv,14.376812572703642,4.0283172654848585,6.039326906204224,"['time_series', 'latitude', 'longitude']",clipping
+106,5242_ac_power_inv_3594.csv,15.954644519009292,3.9074891658301674,6.052823066711426,"['time_series', 'latitude', 'longitude']",clipping
+107,5242_ac_power_inv_3595.csv,19.524744566969673,4.321026796775948,6.172386169433594,"['time_series', 'latitude', 'longitude']",clipping
+108,5242_ac_power_inv_3596.csv,14.890317413268036,4.063659981000301,6.16535496711731,"['time_series', 'latitude', 'longitude']",clipping
+109,5242_ac_power_inv_3597.csv,14.367395130611555,4.279418596092404,6.162726879119873,"['time_series', 'latitude', 'longitude']",clipping
+110,5242_ac_power_inv_3598.csv,15.280857610136252,4.449143533801211,6.188622713088989,"['time_series', 'latitude', 'longitude']",clipping
+111,5242_ac_power_inv_3599.csv,13.15291999831112,4.596594031294806,6.191473007202148,"['time_series', 'latitude', 'longitude']",clipping
+112,5257_ac_power_inv_3746.csv,34.84886537291271,2.0210039168311376,5.689420938491821,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+113,5257_ac_power_inv_3747.csv,30.97419622427313,1.132508608814673,5.656659841537476,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+114,5257_ac_power_inv_3748.csv,30.810952019176796,1.110115971500825,6.036745071411133,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+115,5257_ac_power_inv_3749.csv,31.51478856375988,0.2967338016373562,5.425800800323486,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+116,5257_ac_power_inv_3750.csv,33.3830967825549,1.4892337530195405,5.8459038734436035,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+117,5257_ac_power_inv_3751.csv,36.34555918955087,2.5601887307634694,5.878308296203613,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+118,5257_ac_power_inv_3752.csv,21.94502067574743,0.16651791758032086,5.583441257476807,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+119,5257_ac_power_inv_3753.csv,31.99132794347534,1.3183630114040739,5.805732727050781,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+120,5257_ac_power_inv_3754.csv,29.553409544809142,0.5511078218123941,5.6831769943237305,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+121,5257_ac_power_inv_3755.csv,32.0386072680148,1.265563985555815,5.582373142242432,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+122,5257_ac_power_inv_3756.csv,29.974909370235252,0.8704955350708197,5.832502126693726,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+123,5257_ac_power_inv_3757.csv,31.809753504140048,1.2807278055730276,5.9777750968933105,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+124,5257_ac_power_inv_3758.csv,30.278912960404284,0.9918590320113125,5.7217628955841064,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+125,5257_ac_power_inv_3759.csv,34.05571050149638,1.5584335257123776,5.881731033325195,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+126,5257_ac_power_inv_3760.csv,31.122582871320304,1.1635968356427782,6.043198108673096,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+127,5257_ac_power_inv_3761.csv,27.22461830496826,0.07640663911599077,5.644306182861328,"['time_series', 'latitude', 'longitude']",soiling
+128,5257_ac_power_inv_3762.csv,29.979059541862426,1.029051024021756,5.960816860198975,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+129,5257_ac_power_inv_3763.csv,30.153435090881715,0.5234721774624349,5.569899797439575,"['time_series', 'latitude', 'longitude']",soiling
+130,5257_ac_power_inv_3764.csv,32.55444733318291,1.3448516784651972,5.785487174987793,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+131,5273_ac_power_inv_5975.csv,19.74333838099463,7.72120061581772,6.2254250049591064,"['time_series', 'latitude', 'longitude']",clipping
+132,5273_ac_power_inv_5973.csv,20.78588635082994,9.720521080275523,8.02609896659851,"['time_series', 'latitude', 'longitude']",clipping
+133,5273_ac_power_inv_5974.csv,20.681982742339926,9.92268469457675,6.216963291168213,"['time_series', 'latitude', 'longitude']",clipping
+134,5273_ac_power_inv_5972.csv,20.80188326983324,10.269358942870214,6.491655111312866,"['time_series', 'latitude', 'longitude']",clipping
+135,5273_ac_power_inv_5971.csv,21.48807778424319,8.14423305916983,6.91198992729187,"['time_series', 'latitude', 'longitude']",clipping
+136,5291_ac_power_inv_4104.csv,11.126914443092716,6.737995530714967,7.2634899616241455,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+137,5291_ac_power_inv_4105.csv,9.808972831681388,7.542311597667556,6.186846971511841,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+138,5291_ac_power_inv_4106.csv,10.129817275784632,6.758296797203718,6.283236026763916,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+139,5291_ac_power_inv_4107.csv,10.124249187404956,7.625744113138545,6.2268149852752686,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+140,5291_ac_power_inv_4108.csv,9.649709960888629,10.654126799542366,7.462935924530029,"['time_series', 'latitude', 'longitude']","soiling, clipping"
+141,5297_ac_power_inv_4176.csv,3.6500232717708343,7.808134693474258,4.426218032836914,"['time_series', 'latitude', 'longitude']",clipping
+142,5297_ac_power_inv_4177.csv,3.4145058292923522,6.239893847088819,4.44967794418335,"['time_series', 'latitude', 'longitude']",clipping
+143,5297_ac_power_inv_4178.csv,4.665031112856838,5.874934474047304,4.59558892250061,"['time_series', 'latitude', 'longitude']",clipping
+144,5308_ac_power_inv_4258.csv,4.468961996818848,7.407048743036398,4.664834976196289,"['time_series', 'latitude', 'longitude']",clipping
+145,5308_ac_power_inv_4259.csv,4.584498366915824,7.798141930686782,4.664400815963745,"['time_series', 'latitude', 'longitude']",clipping
+146,5308_ac_power_inv_4260.csv,3.3081687869077996,7.321724549370295,5.077453136444092,"['time_series', 'latitude', 'longitude']",clipping
+147,5308_ac_power_inv_4261.csv,3.643201354485285,7.717366903084407,4.709829092025757,"['time_series', 'latitude', 'longitude']",clipping
+148,5308_ac_power_inv_4262.csv,3.528544070228861,7.010852306072639,4.69343113899231,"['time_series', 'latitude', 'longitude']",clipping
+149,5308_ac_power_inv_4263.csv,3.7237792935345055,7.611323726202588,4.575134992599487,"['time_series', 'latitude', 'longitude']",clipping
+150,5308_ac_power_inv_4264.csv,3.2204512076224603,7.937665445026962,5.275758981704712,"['time_series', 'latitude', 'longitude']",clipping
+151,5308_ac_power_inv_4265.csv,3.5665883743649545,7.419465882320935,4.961894273757935,"['time_series', 'latitude', 'longitude']",clipping
+152,5308_ac_power_inv_4266.csv,3.606490374724274,7.827635247152447,4.766853094100952,"['time_series', 'latitude', 'longitude']",clipping
+153,5308_ac_power_inv_4267.csv,3.661391763765863,7.807977115782947,5.0265679359436035,"['time_series', 'latitude', 'longitude']",clipping
+154,5308_ac_power_inv_4268.csv,3.704306890223336,8.0337445376496,5.368868112564087,"['time_series', 'latitude', 'longitude']",clipping
+155,5308_ac_power_inv_4269.csv,3.106463491502751,5.203624280512372,5.058745861053467,"['time_series', 'latitude', 'longitude']",clipping
+156,5308_ac_power_inv_4270.csv,3.237323673846703,7.480987044841267,4.439416170120239,"['time_series', 'latitude', 'longitude']",clipping
+157,5308_ac_power_inv_4271.csv,3.7289501989737914,7.416343617118962,4.727447986602783,"['time_series', 'latitude', 'longitude']",clipping
+158,5308_ac_power_inv_4272.csv,4.79159146613847,8.309770241732508,5.331047296524048,"['time_series', 'latitude', 'longitude']",clipping
+159,5308_ac_power_inv_4273.csv,3.5505852307408077,7.33593603309107,4.945502042770386,"['time_series', 'latitude', 'longitude']",clipping
+160,5308_ac_power_inv_4274.csv,3.051698443056864,7.322463405030334,4.761609077453613,"['time_series', 'latitude', 'longitude']",clipping
+161,5308_ac_power_inv_4275.csv,3.4164330170737855,7.557716119413406,4.478340148925781,"['time_series', 'latitude', 'longitude']",clipping
+162,5308_ac_power_inv_4276.csv,3.387679216918656,7.283652672068065,4.379996299743652,"['time_series', 'latitude', 'longitude']",clipping
+163,5308_ac_power_inv_4277.csv,4.285221934945923,7.628580055437926,5.936453819274902,"['time_series', 'latitude', 'longitude']",clipping
+164,5308_ac_power_inv_4278.csv,3.816051149870674,7.700537250464606,4.975081920623779,"['time_series', 'latitude', 'longitude']",clipping
+165,5308_ac_power_inv_4279.csv,3.6411640130446017,7.66779357072468,4.32717490196228,"['time_series', 'latitude', 'longitude']",clipping
+166,5308_ac_power_inv_4280.csv,3.771569057773405,7.610394359847177,4.7530739307403564,"['time_series', 'latitude', 'longitude']",clipping
+167,5308_ac_power_inv_4281.csv,3.375215425454826,7.527059297409007,5.182888746261597,"['time_series', 'latitude', 'longitude']",clipping
+168,5308_ac_power_inv_4282.csv,3.8758880533764852,6.754088910078483,4.58530592918396,"['time_series', 'latitude', 'longitude']",clipping
+169,5308_ac_power_inv_4283.csv,4.179754658120231,8.034271099649413,5.759613990783691,"['time_series', 'latitude', 'longitude']",clipping
+170,5308_ac_power_inv_4284.csv,2.8682714825596918,7.844595082113393,5.180467128753662,"['time_series', 'latitude', 'longitude']",clipping
+171,5308_ac_power_inv_4285.csv,3.376146878841041,6.317127073990417,4.226087808609009,"['time_series', 'latitude', 'longitude']",clipping
+172,5308_ac_power_inv_4286.csv,4.303396805235451,7.66536533274164,4.170900106430054,"['time_series', 'latitude', 'longitude']",clipping
+173,5308_ac_power_inv_4287.csv,3.0064927513535338,7.9529477941561275,4.744149923324585,"['time_series', 'latitude', 'longitude']",clipping
+174,5318_ac_power_inv_6240.csv,8.728640825393995,8.043327226933922,6.603334903717041,"['time_series', 'latitude', 'longitude']",clipping
+175,5318_ac_power_inv_6236.csv,8.206249045217646,7.246581086134832,7.204596281051636,"['time_series', 'latitude', 'longitude']",clipping
+176,5318_ac_power_inv_6232.csv,6.617913989016216,9.011367671497108,6.902288913726807,"['time_series', 'latitude', 'longitude']",clipping
+177,5318_ac_power_inv_6233.csv,7.159986262872593,8.738854881545162,7.052345037460327,"['time_series', 'latitude', 'longitude']",clipping
+178,5318_ac_power_inv_6226.csv,9.38895060705542,5.8839459208193325,6.780611991882324,"['time_series', 'latitude', 'longitude']",clipping
+179,5318_ac_power_inv_6244.csv,8.565622983417995,9.805265425593728,7.048744201660156,"['time_series', 'latitude', 'longitude']",clipping
+180,5324_ac_power_inv_4531.csv,18.596257869685132,2.019521192266284,5.8411359786987305,"['time_series', 'latitude', 'longitude']",clipping
+181,5324_ac_power_inv_4532.csv,19.250054721277763,1.8749427445950229,5.227704048156738,"['time_series', 'latitude', 'longitude']",clipping
+182,5324_ac_power_inv_4533.csv,47.065764287727006,0.6836394418670633,6.310347557067871,"['time_series', 'latitude', 'longitude']",clipping
+183,5324_ac_power_inv_4530.csv,17.762539305997905,2.0177964729577296,5.775035858154297,"['time_series', 'latitude', 'longitude']",clipping
+184,5328_ac_power_inv_4559.csv,43.57407508004235,0.3066317734265507,6.549350738525391,"['time_series', 'latitude', 'longitude']",clipping
+185,5328_ac_power_inv_4560.csv,25.815157007168864,1.6627077832867965,5.553372859954834,"['time_series', 'latitude', 'longitude']",clipping
+186,5328_ac_power_inv_4561.csv,27.294279166719832,1.6019108387839047,6.276520013809204,"['time_series', 'latitude', 'longitude']",clipping
+187,5329_ac_power_inv_4562.csv,27.2601005656624,0.19041434942772995,5.345168113708496,"['time_series', 'latitude', 'longitude']",clipping
+188,5329_ac_power_inv_4563.csv,11.989605774641674,0.9146854213977118,5.446950912475586,"['time_series', 'latitude', 'longitude']",clipping
+189,5329_ac_power_inv_4564.csv,12.207805018723946,0.908018906928544,5.508259057998657,"['time_series', 'latitude', 'longitude']",clipping
+190,5329_ac_power_inv_4565.csv,11.881211094629279,0.746454551796865,5.268618822097778,"['time_series', 'latitude', 'longitude']",clipping
+191,5329_ac_power_inv_4566.csv,21.74030241107623,0.06022516873528794,5.731176853179932,"['time_series', 'latitude', 'longitude']",clipping
+192,5329_ac_power_inv_4567.csv,12.575165514707777,0.8811622963126844,5.214001893997192,"['time_series', 'latitude', 'longitude']",clipping
+193,5335_ac_power_inv_4625.csv,19.025293743140793,6.542510751319103,6.311083078384399,"['time_series', 'latitude', 'longitude']",clipping
+194,5335_ac_power_inv_4626.csv,18.858784722416686,5.92349222251652,6.572598934173584,"['time_series', 'latitude', 'longitude']",clipping
+195,5335_ac_power_inv_4627.csv,18.358847633034685,5.873361562888688,6.403335809707642,"['time_series', 'latitude', 'longitude']",clipping
+196,5335_ac_power_inv_4628.csv,18.37912450833855,5.754500751019268,5.8558478355407715,"['time_series', 'latitude', 'longitude']",clipping
+197,5342_ac_power_inv_4684.csv,14.058085202900628,6.902755198410073,6.425164699554443,"['time_series', 'latitude', 'longitude']",clipping
+198,5342_ac_power_inv_4685.csv,14.849102940021027,7.362464485935865,5.579554796218872,"['time_series', 'latitude', 'longitude']",clipping
+199,5342_ac_power_inv_4686.csv,14.333390760145932,5.633713125410754,6.40863299369812,"['time_series', 'latitude', 'longitude']",clipping
+200,5342_ac_power_inv_4687.csv,12.04421216346961,7.041111213055846,6.411550998687744,"['time_series', 'latitude', 'longitude']",clipping
+201,5342_ac_power_inv_4688.csv,14.03114267743564,5.863542450857057,6.070910930633545,"['time_series', 'latitude', 'longitude']",clipping
+202,5342_ac_power_inv_4689.csv,14.177841597843866,5.783923856077866,6.666402101516724,"['time_series', 'latitude', 'longitude']",clipping
+203,5342_ac_power_inv_4690.csv,13.763183458944326,4.558341833205651,5.43720006942749,"['time_series', 'latitude', 'longitude']",clipping
+204,5342_ac_power_inv_4691.csv,12.676645978795193,6.935972093823658,6.649430990219116,"['time_series', 'latitude', 'longitude']",clipping
+205,5342_ac_power_inv_4692.csv,14.575783053486845,7.058100382225669,6.367138862609863,"['time_series', 'latitude', 'longitude']",clipping
+206,5342_ac_power_inv_4693.csv,11.620696918971618,6.313785314559805,6.731640100479126,"['time_series', 'latitude', 'longitude']",clipping
+207,5342_ac_power_inv_4694.csv,14.329380109016142,6.281887795533137,5.9648823738098145,"['time_series', 'latitude', 'longitude']",clipping
+208,5342_ac_power_inv_4695.csv,14.3570611212634,9.041539854559671,6.294955015182495,"['time_series', 'latitude', 'longitude']",clipping
+209,5342_ac_power_inv_4696.csv,7.44834486964038,5.361298695351854,6.055110931396484,"['time_series', 'latitude', 'longitude']",clipping
+210,5342_ac_power_inv_4697.csv,12.658908153548708,5.659224427063878,6.380168914794922,"['time_series', 'latitude', 'longitude']",clipping
+211,5342_ac_power_inv_4698.csv,14.053561719643909,4.4827762738303,6.334264039993286,"['time_series', 'latitude', 'longitude']",clipping
+212,5342_ac_power_inv_4699.csv,15.799756719614379,11.066397315457815,5.285519123077393,"['time_series', 'latitude', 'longitude']",clipping
+213,5342_ac_power_inv_4700.csv,14.806928349866098,10.66664538364587,5.965853929519653,"['time_series', 'latitude', 'longitude']",clipping
+214,5342_ac_power_inv_4701.csv,13.168540494907717,7.187174340534272,6.024522066116333,"['time_series', 'latitude', 'longitude']",clipping
+215,5342_ac_power_inv_4702.csv,15.904436144420089,6.521255555369915,6.57566499710083,"['time_series', 'latitude', 'longitude']",clipping
+216,5342_ac_power_inv_4703.csv,13.742555438408942,5.556045114693159,5.777307033538818,"['time_series', 'latitude', 'longitude']",clipping
+217,5342_ac_power_inv_4704.csv,14.205683164713435,5.729068713503711,5.679397106170654,"['time_series', 'latitude', 'longitude']",clipping
+218,5342_ac_power_inv_4705.csv,13.60271007116026,7.486949589509404,6.214197874069214,"['time_series', 'latitude', 'longitude']",clipping
+219,5342_ac_power_inv_4706.csv,14.273727254098986,6.641820429745456,6.503704071044922,"['time_series', 'latitude', 'longitude']",clipping
+220,5342_ac_power_inv_4707.csv,14.016647910538495,5.865691954412874,6.267159938812256,"['time_series', 'latitude', 'longitude']",clipping
+221,5345_ac_power_inv_4727.csv,49.936240905496845,0.36261451765832575,5.635448932647705,"['time_series', 'latitude', 'longitude']",clipping
+222,5345_ac_power_inv_4724.csv,54.678581821568685,1.6248338806667562,6.052248001098633,"['time_series', 'latitude', 'longitude']",clipping
+223,5345_ac_power_inv_4722.csv,54.70429879438666,1.682752993872521,6.024361848831177,"['time_series', 'latitude', 'longitude']",clipping
+224,5345_ac_power_inv_4726.csv,57.39566564681647,2.3780808158676177,6.304784774780273,"['time_series', 'latitude', 'longitude']",clipping
+225,5345_ac_power_inv_4721.csv,54.74848439340556,1.5274659195477494,5.861376762390137,"['time_series', 'latitude', 'longitude']",clipping
+226,5348_ac_power_inv_4734.csv,61.698758097571556,0.7450790890399741,5.8687920570373535,"['time_series', 'latitude', 'longitude']",clipping
+227,5348_ac_power_inv_4735.csv,73.50286180719496,0.3899570011885318,5.616878986358643,"['time_series', 'latitude', 'longitude']",clipping
+228,5354_ac_power_inv_4791.csv,14.538138591148368,6.204065558528573,6.015440225601196,"['time_series', 'latitude', 'longitude']",clipping
+229,5354_ac_power_inv_4792.csv,14.915348082070523,9.083306649853624,5.75545597076416,"['time_series', 'latitude', 'longitude']",clipping
+230,5354_ac_power_inv_4793.csv,14.755464471148173,6.85331060967702,5.6092658042907715,"['time_series', 'latitude', 'longitude']",clipping
+231,5354_ac_power_inv_4794.csv,15.193072446182555,5.185268858373048,5.51822304725647,"['time_series', 'latitude', 'longitude']",
+232,5354_ac_power_inv_4795.csv,14.939055350254648,6.111758341083455,5.561404228210449,"['time_series', 'latitude', 'longitude']",clipping
+233,5354_ac_power_inv_4796.csv,15.253690218930387,6.5955292640536936,6.191312074661255,"['time_series', 'latitude', 'longitude']",clipping
+234,5354_ac_power_inv_4797.csv,14.830647884956704,5.8957915654761095,5.5154709815979,"['time_series', 'latitude', 'longitude']",clipping
+235,5354_ac_power_inv_4798.csv,14.98968059489087,10.310610893274196,6.063533067703247,"['time_series', 'latitude', 'longitude']",clipping
+236,5354_ac_power_inv_4799.csv,14.180729642427906,7.074478306510157,6.307845115661621,"['time_series', 'latitude', 'longitude']",clipping
+237,5354_ac_power_inv_4800.csv,14.591171683244482,5.398423671355019,5.459726810455322,"['time_series', 'latitude', 'longitude']",clipping
+238,5354_ac_power_inv_4801.csv,14.645905512474684,6.543138014376826,5.9442102909088135,"['time_series', 'latitude', 'longitude']",clipping
+239,5354_ac_power_inv_4802.csv,15.048265624055517,10.628968230891546,6.600142955780029,"['time_series', 'latitude', 'longitude']",clipping
+240,5354_ac_power_inv_4803.csv,14.705408389477185,6.779880516404466,5.460130929946899,"['time_series', 'latitude', 'longitude']",clipping
+241,5354_ac_power_inv_4804.csv,13.636822412978887,6.162879775597592,5.713793754577637,"['time_series', 'latitude', 'longitude']",clipping
+242,5354_ac_power_inv_4805.csv,15.844103578768141,6.6199627320341765,6.193183898925781,"['time_series', 'latitude', 'longitude']",clipping
+243,5363_ac_power_inv_6395.csv,4.650349277004068,9.947980877611743,6.441766023635864,"['time_series', 'latitude', 'longitude']",clipping
+244,5363_ac_power_inv_6389.csv,4.844989927729188,10.429406873545146,6.6088950634002686,"['time_series', 'latitude', 'longitude']",clipping
+245,5363_ac_power_inv_6386.csv,3.2485668010967856,7.69217629259664,6.150594711303711,"['time_series', 'latitude', 'longitude']",clipping
+246,5363_ac_power_inv_6394.csv,5.081695227706547,10.452696812647991,6.9727089405059814,"['time_series', 'latitude', 'longitude']",clipping
+247,5363_ac_power_inv_6387.csv,3.4379402639359853,7.902415727310588,6.000422239303589,"['time_series', 'latitude', 'longitude']",clipping
+248,5363_ac_power_inv_6390.csv,5.075442770293762,10.682644188204444,6.808528900146484,"['time_series', 'latitude', 'longitude']",clipping
+249,5372_ac_power_inv_4955.csv,5.093243501388798,10.799590654158449,6.125118970870972,"['time_series', 'latitude', 'longitude']",clipping
+250,5372_ac_power_inv_4956.csv,5.848972263368324,7.50898517881962,6.982202768325806,"['time_series', 'latitude', 'longitude']",clipping
+251,5372_ac_power_inv_4957.csv,6.382406936582754,9.831487450900783,7.284684896469116,"['time_series', 'latitude', 'longitude']",clipping
+252,5372_ac_power_inv_4958.csv,4.938782427601581,8.751176876801265,6.654401063919067,"['time_series', 'latitude', 'longitude']",clipping
+253,5372_ac_power_inv_4959.csv,4.959440869601536,10.863439533486082,7.47726583480835,"['time_series', 'latitude', 'longitude']",clipping
+254,5372_ac_power_inv_4960.csv,5.253863962541232,8.36619517917306,5.895426988601685,"['time_series', 'latitude', 'longitude']",clipping
+255,5375_ac_power_inv_6304.csv,7.462380949542677,12.170419656747121,4.873323917388916,"['time_series', 'latitude', 'longitude']",clipping
+256,5375_ac_power_inv_6343.csv,5.686224272772165,11.44726453749605,4.632005929946899,"['time_series', 'latitude', 'longitude']",clipping
+257,5375_ac_power_inv_6309.csv,6.762563296509597,12.279138509580811,4.961462020874023,"['time_series', 'latitude', 'longitude']",clipping
+258,5375_ac_power_inv_6358.csv,5.4637542614175345,13.353037514392263,4.811891078948975,"['time_series', 'latitude', 'longitude']",clipping
+259,5375_ac_power_inv_6327.csv,4.9988225803836315,12.438384762228942,4.698440074920654,"['time_series', 'latitude', 'longitude']",clipping
+260,5375_ac_power_inv_6308.csv,7.054958085433725,11.944295255836504,4.9203667640686035,"['time_series', 'latitude', 'longitude']",clipping
+261,5377_ac_power_inv_5055.csv,23.47787082294991,8.200906836554955,5.745497941970825,"['time_series', 'latitude', 'longitude']","shading, clipping"
+262,5377_ac_power_inv_5056.csv,26.632368033600386,0.883772829155296,6.332112073898315,"['time_series', 'latitude', 'longitude']","shading, clipping"
+263,5377_ac_power_inv_5057.csv,23.561175928999035,7.4396326826610455,6.557085990905762,"['time_series', 'latitude', 'longitude']","shading, clipping"
+264,5377_ac_power_inv_5058.csv,20.72396329859299,5.469503063678012,5.588519334793091,"['time_series', 'latitude', 'longitude']","shading, clipping"
+265,5377_ac_power_inv_5059.csv,15.942214843968173,1.9322600635034242,5.469859838485718,"['time_series', 'latitude', 'longitude']","shading, clipping"
+266,5377_ac_power_inv_5060.csv,19.697561879597345,0.7549225151709074,5.396360158920288,"['time_series', 'latitude', 'longitude']",shading
+267,5377_ac_power_inv_5061.csv,23.419260394913806,7.106440866983961,6.008631944656372,"['time_series', 'latitude', 'longitude']","shading, clipping"
+268,5377_ac_power_inv_5062.csv,16.319560458147976,3.4898726374186086,5.69862699508667,"['time_series', 'latitude', 'longitude']","shading, clipping"
+269,5379_ac_power_inv_5070.csv,56.173528308814355,1.6048331985280093,5.472387075424194,"['time_series', 'latitude', 'longitude']",clipping
+270,5379_ac_power_inv_5071.csv,56.668120504432636,1.7751955818799718,5.27150297164917,"['time_series', 'latitude', 'longitude']",clipping
+271,5379_ac_power_inv_5072.csv,57.50503496668057,1.7642959934789761,5.880892992019653,"['time_series', 'latitude', 'longitude']",clipping
+272,5458_ac_power_inv_6986.csv,9.445565964580538,9.282290414407495,4.584285736083984,"['time_series', 'latitude', 'longitude']",
+273,5458_ac_power_inv_6985.csv,8.438545037055263,6.277229324824894,4.8078272342681885,"['time_series', 'latitude', 'longitude']",clipping
+274,5458_ac_power_inv_6984.csv,8.583238587815742,7.017874529704059,4.626822233200073,"['time_series', 'latitude', 'longitude']",clipping
