@@ -1,3 +1,0 @@
-﻿category_id,category_name,performance_metrics,function_name
-0,time_shifts,"['mean_absolute_error', 'run_time', 'data_requirements']",detect_time_shifts
-1,az_tilt_estimation,"['mean_absolute_error', 'run_time', 'data_requirements']",estimate_az_tilt
