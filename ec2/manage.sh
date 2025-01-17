@@ -35,8 +35,10 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+TASK_FOLDER_DIR=$TASK_DIR/$TASK_FOLDER_NAME
+
 if [ "$COMMAND" == "insert" ]; then
-    if [ -z "$TASK_DIR/$TASK_FOLDER_NAME" ]; then
+    if [ -z "$TASK_FOLDER_DIR" ]; then
         echo "Missing directory"
         usage
     fi
@@ -44,7 +46,7 @@ fi
 
 case "$COMMAND" in
     insert)
-        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit $LIMIT --prod $PROD --dir $TASK_DIR/$DIR
+        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit "$LIMIT" --prod $PROD --dir "$TASK_FOLDER_DIR" ;;
     *)
         usage
         ;;
