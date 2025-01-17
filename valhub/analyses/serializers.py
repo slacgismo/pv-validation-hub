@@ -9,7 +9,13 @@ class AnalysisSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Analysis
-        fields = ("analysis_id", "analysis_name", "display_errors")
+        fields = (
+            "analysis_id",
+            "analysis_name",
+            "display_errors",
+            "total_files",
+            "version",
+        )
 
     # def to_representation(self, instance):
     #     data = super().to_representation(instance)
