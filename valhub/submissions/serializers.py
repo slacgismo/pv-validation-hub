@@ -120,6 +120,7 @@ class SubmissionDetailSerializer(serializers.ModelSerializer):
             "archived",
             "python_version",
             "worker_version",
+            "analysis_version",
         )
 
     def get_error_rate(self, obj):

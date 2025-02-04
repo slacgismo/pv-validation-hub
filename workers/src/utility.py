@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import json
 import shutil
 from dask.delayed import delayed
@@ -45,6 +46,32 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+@dataclass(frozen=True)
+class SubmissionFunctionArgs:
+    submission_id: int
+    image_tag: str
+    memory_limit: str
+    submission_file_name: str
+    submission_function_name: str
+    submission_args: Tuple[Any, ...]
+    volume_data_dir: str
+    volume_results_dir: str
+    logger: logging.Logger
+
+    def to_tuple(self):
+        return (
+            self.submission_id,
+            self.image_tag,
+            self.memory_limit,
+            self.submission_file_name,
+            self.submission_function_name,
+            self.submission_args,
+            self.volume_data_dir,
+            self.volume_results_dir,
+            self.logger,
+        )
 
 
 def logger_if_able(
@@ -301,12 +328,12 @@ U = TypeVar("U")
 
 def dask_multiprocess(
     func: Callable[P, T],
-    func_arguments: Sequence[Tuple[U, ...]],
+    function_args_list: list[SubmissionFunctionArgs],
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
     memory_per_run: float | int | None = None,
     logger: Logger | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> list[T]:
 
     MEMORY_PER_RUN = 8.0  # in GB
@@ -352,11 +379,11 @@ def dask_multiprocess(
         logger_if_able(f"client: {client}", logger, "INFO")
 
         lazy_results = []
-        for args in func_arguments:
+        for args in function_args_list:
+            submission_fn_args = args.to_tuple()
+            logger_if_able(f"args: {submission_fn_args}", logger, "INFO")
 
-            logger_if_able(f"args: {args}", logger, "INFO")
-
-            lazy_result = delayed(func, pure=True)(*args)
+            lazy_result = delayed(func, pure=True)(*submission_fn_args)
             lazy_results.append(lazy_result)
 
         futures = client.compute(lazy_results)

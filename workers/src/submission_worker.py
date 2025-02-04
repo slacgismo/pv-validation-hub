@@ -278,7 +278,7 @@ def extract_analysis_data(  # noqa: C901
             data = request_to_API_w_credentials("GET", fmd_url)
             file_metadata_list.append(data)
 
-        except exception as e:
+        except Exception as e:
             error_code = 7
             logger.error(
                 f"File metadata for file id {file_id} not found in Django API"
@@ -392,6 +392,11 @@ def load_analysis(
     shutil.copy(
         os.path.join("/root/worker/src", "pvinsight-validation-runner.py"),
         os.path.join(current_evaluation_dir, "pvinsight-validation-runner.py"),
+    )
+
+    shutil.copy(
+        os.path.join("/root/worker/src", "meteric_operations.py"),
+        os.path.join(current_evaluation_dir, "meteric_operations.py"),
     )
 
     # Copy the error codes file into the current evaluation directory

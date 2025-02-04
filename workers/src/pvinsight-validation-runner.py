@@ -19,7 +19,6 @@ script, the following occurs:
 from typing import (
     Any,
     Callable,
-    Sequence,
     Tuple,
     TypeVar,
     TypedDict,
@@ -28,11 +27,7 @@ from typing import (
 )
 import pandas as pd
 import os
-from importlib import import_module
 from collections import ChainMap
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
 import json
 import requests
 import tarfile
@@ -47,6 +42,7 @@ from utility import (
     RUNNER_ERROR_PREFIX,
     RunnerException,
     SubmissionException,
+    SubmissionFunctionArgs,
     create_blank_error_report,
     create_docker_image_for_submission,
     dask_multiprocess,
@@ -57,10 +53,11 @@ from utility import (
     pull_from_s3,
     request_to_API_w_credentials,
     submission_task,
-    timeout,
     timing,
     is_local,
 )
+
+from metric_operations import performance_metrics_map, metric_operations_map
 
 P = ParamSpec("P")
 
@@ -120,7 +117,7 @@ def push_to_s3(
         s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
 
 
-def convert_compressed_file_path_to_directory(compressed_file_path):
+def convert_compressed_file_path_to_directory(compressed_file_path: str):
     path_components = compressed_file_path.split("/")
     path_components[-1] = path_components[-1].split(".")[0]
     path_components = "/".join(path_components)
@@ -259,7 +256,7 @@ def extract_zip(zip_path: str, extract_path: str):
 
 
 def get_module_file_name(module_dir: str):
-    for root, _, files in os.walk(module_dir, topdown=True):
+    for _, _, files in os.walk(module_dir, topdown=True):
         for name in files:
             if name.endswith(".py"):
                 return name.split("/")[-1]
@@ -273,36 +270,11 @@ def get_module_name(module_dir: str):
     return get_module_file_name(module_dir)[:-3]
 
 
-def generate_histogram(
-    dataframe, x_axis, title, color_code=None, number_bins=30
-):
-    """
-    Generate a histogram for a distribution. Option to color code the
-    histogram by the color_code column parameter.
-    """
-    sns.displot(
-        dataframe, x=x_axis, hue=color_code, multiple="stack", bins=number_bins
-    )
-    plt.title(title)
-    plt.tight_layout()
-    return plt
-
-
-def generate_scatter_plot(dataframe, x_axis, y_axis, title):
-    """
-    Generate a scatterplot between an x- and a y-variable.
-    """
-    sns.scatterplot(data=dataframe, x=x_axis, y=y_axis)
-    plt.title(title)
-    plt.tight_layout()
-    return plt
-
-
 @timing(verbose=True, logger=logger)
 def run_user_submission(
-    fn: Callable[P, pd.Series],
-    *args,
-    **kwargs,
+    fn: Callable[P, pd.Series[float]],
+    *args: P.args,
+    **kwargs: P.kwargs,
 ):
     return fn(*args, **kwargs)
 
@@ -396,7 +368,7 @@ def run(  # noqa: C901
 
     logger.info(f"Creating docker image for submission...")
 
-    image, image_tag = create_docker_image_for_submission(
+    _, image_tag = create_docker_image_for_submission(
         docker_dir,
         image_tag,
         python_version,
@@ -412,8 +384,6 @@ def run(  # noqa: C901
     #     os.path.join(new_dir, submission_file_name),
     # )
 
-    # Generate list for us to store all of our results for the module
-    results_list = list()
     # Load in data set that we're going to analyze.
 
     # Make GET requests to the Django API to get the system metadata
@@ -485,26 +455,6 @@ def run(  # noqa: C901
     # Get the associated metrics we're supposed to calculate
     performance_metrics: list[str] = config_data["performance_metrics"]
     logger.info(f"performance_metrics: {performance_metrics}")
-
-    # Get the name of the function we want to import associated with this
-    # test
-    # # Import designated module via importlib
-    # module = import_module(module_name)
-    # try:
-    #     submission_function: Callable = getattr(module, function_name)
-    #     function_parameters = list(
-    #         inspect.signature(submission_function).parameters
-    #     )
-    # except AttributeError:
-    #     logger.error(
-    #         f"function {function_name} not found in module {module_name}"
-    #     )
-    #     logger.info(f"update submission status to {FAILED}")
-    #     update_submission_status(submission_id, FAILED)
-    #     error_code = 6
-    #     raise RunnerException(
-    #         *get_error_by_code(error_code, runner_error_codes, logger)
-    #     )
 
     total_number_of_files = len(file_metadata_df)
     logger.info(f"total_number_of_files: {total_number_of_files}")
@@ -631,17 +581,6 @@ def run(  # noqa: C901
 
     metrics_dict: dict[str, str | float] = {}
 
-    def m_mean(df: pd.DataFrame, column: str):
-        return df[column].mean()
-
-    def m_median(df: pd.DataFrame, column: str):
-        return df[column].median()
-
-    metric_operations_mapping = {
-        "mean": m_mean,
-        "median": m_median,
-    }
-
     # perfomance_metrics_mapping = [
     #     "mean_absolute_error",
     #     "absolute_error",
@@ -698,7 +637,7 @@ def run(  # noqa: C901
             operations = metrics_operations[key]
 
             for operation in operations:
-                if operation not in metric_operations_mapping:
+                if operation not in metric_operations_map:
                     # TODO: add error code
                     logger.error(
                         f"operation {operation} not found in metric_operations_mapping"
@@ -707,7 +646,7 @@ def run(  # noqa: C901
                         *get_error_by_code(500, runner_error_codes, logger)
                     )
 
-                operation_function = metric_operations_mapping[operation]
+                operation_function = metric_operations_map[operation]
 
                 metric_result = operation_function(results_df, key)
 
@@ -942,16 +881,16 @@ def prepare_function_args_for_parallel_processing(
 
         logger.info(f"submission_args: {submission_args}")
 
-        function_args = (
-            submission_id,
-            image_tag,
-            memory_limit,
-            submission_file_name,
-            submission_function_name,
-            submission_args,
-            volume_data_dir,
-            volume_results_dir,
-            logger,
+        function_args = SubmissionFunctionArgs(
+            submission_id=submission_id,
+            image_tag=image_tag,
+            memory_limit=memory_limit,
+            submission_file_name=submission_file_name,
+            submission_function_name=submission_function_name,
+            submission_args=submission_args,
+            volume_data_dir=volume_data_dir,
+            volume_results_dir=volume_results_dir,
+            logger=logger,
         )
 
         function_args_list = append_to_list(function_args, function_args_list)
@@ -1001,7 +940,7 @@ def run_submission(
 
 
 def loop_over_files_and_generate_results(
-    func_arguments_list: list[Tuple],
+    func_arguments_list: list[SubmissionFunctionArgs],
 ) -> int:
 
     # func_arguments_list = prepare_function_args_for_parallel_processing(
@@ -1036,7 +975,7 @@ def loop_over_files_and_generate_results(
         logger=logger,
     )
 
-    is_errors_list = [error for error, error_code in test_errors]
+    is_errors_list = [error for error, _ in test_errors]
     number_of_errors += sum(is_errors_list)
 
     if number_of_errors == NUM_FILES_TO_TEST:
@@ -1077,7 +1016,7 @@ def loop_over_files_and_generate_results(
         raise RunnerException(
             *get_error_by_code(500, runner_error_codes, logger)
         )
-    is_errors_list = [error for error, error_code in rest_errors]
+    is_errors_list = [error for error, _ in rest_errors]
 
     number_of_errors += sum(is_errors_list)
 
@@ -1261,28 +1200,6 @@ def generate_performance_metrics_for_submission(
     results_dictionary["data_requirements"] = function_parameters
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
-
-    def p_absolute_error(output: pd.Series, ground_truth: pd.Series):
-        difference = output - ground_truth
-        absolute_difference = np.abs(difference)
-        return absolute_difference
-
-    def p_mean_absolute_error(output: pd.Series, ground_truth: pd.Series):
-        output.index = ground_truth.index
-        difference = output - ground_truth
-        absolute_difference = np.abs(difference)
-        mean_absolute_error = np.mean(absolute_difference)
-        return mean_absolute_error
-
-    def p_error(output: pd.Series, ground_truth: pd.Series):
-        difference = output - ground_truth
-        return difference
-
-    performance_metrics_map = {
-        "absolute_error": p_absolute_error,
-        "mean_absolute_error": p_mean_absolute_error,
-        "error": p_error,
-    }
 
     for metric in performance_metrics:
 
