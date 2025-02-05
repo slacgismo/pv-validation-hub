@@ -3,10 +3,11 @@ import os
 import requests
 import logging
 from logging import Logger
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, ParamSpec
 import json
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 
 def is_local():
@@ -83,7 +84,9 @@ def method_request(
         "Content-Type": "application/json",
     }
 
-    all_headers = {**base_headers, **headers} if headers else base_headers
+    all_headers: dict[str, str] = (
+        {**base_headers, **headers} if headers else base_headers
+    )
 
     body = json.dumps(data) if data else None
 
@@ -120,9 +123,9 @@ def with_credentials(api_url: str, logger: Logger | None = None):
     api_auth_token = None
     headers = {}
 
-    def decorator(func):
-        # @wraps(func)
-        def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs):
             nonlocal api_auth_token
             if not api_auth_token:
                 logger_if_able("Logging in", logger)

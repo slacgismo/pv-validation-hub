@@ -4,16 +4,16 @@ including system metadata and file metadata.
 """
 
 import json
+import hashlib
 from logging import Logger
 from typing import Any, cast
+from mypy_boto3_s3 import S3Client
 import numpy as np
 import pandas as pd
 import os
 import shutil
 import requests
 import boto3
-import sys
-import requests
 import argparse
 
 from utility import (
@@ -27,6 +27,27 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def get_file_hash(file_path: str):
+    hasher = hashlib.md5()
+    with open(file_path, "rb") as f:
+        buf = f.read()
+        hasher.update(buf)
+    return hasher.hexdigest()
+
+
+def get_s3_file_hash(
+    s3_client: S3Client, bucket_name: str, file_key: str
+) -> str:
+    s3_file_hash = s3_client.get_object(Bucket=bucket_name, Key=file_key)[
+        "ETag"
+    ].replace('"', "")
+    return s3_file_hash
+
+
+def are_hashes_the_same(local_hash: str, s3_hash: str) -> bool:
+    return local_hash == s3_hash
+
+
 def request_to_API_w_credentials(
     api_url: str,
     method: str,
@@ -34,7 +55,7 @@ def request_to_API_w_credentials(
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
     logger: Logger | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> dict[str, Any]:
     request_wrapper = with_credentials(api_url)(request_to_API_w_auth)
 
@@ -48,7 +69,7 @@ def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
     data = request_to_API_w_credentials(api_url, "GET", endpoint=endpoint)
 
     # Check if the data is a dictionary of scalar values
-    if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
+    if all(np.isscalar(v) for v in data.values()):
         # If it is, wrap the values in lists
         data = {k: [v] for k, v in data.items()}
     return pd.DataFrame(data)
@@ -63,13 +84,13 @@ def post_data_to_api_to_df(
     )
 
     # Check if the data is a dictionary of scalar values
-    if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
+    if all(np.isscalar(v) for v in data.values()):
         # If it is, wrap the values in lists
         data = {k: [v] for k, v in data.items()}
     return pd.DataFrame(data)
 
 
-def hasAllColumns(df, cols: list):
+def hasAllColumns(df: pd.DataFrame, cols: list[str]):
     """
     Check if the dataframe has the required columns for overlap
     checking.
@@ -118,7 +139,7 @@ def upload_to_s3_bucket(
                 )
     else:
         """Upload file to S3 bucket and return object URL"""
-        s3 = boto3.client("s3")
+        s3: S3Client = boto3.client("s3")  # type: ignore
 
         try:
             logger.info(
@@ -134,9 +155,7 @@ def upload_to_s3_bucket(
             )
             raise e
 
-        bucket_location = boto3.client("s3").get_bucket_location(
-            Bucket=bucket_name
-        )
+        bucket_location = s3.get_bucket_location(Bucket=bucket_name)
         object_url = "https://{}.s3.{}.amazonaws.com/{}".format(
             bucket_name, bucket_location["LocationConstraint"], upload_path
         )
@@ -173,7 +192,7 @@ def list_s3_bucket(
             f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
         )
 
-        s3 = boto3.client("s3")
+        s3: S3Client = boto3.client("s3")  # type: ignore
         paginator = s3.get_paginator("list_objects_v2")
         pages = paginator.paginate(Bucket=s3_bucket_name, Prefix=s3_dir)
         for page in pages:
@@ -206,15 +225,18 @@ class InsertAnalysis:
         front_end_assets_folder_path: str,
         # validation_tests_file_path: str,
         s3_bucket_name: str,
+        s3_task_bucket_name: str,
         api_url: str,
         s3_url: str,
         is_local: bool,
+        is_local_files: bool,
         limit: int | None = None,
     ):
 
         config: dict[str, Any] = json.load(open(config_file_path, "r"))
         self.config = config
         self.is_local = is_local
+        self.is_local_files = is_local_files
 
         self.api_url = api_url
         self.s3_url = s3_url
@@ -242,17 +264,18 @@ class InsertAnalysis:
         self.file_data_folder_path = file_data_folder_path
         self.evaluation_scripts_folder_path = evaluation_scripts_folder_path
         # self.validation_tests_file_path = validation_tests_file_path
-        self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(
+        self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
             sys_metadata_file_path
         )
-        self.new_file_metadata_df: pd.DataFrame = pd.read_csv(
+        self.new_file_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
             file_metadata_file_path
         )
 
         self.analysis_id = None
-        self.system_id_mapping = dict()
-        self.file_id_mapping = dict()
+        self.system_id_mapping: dict[int, int] = dict()
+        self.file_id_mapping: dict[int, int] = dict()
         self.s3_bucket_name = s3_bucket_name
+        self.s3_task_bucket_name = s3_task_bucket_name
         self.validation_data_folder_path = validation_data_folder_path
 
         self.markdown_files_folder_path = markdown_files_folder_path
@@ -269,21 +292,31 @@ class InsertAnalysis:
         bool: True if we have all the required data, False otherwise.
         """
 
-        file_metadata_files = self.new_file_metadata_df["file_name"]
+        file_metadata_files: pd.Series[str] = self.new_file_metadata_df[
+            "file_name"
+        ]
 
         # are there any duplicates?
-        if file_metadata_files.duplicated().any():
-            raise ValueError(
-                "There are duplicate file names in the file metadata."
-            )
+        for filename in file_metadata_files:
+            # count how many times the filename appears in the list
+            count = file_metadata_files[
+                file_metadata_files == filename
+            ].count()
+            if count > 1:
+                raise ValueError(
+                    f"Duplicate file name {filename} in the file metadata."
+                )
 
-        sys_metadata_files = self.new_sys_metadata_df["name"]
+        sys_metadata_files: pd.Series[str] = self.new_sys_metadata_df["name"]
 
         # are there any duplicates?
-        if sys_metadata_files.duplicated().any():
-            raise ValueError(
-                "There are duplicate system names in the system metadata."
-            )
+        for filename in sys_metadata_files:
+            # count how many times the filename appears in the list
+            count = sys_metadata_files[sys_metadata_files == filename].count()
+            if count > 1:
+                raise ValueError(
+                    f"Duplicate system name {filename} in the system metadata."
+                )
 
         file_data_files = os.listdir(self.file_data_folder_path)
 
@@ -877,7 +910,7 @@ class InsertAnalysis:
         Prepare the file test linker and drop it into the new evaluation folder.
         """
 
-        file_test_link = self.new_file_metadata_df["file_id"]
+        file_test_link: pd.Series[int] = self.new_file_metadata_df["file_id"]
 
         file_test_link.index.name = "test_id"
 
@@ -1007,11 +1040,15 @@ if __name__ == "__main__":
         "--dir",
         help="Directory of the task",
     )
+    parser.add_argument(
+        "--local-files",
+        help="Data files for task are local or in S3",
+    )
 
     args, unknown = parser.parse_known_args()
     logger.info(dict(args._get_kwargs()))
 
-    def convert_bool(val) -> bool:
+    def convert_bool(val: str) -> bool:
         if val == "True":
             return True
         elif val == "False":
@@ -1019,7 +1056,7 @@ if __name__ == "__main__":
         else:
             raise ValueError(f"Invalid boolean value {val}")
 
-    def convert_int(val) -> int:
+    def convert_int(val: str) -> int:
         try:
             return int(val)
         except ValueError:
@@ -1033,13 +1070,15 @@ if __name__ == "__main__":
         is_force = convert_bool(args.force)
         limit = convert_int(args.limit)
         is_dry_run = convert_bool(args.dry_run)
-        task_dir = args.dir
+        is_local_files = convert_bool(args.local_files)
+        task_dir: str = args.dir
         ########################################################################
 
         logger.info("is_dry_run", is_dry_run, type(is_dry_run))
         logger.info("is_force", is_force, type(is_force))
         logger.info("limit", limit, type(limit))
         logger.info("is_local", is_local, type(is_local))
+        logger.info("is_local_files", is_local_files, type(is_local_files))
         logger.info("task_dir", task_dir, type(task_dir))
 
         if not os.path.exists(task_dir):
@@ -1078,9 +1117,11 @@ if __name__ == "__main__":
             private_report_template_file_path=private_report_template_file_path,
             front_end_assets_folder_path=front_end_assets_folder_path,
             s3_bucket_name="pv-validation-hub-bucket",
+            s3_task_bucket_name="pv-validation-hub-task-data-bucket",
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
+            is_local_files=is_local_files,
             limit=limit,
         )
 
