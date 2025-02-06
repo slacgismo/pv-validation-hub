@@ -107,9 +107,7 @@ class InsertAnalysis:
         self.markdown_files_folder_path = markdown_files_folder_path
         self.front_end_assets_folder_path = front_end_assets_folder_path
 
-        self.hasAllValidNewAnalysisData()
-
-    def hasAllValidNewAnalysisData(self):
+    def hasAllValidNewAnalysisData(self, use_cloud_files: bool = False):
         """
         Check if we have all the required data to create a new analysis.
 
@@ -117,6 +115,8 @@ class InsertAnalysis:
         -------
         bool: True if we have all the required data, False otherwise.
         """
+
+        is_valid: bool = True
 
         file_metadata_files: pd.Series[str] = self.new_file_metadata_df[
             "file_name"
@@ -129,6 +129,7 @@ class InsertAnalysis:
                 file_metadata_files == filename
             ].count()
             if count > 1:
+                is_valid = False
                 raise ValueError(
                     f"Duplicate file name {filename} in the file metadata."
                 )
@@ -140,6 +141,7 @@ class InsertAnalysis:
             # count how many times the filename appears in the list
             count = sys_metadata_files[sys_metadata_files == filename].count()
             if count > 1:
+                is_valid = False
                 raise ValueError(
                     f"Duplicate system name {filename} in the system metadata."
                 )
@@ -147,6 +149,7 @@ class InsertAnalysis:
         file_data_files = os.listdir(self.file_data_folder_path)
 
         if not all(file in file_data_files for file in file_metadata_files):
+            is_valid = False
             raise ValueError(
                 "The file metadata contains files that are not in the file data folder."
             )
@@ -156,6 +159,7 @@ class InsertAnalysis:
         if not all(
             file in validation_data_files for file in file_metadata_files
         ):
+            is_valid = False
             raise ValueError(
                 "The file metadata contains files that are not in the validation data folder."
             )
@@ -165,6 +169,7 @@ class InsertAnalysis:
         )
 
         if not template_file_exists:
+            is_valid = False
             raise ValueError(
                 "The private report template file does not exist."
             )
@@ -181,6 +186,7 @@ class InsertAnalysis:
 
         for file in required_markdown_files:
             if file not in markdown_files:
+                is_valid = False
                 raise ValueError(
                     f"Missing markdown file {file} in the markdown files folder."
                 )
@@ -194,6 +200,7 @@ class InsertAnalysis:
         )
 
         if not front_end_analysis_assets_folder_exists:
+            is_valid = False
             raise ValueError(
                 "The analysis folder does not exist in the front end assets folder."
             )
@@ -203,13 +210,14 @@ class InsertAnalysis:
         )
 
         if not frontend_development_assets_folder_exists:
+            is_valid = False
             raise ValueError(
                 "The development folder does not exist in the front end assets folder."
             )
 
         logger.info("All files are in the right place.")
 
-        return True
+        return is_valid
 
     def getAllAnalyses(self) -> pd.DataFrame:
         """
@@ -926,7 +934,7 @@ if __name__ == "__main__":
         analysis_markdown_files_folder_path = os.path.join(task_dir, "assets")
         front_end_assets_folder_path = "./front_end_assets"
 
-        r = InsertAnalysis(
+        analysis_instance = InsertAnalysis(
             markdown_files_folder_path=analysis_markdown_files_folder_path,
             config_file_path=config_file_path,
             file_data_folder_path=file_data_folder_path,
@@ -944,6 +952,11 @@ if __name__ == "__main__":
             limit=limit,
         )
 
+        if not analysis_instance.hasAllValidNewAnalysisData(
+            use_cloud_files=use_cloud_files
+        ):
+            raise ValueError("Data is not valid")
+
         if not is_local:
             response = input(
                 "Are you sure you want to create/update a task on production? (yes/no): "
@@ -955,7 +968,7 @@ if __name__ == "__main__":
         if is_dry_run:
             logger.info("Dry run mode enabled. No data will be inserted.")
         else:
-            r.insertData(
+            analysis_instance.insertData(
                 use_cloud_files=use_cloud_files,
                 force=is_force,
             )
