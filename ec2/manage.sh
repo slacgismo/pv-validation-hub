@@ -4,7 +4,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 function usage() {
-    echo "Usage: $0 {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--limit <number>]"
+    echo "Usage: $0 {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--limit <number>] [--use-cloud-files]"
     exit 1
 }
 
@@ -16,7 +16,7 @@ DRY_RUN=False
 FORCE=False
 LIMIT=0
 PROD=False
-
+USE_CLOUD_FILES=False
 
 TASK_DIR=./analysis-tasks
 
@@ -30,6 +30,7 @@ while [[ "$#" -gt 0 ]]; do
         --force) FORCE=True ;;
         --limit) LIMIT=$2; shift ;;
         --prod) PROD=True ;;
+        --use-cloud-files) USE_CLOUD_FILES=True ;;
         *) echo "Unknown parameter passed: $1"; usage ;;
     esac
     shift
@@ -46,7 +47,7 @@ fi
 
 case "$COMMAND" in
     insert)
-        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit "$LIMIT" --prod $PROD --dir "$TASK_FOLDER_DIR" ;;
+        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit "$LIMIT" --prod $PROD --dir "$TASK_FOLDER_DIR" --use-cloud-files $USE_CLOUD_FILES ;;
     *)
         usage
         ;;
