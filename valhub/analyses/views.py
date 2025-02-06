@@ -44,8 +44,6 @@ def list_analysis(request: Request):
     # response_data = serializers.serialize('json', analyses)
     serializer = AnalysisSerializer(analyses, many=True)
 
-    serializer.is_valid(raise_exception=True)
-
     response_data = serializer.data
 
     return Response(response_data, status=status.HTTP_200_OK)
@@ -58,8 +56,6 @@ def analysis_detail(request: Request, analysis_id: str):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
 
     serializer = AnalysisSerializer(analysis)
-
-    serializer.is_valid(raise_exception=True)
 
     response_data = serializer.data
 
@@ -77,8 +73,6 @@ def leaderboard(request: Request, analysis_id: str):
     )
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 
-    serializer.is_valid(raise_exception=True)
-
     response_data = {"submissions": serializer.data}
 
     return JsonResponse(response_data, status=status.HTTP_200_OK)
@@ -91,6 +85,21 @@ def leaderboard(request: Request, analysis_id: str):
 def create_new_analysis(request: Request):
     # Remove user_id related code
     serializer = AnalysisSerializer(data=request.data)
+
+    serializer.is_valid(raise_exception=True)
+
+    serializer.save()
+    response_data = serializer.data
+    return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PUT"])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def update_analysis(request: Request, analysis_id: str):
+    analysis = Analysis.objects.get(analysis_id=analysis_id)
+
+    serializer = AnalysisSerializer(analysis, data=request.data, partial=True)
 
     serializer.is_valid(raise_exception=True)
 

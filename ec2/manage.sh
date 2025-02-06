@@ -47,7 +47,7 @@ fi
 
 case "$COMMAND" in
     insert)
-        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit "$LIMIT" --prod $PROD --dir "$TASK_FOLDER_DIR" --use-cloud-files $USE_CLOUD_FILES ;;
+        python3 insert_analysis.py --dry-run $DRY_RUN --force $FORCE --limit "$LIMIT" --prod $PROD --dir "$TASK_FOLDER_DIR" --use-cloud-files $USE_CLOUD_FILES | tee 'insert.log' ;;
     *)
         usage
         ;;

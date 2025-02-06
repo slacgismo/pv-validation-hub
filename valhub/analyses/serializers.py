@@ -9,4 +9,11 @@ class AnalysisSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Analysis
-        fields = "__all__"
+        fields = [
+            "analysis_id",
+            "analysis_name",
+            "display_errors",
+            "total_files",
+            "hash",
+            "version",
+        ]

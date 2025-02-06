@@ -29,12 +29,6 @@ def is_local():
 
 IS_LOCAL = is_local()
 
-API_BASE_URL = (
-    "http://api:8005" if IS_LOCAL else "http://api.pv-validation-hub.org"
-)
-
-S3_BASE_URL = "http://s3:5000/get_object/" if IS_LOCAL else "s3://"
-
 
 def logger_if_able(
     message: str, logger: Logger | None = None, level: str = "INFO"
@@ -149,6 +143,7 @@ def with_credentials(api_url: str, logger: Logger | None = None):
 
 
 def request_to_API(
+    api_url: str,
     method: str,
     endpoint: str,
     data: dict[str, Any] | None = None,
@@ -156,7 +151,7 @@ def request_to_API(
     logger: Logger | None = None,
 ):
 
-    url = f"{API_BASE_URL}/{endpoint}"
+    url = f"{api_url}/{endpoint}"
 
     data = request_handler(method, url, data, headers, logger)
     return data
@@ -217,38 +212,58 @@ def request_to_API_w_credentials(
     headers: dict[str, Any] | None = None,
     logger: Logger | None = None,
     **kwargs: Any,
-) -> dict[str, Any]:
-    request_wrapper = with_credentials(api_url)(request_to_API)
+):
 
-    endpoint = f"{api_url}/{endpoint}"
-    return request_wrapper(method, endpoint, data, headers, logger, **kwargs)
+    url = f"{api_url}/{endpoint}"
+
+    auth_header: dict[str, str] | None = (
+        kwargs["auth"] if "auth" in kwargs else None
+    )
+
+    if auth_header is None:
+        raise Exception("No auth header found")
+
+    if headers is None:
+        headers = {}
+
+    headers = {**headers, **auth_header}
+
+    response = request_handler(method, url, data, headers, logger)
+    return response
 
 
 # Fetch data from the remote API
-def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
+def get_data_from_api_to_df(
+    api_url: str, endpoint: str, logger: Logger | None = None
+) -> pd.DataFrame:
 
-    data = request_to_API_w_credentials(api_url, "GET", endpoint=endpoint)
+    response = with_credentials(api_url, logger)(request_to_API_w_credentials)(
+        api_url, "GET", endpoint=endpoint, logger=logger
+    )
 
-    # Check if the data is a dictionary of scalar values
-    if all(np.isscalar(v) for v in data.values()):
-        # If it is, wrap the values in lists
-        data = {k: [v] for k, v in data.items()}
-    return pd.DataFrame(data)
+    # # Check if the data is a dictionary of scalar values
+    # if all(np.isscalar(v) for v in data.values()):
+    #     # If it is, wrap the values in lists
+    #     data = {k: [v] for k, v in data.items()}
+    return pd.DataFrame(response)
 
 
 def post_data_to_api_to_df(
-    api_url: str, endpoint: str, data: dict[str, Any]
+    api_url: str,
+    endpoint: str,
+    data: dict[str, Any],
+    logger: Logger | None = None,
 ) -> pd.DataFrame:
 
-    data = request_to_API_w_credentials(
-        api_url, "POST", endpoint=endpoint, data=data
-    )
+    response: dict[str, Any] | list[Any] = with_credentials(api_url, logger)(
+        request_to_API_w_credentials
+    )(api_url, "POST", endpoint=endpoint, data=data)
 
     # Check if the data is a dictionary of scalar values
-    if all(np.isscalar(v) for v in data.values()):
+    if all(np.isscalar(v) for v in response.values()):
         # If it is, wrap the values in lists
-        data = {k: [v] for k, v in data.items()}
-    return pd.DataFrame(data)
+        response = {k: [v] for k, v in response.items()}
+    return pd.DataFrame(response)
 
 
 def hasAllColumns(df: pd.DataFrame, cols: list[str]):
@@ -369,10 +384,3 @@ def list_s3_bucket(
 
     logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
     return all_files
-
-
-if __name__ == "__main__":
-    print(API_BASE_URL)
-
-    # Test with_credentials decorator
-    request_to_API_w_credentials(API_BASE_URL, "GET", "healthy")

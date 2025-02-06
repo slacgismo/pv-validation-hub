@@ -11,17 +11,35 @@ import shutil
 import argparse
 
 from utility import (
+    are_hashes_the_same,
+    combine_hashes,
     get_data_from_api_to_df,
+    get_hash_for_list_of_files,
     hasAllColumns,
     post_data_to_api_to_df,
     request_to_API_w_credentials,
     upload_to_s3_bucket,
+    with_credentials,
 )
 
 import logging
 
+
+class SimpleFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__(
+            fmt="%(levelname)s - %(asctime)s - %(name)s - %(message)s",
+            datefmt="%Y-%m-%dT%H:%M:%S%z",
+        )
+
+
+# Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+formatter = SimpleFormatter()
+console = logging.StreamHandler()
+console.setFormatter(formatter)
+logger.addHandler(console)
 
 
 class TaskConfig(TypedDict):
@@ -56,33 +74,27 @@ class InsertAnalysis:
         api_url: str,
         s3_url: str,
         is_local: bool,
-        limit: int | None = None,
     ):
 
         config: TaskConfig = json.load(open(config_file_path, "r"))
+        self.analysis_version: str = "1.0"
         self.config = config
         self.is_local = is_local
-        self.is_local_files = use_cloud_files
 
         self.api_url = api_url
         self.s3_url = s3_url
 
         # Fetching the data
         db_sys_metadata_df = get_data_from_api_to_df(
-            self.api_url, "system_metadata/systemmetadata"
+            self.api_url, "system_metadata/systemmetadata/", logger
         )
         db_file_metadata_df = get_data_from_api_to_df(
-            self.api_url, "file_metadata/filemetadata"
+            self.api_url, "file_metadata/filemetadata/", logger
         )
 
         self.db_sys_metadata_df = db_sys_metadata_df
         self.db_file_metadata_df = db_file_metadata_df
         self.config_file_path = config_file_path
-
-        if limit:
-            db_file_metadata_df = db_file_metadata_df.head(limit)
-            category_name = f"{config['category_name']} - {limit} File(s)"
-            config["category_name"] = category_name
 
         self.private_report_template_file_path = (
             private_report_template_file_path
@@ -106,6 +118,10 @@ class InsertAnalysis:
 
         self.markdown_files_folder_path = markdown_files_folder_path
         self.front_end_assets_folder_path = front_end_assets_folder_path
+        self.data_files_hash = ""
+        self.ground_truth_files_hash = ""
+        self.combined_hash = ""
+        self.db_hash = ""
 
     def hasAllValidNewAnalysisData(self, use_cloud_files: bool = False):
         """
@@ -191,7 +207,7 @@ class InsertAnalysis:
                     f"Missing markdown file {file} in the markdown files folder."
                 )
 
-        logger.error(
+        logger.info(
             f"Frontend assets folder: {os.path.abspath(self.front_end_assets_folder_path)}"
         )
 
@@ -230,7 +246,7 @@ class InsertAnalysis:
         List: List of all analyses.
         """
 
-        df = get_data_from_api_to_df(self.api_url, "analysis/home")
+        df = get_data_from_api_to_df(self.api_url, "analysis/home", logger)
 
         return df
 
@@ -246,30 +262,24 @@ class InsertAnalysis:
 
         # check if the analysis already exists
 
-        db_analysis_name_series: pd.Series[str] = db_analysis_df[
-            "analysis_name"
-        ]
-
         if (
             not db_analysis_df.empty
-            and self.config["category_name"] in list(db_analysis_name_series)
+            and self.config["category_name"]
+            in list(db_analysis_df["analysis_name"])
             and not force
         ):
-            db_analysis_id = cast(
-                int,
-                db_analysis_df.loc[
-                    db_analysis_df["analysis_name"]
-                    == self.config["category_name"],
-                    "analysis_id",
-                ].values[  # type: ignore
-                    0
-                ],
-            )
+            specific_analysis = db_analysis_df[
+                db_analysis_df["analysis_name"] == self.config["category_name"]
+            ]
+            db_analysis_id = specific_analysis["analysis_id"].values[0]
+            analysis_version = specific_analysis["version"].values[0]
+            db_hash = specific_analysis["hash"].values[0]
             logger.info(
                 f'Analysis {self.config["category_name"]} already exists with id {db_analysis_id}'
             )
-            logger.info(f"{db_analysis_id} is { type(db_analysis_id)}")
             self.analysis_id = db_analysis_id
+            self.analysis_version = analysis_version
+            self.db_hash = db_hash
 
         else:
 
@@ -301,6 +311,8 @@ class InsertAnalysis:
             #     display_error = (metric, display)
             #     display_errors.append(display_error)
 
+            # increment analysis version
+
             logger.info("display_errors", display_errors)
             logger.info("number of files", len(self.new_file_metadata_df))
 
@@ -313,8 +325,9 @@ class InsertAnalysis:
             logger.info("body", body)
 
             res = post_data_to_api_to_df(
-                self.api_url, "analysis/create/", body
+                self.api_url, "analysis/create/", body, logger
             )
+
             logger.info("Analysis created")
             self.analysis_id = res["analysis_id"].values[0]
 
@@ -349,7 +362,10 @@ class InsertAnalysis:
             logger.info(json_body)
 
             post_data_to_api_to_df(
-                self.api_url, "/system_metadata/systemmetadata/", json_body
+                self.api_url,
+                "system_metadata/systemmetadata/",
+                json_body,
+                logger,
             )
 
     def createFileMetadata(self, file_metadata_df: pd.DataFrame):
@@ -380,7 +396,7 @@ class InsertAnalysis:
             logger.info(json_body)
 
             post_data_to_api_to_df(
-                self.api_url, "/file_metadata/filemetadata/", json_body
+                self.api_url, "/file_metadata/filemetadata/", json_body, logger
             )
 
             local_path = os.path.join(
@@ -459,13 +475,21 @@ class InsertAnalysis:
         """
 
         db_sys_metadata_df = get_data_from_api_to_df(
-            self.api_url, "system_metadata/systemmetadata"
+            self.api_url, "system_metadata/systemmetadata/", logger
         )
 
         self.db_sys_metadata_df = db_sys_metadata_df
 
-        name_series: pd.Series[str] = db_sys_metadata_df["name"]
-        system_id_series: pd.Series[int] = db_sys_metadata_df["system_id"]
+        if db_sys_metadata_df.empty:
+            return
+
+        name_series: pd.Series[str] = pd.Series()
+        system_id_series: pd.Series[int] = pd.Series()
+
+        if hasAllColumns(db_sys_metadata_df, ["name", "system_id"]):
+
+            name_series: pd.Series[str] = db_sys_metadata_df["name"]
+            system_id_series: pd.Series[int] = db_sys_metadata_df["system_id"]
 
         # Create a dictionary of the system metadata IDs
         db_system_name_to_id_mapping = dict(
@@ -475,11 +499,10 @@ class InsertAnalysis:
             )
         )
 
+        # TODO: Fix issue when the system_id is not found
         def map_system_id_to_db_system_id(ref_value: str, target_value: int):
             new_system_id = db_system_name_to_id_mapping.get(ref_value)
-
             if not new_system_id:
-
                 raise ValueError("System ID not found")
 
             self.system_id_mapping[target_value] = int(new_system_id)
@@ -512,7 +535,7 @@ class InsertAnalysis:
         """
 
         db_file_metadata_df = get_data_from_api_to_df(
-            self.api_url, "file_metadata/filemetadata"
+            self.api_url, "file_metadata/filemetadata/", logger
         )
 
         self.db_file_metadata_df = db_file_metadata_df
@@ -618,11 +641,7 @@ class InsertAnalysis:
             ~df_new["file_name"].isin(list(overlapping_files["file_name"]))  # type: ignore
         ]
 
-        df_new_system_id_series: pd.Series[int] = df_new["system_id"]
-
-        df_new["system_id"] = df_new_system_id_series.map(
-            self.system_id_mapping
-        )
+        df_new["system_id"] = df_new["system_id"].map(self.system_id_mapping)
 
         # Check if any system IDs are missing
         if df_new["system_id"].isna().any():  # type: ignore
@@ -720,7 +739,7 @@ class InsertAnalysis:
         endpoint = "system_metadata/systemmetadata"
 
         data = request_to_API_w_credentials(
-            self.api_url, "GET", endpoint=endpoint
+            self.api_url, "GET", endpoint=endpoint, logger=logger
         )
 
         # r = requests.get(full_url)
@@ -795,6 +814,101 @@ class InsertAnalysis:
                 os.path.join(id_analysis_assets_folder, file),
             )
 
+    def updateMetadataWithLimit(self, limit: int):
+        limit_new_file_metadata_df = self.new_file_metadata_df.head(limit)
+
+        file_sys_ids: pd.Series[int] = limit_new_file_metadata_df["system_id"]
+
+        limit_new_sys_metadata_df = self.new_sys_metadata_df[
+            self.new_sys_metadata_df["system_id"].isin(file_sys_ids)  # type: ignore
+        ]
+
+        self.new_file_metadata_df = limit_new_file_metadata_df
+        self.new_sys_metadata_df = limit_new_sys_metadata_df
+
+        self.config["category_name"] = (
+            f"{self.config['category_name']} - {limit} File(s)"
+        )
+
+    def createHashofFiles(self):
+        """
+        Create a hash of the data files for the analysis.
+        """
+
+        data_files = os.listdir(self.file_data_folder_path)
+
+        hash_for_data_files = get_hash_for_list_of_files(
+            [
+                os.path.join(self.file_data_folder_path, file)
+                for file in data_files
+            ]
+        )
+
+        logger.info(f"Data files hash: {hash_for_data_files}")
+
+        self.data_files_hash = hash_for_data_files
+
+        ground_truth_files = os.listdir(self.validation_data_folder_path)
+
+        hash_for_ground_truth_files = get_hash_for_list_of_files(
+            [
+                os.path.join(self.validation_data_folder_path, file)
+                for file in ground_truth_files
+            ]
+        )
+
+        logger.info(f"Ground truth files hash: {hash_for_ground_truth_files}")
+
+        self.ground_truth_files_hash = hash_for_ground_truth_files
+
+        self.combined_hash = combine_hashes(
+            [self.data_files_hash, self.ground_truth_files_hash]
+        )
+
+        logger.info(f"Combined hash: {self.combined_hash}")
+
+        return self.combined_hash
+
+    def updateAnalysisHash(self, hash: str):
+
+        if are_hashes_the_same(self.db_hash, hash):
+            logger.info(
+                "The hash of the files are the same as the hash in the database. No need to update the analysis version."
+            )
+            return
+
+        logger.info(
+            "The hash of the files are different from the hash in the database. Updating the analysis version."
+        )
+
+        semver = self.analysis_version.split(".")
+        major = semver[0]
+        minor = semver[1]
+
+        if self.db_hash == "" and self.analysis_version == "1.0":
+            self.analysis_version = "1.0"
+        else:
+            self.analysis_version = f"{major}.{int(minor) + 1}"
+
+        logger.info(f"New analysis task version: {self.analysis_version}")
+
+        body = {
+            "hash": hash,
+            "version": self.analysis_version,
+        }
+
+        response = with_credentials(self.api_url, logger)(
+            request_to_API_w_credentials
+        )(
+            self.api_url,
+            "PUT",
+            endpoint=f"analysis/{self.analysis_id}/update",
+            data=body,
+            logger=logger,
+        )
+        logger.info(response)
+        return response
+
     def insertData(self, use_cloud_files: bool = False, force: bool = False):
         """
         Insert all the data into the API and S3.
@@ -822,6 +936,12 @@ class InsertAnalysis:
         self.updateFileMetadataIDs()
         self.uploadValidationData()
         logger.info("File metadata created")
+
+        # Create hash of the data files
+        hash = self.createHashofFiles()
+
+        # Compare the hashes and update task version if necessary
+        self.updateAnalysisHash(hash)
 
         logger.info("Creating evaluation scripts")
         self.prepareFileTestLinker()
@@ -902,12 +1022,12 @@ if __name__ == "__main__":
         task_dir: str = args.dir
         ########################################################################
 
-        logger.info("is_dry_run", is_dry_run, type(is_dry_run))
-        logger.info("is_force", is_force, type(is_force))
-        logger.info("limit", limit, type(limit))
-        logger.info("is_local", is_local, type(is_local))
-        logger.info("use_cloud_files", use_cloud_files, type(use_cloud_files))
-        logger.info("task_dir", task_dir, type(task_dir))
+        logger.info(f"is_dry_run: {is_dry_run}")
+        logger.info(f"is_force: {is_force}")
+        logger.info(f"limit: {limit}")
+        logger.info(f"is_local: {is_local}")
+        logger.info(f"use_cloud_files: {use_cloud_files}")
+        logger.info(f"task_dir: {task_dir}")
 
         if not os.path.exists(task_dir):
             raise ValueError(f"Directory {task_dir} does not exist")
@@ -949,8 +1069,10 @@ if __name__ == "__main__":
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
-            limit=limit,
         )
+
+        if limit > 0:
+            analysis_instance.updateMetadataWithLimit(limit)
 
         if not analysis_instance.hasAllValidNewAnalysisData(
             use_cloud_files=use_cloud_files

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from functools import wraps
 import json
 import shutil
-from dask.delayed import delayed
+from types import TracebackType
+from dask.delayed import delayed, Delayed  # type: ignore
 from dask.distributed import Client
 from dask import config
 import docker
@@ -13,13 +15,12 @@ from concurrent.futures import (
     ThreadPoolExecutor,
 )
 from logging import Logger
-from time import perf_counter, sleep
+from time import perf_counter
 import os
 from typing import (
     Any,
     Callable,
     ParamSpec,
-    Sequence,
     Tuple,
     TypeVar,
     TypedDict,
@@ -30,6 +31,7 @@ import logging
 import boto3
 import botocore.exceptions
 from mypy_boto3_s3 import S3Client
+from mypy_boto3_secretsmanager import SecretsManagerClient
 import psutil
 import requests
 import math
@@ -204,7 +206,10 @@ def set_workers_and_threads(
 ) -> Tuple[int, int]:
 
     def handle_exceeded_resources(
-        n_workers, threads_per_worker, memory_per_run, sys_memory
+        n_workers: int,
+        threads_per_worker: int,
+        memory_per_run: float | int,
+        sys_memory: float,
     ):
         if memory_per_run * n_workers * threads_per_worker > sys_memory:
             config.set({"distributed.worker.memory.spill": True})
@@ -378,15 +383,17 @@ def dask_multiprocess(
 
         logger_if_able(f"client: {client}", logger, "INFO")
 
-        lazy_results = []
+        lazy_results: list[Delayed] = []
         for args in function_args_list:
             submission_fn_args = args.to_tuple()
             logger_if_able(f"args: {submission_fn_args}", logger, "INFO")
 
-            lazy_result = delayed(func, pure=True)(*submission_fn_args)
+            lazy_result = cast(
+                Delayed, delayed(func, pure=True)(*submission_fn_args)
+            )
             lazy_results.append(lazy_result)
 
-        futures = client.compute(lazy_results)
+        futures = client.compute(lazy_results)  # type: ignore
 
         results = client.gather(futures)  # type: ignore
 
@@ -491,9 +498,6 @@ def pull_from_s3(
 def get_error_by_code(
     error_code: int, error_codes_dict: dict[str, str], logger: Logger | None
 ) -> tuple[int, str]:
-    if error_codes_dict is None:
-        logger_if_able("Error codes dictionary is None", logger, "ERROR")
-        raise ValueError("Error codes dictionary is None")
     error_code_str = str(error_code)
     if error_code_str not in error_codes_dict:
         logger_if_able(
@@ -572,7 +576,9 @@ def method_request(
         "Content-Type": "application/json",
     }
 
-    all_headers = {**base_headers, **headers} if headers else base_headers
+    all_headers: dict[str, str] = (
+        {**base_headers, **headers} if headers else base_headers
+    )
 
     body = json.dumps(data) if data else None
 
@@ -602,8 +608,7 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
     region_name = "us-west-2"
 
     # Create a Secrets Manager client
-    session = boto3.session.Session()
-    client = session.client(
+    client: SecretsManagerClient = boto3.client(  # type: ignore
         service_name="secretsmanager", region_name=region_name
     )
 
@@ -643,9 +648,9 @@ def with_credentials(logger: Logger | None = None):
     api_auth_token = None
     headers = {}
 
-    def decorator(func: Callable[P, T]):
-        # @wraps(func)
-        def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs):
             nonlocal api_auth_token
             if not api_auth_token:
                 logger_if_able("Logging in", logger)
@@ -738,20 +743,25 @@ def flatten_list(items: list[T]) -> list[T]:
     flat_list: list[T] = []
     for item in items:
         if isinstance(item, list):
-            flat_list.extend(flatten_list(item))
+            new_list: list[T] = flatten_list(item)  # type: ignore
+            flat_list.extend(new_list)
         else:
             flat_list.append(item)
     return flat_list
 
 
 def format_tuple(
-    t: tuple[str, Any], logger: Logger | None = None
+    t: tuple[str, Union[int, float, str, dict[str, Any], bool, list[Any]]],
+    logger: Logger | None = None,
 ) -> str | list[str]:
     key, value = t
 
     logger_if_able(
         f"key: {key}, value: {value}, type: {type(value)}", logger, "DEBUG"
     )
+
+    if isinstance(value, bool):
+        return f"--{key}={str(value).lower()}"
 
     if isinstance(value, (int, float)):
         return f"--{key}={value}"
@@ -760,17 +770,6 @@ def format_tuple(
         if " " in [value]:
             return f'--{key}="{value}"'
         return f"--{key}={value}"
-
-    if isinstance(value, (dict)):
-        try:
-            json_str = json.dumps(value)
-        except Exception as e:
-            raise ValueError(f"Failed to convert to JSON: {e}")
-
-        return f"--{key}={json_str}"
-
-    if isinstance(value, bool):
-        return f"--{key}={str(value).lower()}"
 
     if isinstance(value, list):
         list_args: list[str] = []
@@ -781,6 +780,14 @@ def format_tuple(
             if isinstance(formatted_item, str):
                 list_args.append(formatted_item)
         return list_args
+
+    if isinstance(value, dict):  # type: ignore
+        try:
+            json_str = json.dumps(value)
+        except Exception as e:
+            raise ValueError(f"Failed to convert to JSON: {e}")
+
+        return f"--{key}={json_str}"
 
     raise ValueError(f"Unsupported type: {type(value)}")
 
@@ -809,7 +816,7 @@ def generate_private_report_for_submission(
     logger: Logger | None = None,
 ):
     json_data: dict[str, Any] = {}
-    json_data["results_df"] = df.to_dict(orient="records")
+    json_data["results_df"] = df.to_dict(orient="records")  # type: ignore
 
     data_args_list = prepare_json_for_marimo_args(json_data)
 
@@ -877,7 +884,7 @@ class DockerContainerContextManager:
         client: docker.DockerClient,
         image: Image | str,
         command: str | list[str],
-        volumes: dict[str, str] | list[str],
+        volumes: list[str],
         mem_limit: str | None = None,
     ) -> None:
         self.client = client
@@ -897,15 +904,20 @@ class DockerContainerContextManager:
             stdout=True,
             stderr=True,
             mem_limit=self.mem_limit,
-        )
+        )  # type: ignore
 
-        self.container = cast(Container, container)
+        self.container = container
 
         self.id = self.container.id
 
         return self.container
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ):
         if self.container:
             if self.container.status == "running":
                 self.container.stop()
@@ -918,7 +930,7 @@ def docker_task(
     memory_limit: str,
     submission_file_name: str,
     submission_function_name: str,
-    submission_args: Sequence[Any],
+    submission_args: tuple[Any, ...],
     data_dir: str,
     results_dir: str,
     logger: Logger | None = None,
@@ -926,18 +938,6 @@ def docker_task(
 
     error_raised = False
     error_code: int | None = None
-
-    if submission_args is None:
-        submission_args = []
-
-    # Define volumes to mount
-    # results_dir = os.path.join(os.path.dirname(__file__), "results")
-    # data_dir = os.path.join(os.path.dirname(__file__), "data")
-
-    # volumes = {
-    #     results_dir: {"bind": "/app/results", "mode": "rw"},
-    #     data_dir: {"bind": "/app/data", "mode": "ro"},
-    # }
 
     volumes = [f"{results_dir}:/app/results", f"{data_dir}:/app/data"]
 
@@ -980,7 +980,7 @@ def docker_task(
                 "Error: Docker container did not return status code"
             )
 
-        exit_code: int = cast(int, container_dict["StatusCode"])
+        exit_code = container_dict["StatusCode"]
 
         if exit_code != 0:
             error_raised = True
@@ -1023,21 +1023,30 @@ def update_error_report_non_breaking(
     return result
 
 
+class ErrorReport(TypedDict):
+    submission: int
+    error_code: str
+    error_type: str
+    error_message: str
+    error_rate: str
+    file_errors: dict[str, Any]
+
+
 def create_blank_error_report(
     submission_id: int,
     logger: Logger | None = None,
 ):
-    error_report = {
+    error_report: ErrorReport = {
         "submission": submission_id,
         "error_code": "",
         "error_type": "",
-        # "error_message": "",
-        # "error_rate": '',
+        "error_message": "",
+        "error_rate": "",
         "file_errors": {"errors": []},
     }
 
     request_to_API_w_credentials(
-        "POST", "error/error_report/new", error_report
+        "POST", "error/error_report/new", error_report, logger=logger  # type: ignore
     )
 
     return error_report
@@ -1049,7 +1058,7 @@ def submission_task(
     memory_limit: str,
     submission_file_name: str,
     submission_function_name: str,
-    submission_args: Sequence[Any],
+    submission_args: tuple[Any, ...],
     data_dir: str,
     results_dir: str,
     logger: Logger | None = None,
@@ -1225,36 +1234,18 @@ class DockerClientContextManager:
         self.client = initialize_docker_client()
         return self.client
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ):
         if self.client:
-            self.client.close()
+            self.client.close()  # type: ignore
 
 
 def initialize_docker_client():
     base_url = os.environ.get("DOCKER_HOST", None)
-
-    # if not base_url:
-    #     logger_if_able("Docker host not set", None, "WARNING")
-
-    # cert_path = os.environ.get("DOCKER_CERT_PATH")
-    # if not cert_path:
-    #     raise FileNotFoundError(
-    #         "DOCKER_CERT_PATH environment variable not set"
-    #     )
-
-    # if not os.path.exists(cert_path):
-    #     raise FileNotFoundError(f"Cert path {cert_path} not found")
-
-    # ca_cert = cert_path + "/ca.pem"
-    # client_cert = cert_path + "/ca-key.pem"
-    # client_key = cert_path + "/key.pem"
-
-    # if not os.path.exists(ca_cert):
-    #     raise FileNotFoundError(f"CA cert {ca_cert} not found")
-    # if not os.path.exists(client_cert):
-    #     raise FileNotFoundError(f"Client cert {client_cert} not found")
-    # if not os.path.exists(client_key):
-    #     raise FileNotFoundError(f"Client key {client_key} not found")
 
     client = docker.DockerClient(
         base_url=base_url,
@@ -1272,7 +1263,7 @@ def is_docker_daemon_running():
     is_running = False
 
     with DockerClientContextManager() as client:
-        if client.ping():
+        if client.ping():  # type: ignore
             is_running = True
 
     return is_running
@@ -1301,87 +1292,3 @@ def create_docker_image_for_submission(
         )
 
     return image, image_tag
-
-
-def dask_main():
-    results: list = []
-
-    total_workers = 2
-    total_threads = 1
-    memory_per_worker = 8
-
-    dir_path = os.path.join(os.path.dirname(__file__), "environment")
-
-    image_tag = "submission:latest"
-
-    submission_file_name = "submission.zip"
-
-    python_version = "3.10"
-
-    image, _ = create_docker_image_for_submission(
-        dir_path, image_tag, python_version, submission_file_name
-    )
-
-    data_files = os.listdir("data")
-    print(data_files)
-
-    if not data_files:
-        raise FileNotFoundError("No data files found")
-
-    files = data_files[:5]
-
-    submission_file_name = "submission.submission_wrapper"
-    submission_function_name = "detect_time_shifts"
-
-    data_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/data"
-    results_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/results"
-
-    with Client(
-        n_workers=total_workers,
-        threads_per_worker=total_threads,
-        memory_limit=f"{memory_per_worker}GiB",
-        # **kwargs,
-    ) as client:
-
-        lazy_results = []
-        for file in files:
-            submission_args = (file,)
-            lazy_result = delayed(submission_task, pure=True)(
-                image_tag,
-                memory_per_worker,
-                submission_file_name,
-                submission_function_name,
-                submission_args,
-                data_dir,
-                results_dir,
-                logger,
-            )
-            lazy_results.append(lazy_result)
-
-        futures = client.compute(lazy_results)
-
-        results = client.gather(futures)  # type: ignore
-
-    return results
-
-
-if __name__ == "__main__":
-
-    def expensive_function(x):
-        print(x)
-        sleep(2)
-        return x**2
-
-    data = list(range(10))
-    func_args = [(d,) for d in data]
-    n_processes = 2
-    threads_per_worker = 1
-    logger = None
-    results = dask_multiprocess(
-        expensive_function,
-        [(d,) for d in data],
-        n_workers=n_processes,
-        threads_per_worker=threads_per_worker,
-        logger=logger,
-    )
-    print(results)
