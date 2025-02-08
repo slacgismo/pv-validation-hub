@@ -327,6 +327,9 @@ def extract_analysis_data(  # noqa: C901
                 f"Ground truth data file {analysis_file} not found for analysis {analysis_id}",
             )
 
+    logger.info(f"files for analysis: {files_for_analysis}")
+    logger.info(f"analytical files: {analytical_files}")
+
     if not all(file in analytical_files for file in files_for_analysis):
         raise FileNotFoundError(
             10, f"Analytical data files not found for analysis {analysis_id}"
@@ -395,8 +398,8 @@ def load_analysis(
     )
 
     shutil.copy(
-        os.path.join("/root/worker/src", "meteric_operations.py"),
-        os.path.join(current_evaluation_dir, "meteric_operations.py"),
+        os.path.join("/root/worker/src", "metric_operations.py"),
+        os.path.join(current_evaluation_dir, "metric_operations.py"),
     )
 
     # Copy the error codes file into the current evaluation directory

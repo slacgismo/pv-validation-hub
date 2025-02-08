@@ -333,7 +333,7 @@ U = TypeVar("U")
 
 def dask_multiprocess(
     func: Callable[P, T],
-    function_args_list: list[SubmissionFunctionArgs],
+    function_args_list: list[tuple[U, ...]],
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
     memory_per_run: float | int | None = None,
@@ -385,7 +385,7 @@ def dask_multiprocess(
 
         lazy_results: list[Delayed] = []
         for args in function_args_list:
-            submission_fn_args = args.to_tuple()
+            submission_fn_args = args
             logger_if_able(f"args: {submission_fn_args}", logger, "INFO")
 
             lazy_result = cast(
@@ -1028,7 +1028,7 @@ class ErrorReport(TypedDict):
     error_code: str
     error_type: str
     error_message: str
-    error_rate: str
+    error_rate: int
     file_errors: dict[str, Any]
 
 
@@ -1041,7 +1041,7 @@ def create_blank_error_report(
         "error_code": "",
         "error_type": "",
         "error_message": "",
-        "error_rate": "",
+        "error_rate": 0,
         "file_errors": {"errors": []},
     }
 
