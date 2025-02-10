@@ -1,8 +1,9 @@
 # Submission Instructions
 
-### Validation Data Structure
+## Validation Data Structure
 
 For each AC power stream analyzed, there are two sets of data:
+
 1) The associated time series data for the AC power, in kW, and an index for timezone-aware datetime.
 2) The time shift validation file, which gives the associated time shift amount on a daily basis. A daily timezone-unaware timestamp is used as the associated index. 
 
@@ -21,6 +22,7 @@ Download an example data set here.
 ### File Submission Requirements
 
 The PV Validation Hub only accepts .zip file submissions. Each zip file must containing the following files:
+
 1) **submission_wrapper.py**: This Python file contains the master function for running the routines. Please refer to **Submitted Function Structure** below for more information on the associated function structure.
 2) **requirements.txt**: This text file contains the associated python packages (and versions, if applicable) to pip-install in order to run the submission_wrapper.py file.
 3) If applicable, any additional .py files containing support functions for **submission_wrapper.py**
@@ -29,7 +31,7 @@ The PV Validation Hub only accepts .zip file submissions. Each zip file must con
 
 In the **submission_wrapper.py** file, a standard function name must be used when validating a submitted algorithm. The standard function definition, which is required to run the validation, is as follows:
 
-```
+```python
 def detect_time_shifts(time_series,
                        latitude=None, longitude=None,
                        data_sampling_frequency=None):
