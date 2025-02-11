@@ -4,7 +4,7 @@ including system metadata and file metadata.
 """
 
 import json
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 import pandas as pd
 import os
 import shutil
@@ -314,7 +314,7 @@ class InsertAnalysis:
             # increment analysis version
 
             logger.info("display_errors", display_errors)
-            logger.info("number of files", len(self.new_file_metadata_df))
+            logger.info(f"number of files: {len(self.new_file_metadata_df)}")
 
             body: dict[str, Any] = {
                 "analysis_name": self.config["category_name"],
