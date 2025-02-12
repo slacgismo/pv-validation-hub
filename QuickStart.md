@@ -76,9 +76,9 @@ pre-commit install
 Kill all containers with ctrl + C or cmd + C and relaunch docker compose
 
 ```bash
-docker compose up
+docker compose build
 
-docker compose build api
+docker compose up
 ```
 
 ### Sign Into Frontend and Django Backend
