@@ -15,12 +15,6 @@ PV Validation Hub: <https://github.com/slacgismo/pv-validation-hub>
 
 PV Validation Hub Front-end: <https://github.com/slacgismo/pv-validation-hub-client>
 
-Analysis Markdown files: <https://github.com/kperrynrel/pvinsight_validation_hub_markdowns>
-
-Time Shift Analysis: <https://github.com/kperrynrel/time-shift-validation-hub>
-
-AZ Tilt Analysis: <https://github.com/kperrynrel/az-tilt-estimation-validator>
-
 ## Outline
 
 ### Pull PV Validation Hub Repository
