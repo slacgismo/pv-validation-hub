@@ -69,6 +69,10 @@ pip install -r requirements.txt
 pre-commit install
 ```
 
+### Start Docker Desktop
+
+To have access to the Docker Daemon you will need to start the Docker Desktop Application on your machine
+
 ### Run all containers
 
 **Note:** You can increase the memory allocation for Docker through the Settings > Resources > Memory Limit slider
