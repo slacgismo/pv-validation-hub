@@ -2,6 +2,8 @@
 
 ## Requirements
 
+To begin development on the validation hub, download and install the [Docker client](https://www.docker.com). Alternatively, if you installed docker only for the command line tools, then you will need to also make sure to install ```docker-compose``` and to update both to the latest versions.
+
 Docker Desktop:
 <https://www.docker.com/products/docker-desktop/>
 
