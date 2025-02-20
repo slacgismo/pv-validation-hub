@@ -28,7 +28,7 @@ Finally, both industry and academia will be able to enjoy the assurance of accur
 
 ## Quick Start Instructions
 
-For a quickstart tutorial to get a development environment installed on your local machine please refer to the [Quickstart.md](./Quickstart.md) document in the root of this repository.
+For a quickstart tutorial to get a development environment installed on your local machine please refer to the [QuickStart.md](./QuickStart.md) document in the root of this repository.
 
 ## FAQ
 
