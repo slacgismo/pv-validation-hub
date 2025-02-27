@@ -130,7 +130,7 @@ services:
             - ./workers/logs:/root/worker/logs
             - ./workers/tmp:/tmp
             - ./workers/requirements.txt:/root/worker/requirements.txt
-        restart: on-failure
+        restart: always
         develop:
             watch:
                 - action: sync+restart
