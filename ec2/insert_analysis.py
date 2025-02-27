@@ -957,7 +957,7 @@ class InsertAnalysis:
         logger.info("Data inserted successfully")
 
         logger.warning(
-            "***** WARNING: IF YOU ARE RUNNING THIS IN A DEVELOPMENT ENVIRONMENT, REMEMBER TO REBUILD THE FRONT END USING THE COMMAND `docker compose build react-client` THEN REDEPLOY THE FRONTEND CONTAINER. *****"
+            "If you are running this in a development environment without the `docker compose up --watch` command, you will need to manually rebuild the front end image and restart the container to see the changes."
         )
 
 

@@ -95,12 +95,12 @@ services:
         develop:
             watch:
                 - action: sync
-                  path: ./pv-validation-hub-client
-                  target: /app
+                  path: ./pv-validation-hub-client/src
+                  target: /app/src
                   ignore:
                       - node_modules/
                 - action: rebuild
-                  path: package.json
+                  path: ./pv-validation-hub-client/public/static/assets/analysis
 
     sqs:
         image: softwaremill/elasticmq:latest
