@@ -10,7 +10,8 @@ class FileMetadata(models.Model):
     data_sampling_frequency = models.PositiveIntegerField()
     issue = models.CharField(max_length=256)
     subissue = models.CharField(max_length=256)
-    file_hash = models.CharField(max_length=256, default="")
+    file_hash = models.CharField(max_length=256)
+    is_real = models.BooleanField(default=False)
 
     def __str__(self):
         return self.file_name
