@@ -14,6 +14,7 @@ from utility import (
     are_hashes_the_same,
     combine_hashes,
     get_data_from_api_to_df,
+    get_file_hash,
     get_hash_for_list_of_files,
     hasAllColumns,
     post_data_to_api_to_df,
@@ -391,6 +392,7 @@ class InsertAnalysis:
                 "data_sampling_frequency": metadata["data_sampling_frequency"],
                 "issue": metadata["issue"],
                 "subissue": metadata["subissue"],
+                "file_hash": metadata["file_hash"],
             }
 
             logger.info(json_body)
@@ -661,7 +663,14 @@ class InsertAnalysis:
         else:
             df_new["subissue"] = df_new["subissue"].fillna("N/A")  # type: ignore
 
-        # self.new_file_metadata_df = df_new
+        # hash the files
+
+        for file_name in df_new["file_name"]:
+            local_path = os.path.join(self.file_data_folder_path, file_name)
+            file_hash = get_file_hash(local_path)
+            df_new.loc[df_new["file_name"] == file_name, "file_hash"] = (
+                file_hash
+            )
 
         return df_new[
             [
@@ -671,6 +680,7 @@ class InsertAnalysis:
                 "data_sampling_frequency",
                 "issue",
                 "subissue",
+                "file_hash",
             ]
         ]
 
