@@ -24,7 +24,7 @@
     "longitude",
     "data_sampling_frequency"
   ],
-  "ground_truth_compare": [
+  "references_compare": [
     "time_series"
   ],
   "public_results_table": "time-shift-public-metrics.json",

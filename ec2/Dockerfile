@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /root/admin
 COPY . .
 
-ENV PORT 7000
+ENV PORT=7000
 EXPOSE 7000
 
 RUN apt-get update -qq

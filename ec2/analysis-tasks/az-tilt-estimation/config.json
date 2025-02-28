@@ -42,7 +42,7 @@
 		"latitude",
 		"longitude"
 	],
-	"ground_truth_compare": [
+	"references_compare": [
 		"azimuth",
 		"tilt"
 	],

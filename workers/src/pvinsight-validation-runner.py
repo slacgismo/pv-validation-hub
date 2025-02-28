@@ -670,7 +670,7 @@ def run(  # noqa: C901
             "metrics_operations", {}
         )
 
-        for val in config_data["ground_truth_compare"]:
+        for val in config_data["references_compare"]:
 
             if metric == "runtime":
                 key = "runtime"
@@ -1181,8 +1181,8 @@ def generate_performance_metrics_for_submission(
     submission_output_row: pd.Series | None = None
     submission_output_series: pd.Series | None = None
 
-    # Get the ground truth scalars that we will compare to
-    ground_truth_dict: dict[str, Any] = dict()
+    # Get the reference scalars that we will compare to
+    references_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
         submission_output_row = cast(
             pd.Series,
@@ -1191,11 +1191,9 @@ def generate_performance_metrics_for_submission(
                 index_col=0,
             ).iloc[0],
         )
-        for val in config_data["ground_truth_compare"]:
-            ground_truth_dict[val] = system_metadata_dict[val]
-            logger.info(
-                f'ground_truth_dict["{val}"]: {ground_truth_dict[val]}'
-            )
+        for val in config_data["references_compare"]:
+            references_dict[val] = system_metadata_dict[val]
+            logger.info(f'references_dict["{val}"]: {references_dict[val]}')
     if config_data["comparison_type"] == "time_series":
         submission_output_series = cast(
             pd.Series,
@@ -1204,19 +1202,19 @@ def generate_performance_metrics_for_submission(
                 index_col=0,
             ).squeeze(),
         )
-        ground_truth_series: pd.Series = pd.read_csv(
+        references_series: pd.Series = pd.read_csv(
             os.path.join(data_dir + "/validation_data/", file_name),
             index_col=0,
             parse_dates=True,
         ).squeeze()
-        ground_truth_dict["time_series"] = ground_truth_series
+        references_dict["time_series"] = references_series
 
-        ground_truth_file_length = len(ground_truth_series)
+        references_file_length = len(references_series)
 
         file_submission_result_length = len(submission_output_series)
-        if file_submission_result_length != ground_truth_file_length:
+        if file_submission_result_length != references_file_length:
             logger.error(
-                f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
+                f"{file_name} submission result length {file_submission_result_length} does not match reference file length {references_file_length}"
             )
             error_code = 8
 
@@ -1224,8 +1222,6 @@ def generate_performance_metrics_for_submission(
                 *get_error_by_code(error_code, runner_error_codes, logger)
             )
 
-    # Convert the data outputs to a dictionary identical to the
-    # ground truth dictionary
     output_dictionary: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
         if submission_output_row is None:
@@ -1237,17 +1233,17 @@ def generate_performance_metrics_for_submission(
                 *get_error_by_code(error_code, runner_error_codes, logger)
             )
 
-        for idx in range(len(config_data["ground_truth_compare"])):
+        for idx in range(len(config_data["references_compare"])):
 
             logger.info(f"submission_output_row: {submission_output_row}")
             logger.info(
                 f"submission_output_row[{idx}]: {submission_output_row.iloc[idx]}"
             )
             logger.info(
-                f"config_data['ground_truth_compare'][{idx}]: {config_data['ground_truth_compare'][idx]}"
+                f"config_data['references_compare'][{idx}]: {config_data['references_compare'][idx]}"
             )
 
-            output_dictionary[config_data["ground_truth_compare"][idx]] = (
+            output_dictionary[config_data["references_compare"][idx]] = (
                 submission_output_row[idx]
             )
     if config_data["comparison_type"] == "time_series":
@@ -1262,20 +1258,20 @@ def generate_performance_metrics_for_submission(
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
 
-    def p_absolute_error(output: pd.Series, ground_truth: pd.Series):
-        difference = output - ground_truth
+    def p_absolute_error(output: pd.Series, references: pd.Series):
+        difference = output - references
         absolute_difference = np.abs(difference)
         return absolute_difference
 
-    def p_mean_absolute_error(output: pd.Series, ground_truth: pd.Series):
-        output.index = ground_truth.index
-        difference = output - ground_truth
+    def p_mean_absolute_error(output: pd.Series, references: pd.Series):
+        output.index = references.index
+        difference = output - references
         absolute_difference = np.abs(difference)
         mean_absolute_error = np.mean(absolute_difference)
         return mean_absolute_error
 
-    def p_error(output: pd.Series, ground_truth: pd.Series):
-        difference = output - ground_truth
+    def p_error(output: pd.Series, references: pd.Series):
+        difference = output - references
         return difference
 
     performance_metrics_map = {
@@ -1303,11 +1299,11 @@ def generate_performance_metrics_for_submission(
 
         performance_metric_function = performance_metrics_map[metric]
 
-        for val in config_data["ground_truth_compare"]:
+        for val in config_data["references_compare"]:
             logger.info(f'"{metric}_{val}" is being calculated')
             results_dictionary[metric + "_" + val] = (
                 performance_metric_function(
-                    output_dictionary[val], ground_truth_dict[val]
+                    output_dictionary[val], references_dict[val]
                 )
             )
 

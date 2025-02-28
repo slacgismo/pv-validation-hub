@@ -25,16 +25,13 @@ WORKDIR /app
 # Install Requirements
 RUN pip install -r requirements.txt
 
-# Move simulated bucket to location 
-# RUN mv ./pv-validation-hub-bucket /
-# RUN mv /time-shift-validation-hub/data/file_data/* /pv-validation-hub-bucket/data_files/analytical/
-# RUN mv /time-shift-validation-hub/data/validation_data/* /pv-validation-hub-bucket/data_files/ground_truth/
+
 
 # Make simulated bucket in location
 RUN mkdir /pv-validation-hub-bucket
 RUN mkdir /pv-validation-hub-bucket/data_files
-RUN mkdir /pv-validation-hub-bucket/data_files/analytical
-RUN mkdir /pv-validation-hub-bucket/data_files/ground_truth
+RUN mkdir /pv-validation-hub-bucket/data_files/files
+RUN mkdir /pv-validation-hub-bucket/data_files/references
 RUN mkdir /pv-validation-hub-bucket/submission_files
 
 # Install the required dependencies

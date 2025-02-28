@@ -1,2 +1,2 @@
 **/data/files/*.csv
-**/data/ground-truth/*.csv
+**/data/references/*.csv

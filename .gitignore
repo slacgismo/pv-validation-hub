@@ -148,8 +148,8 @@ ec2/evaluation_scripts/*
 **/.vscode
 **/.venv
 
-s3Emulator/pv-validation-hub-bucket/data_files/analytical/*
-s3Emulator/pv-validation-hub-bucket/data_files/ground_truth/*
+s3Emulator/pv-validation-hub-bucket/data_files/files/*
+s3Emulator/pv-validation-hub-bucket/data_files/references/*
 s3Emulator/pv-validation-hub-bucket/submission_files/*
 s3Emulator/pv-validation-hub-bucket/evaluation_scripts/*
 

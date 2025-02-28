@@ -49,8 +49,8 @@ S3_DIR='./s3Emulator'
 S3_BUCKET_DIR="${S3_DIR}/pv-validation-hub-bucket"
 
 S3_DATA_DIR="${S3_BUCKET_DIR}/data_files"
-S3_FILES_DIR="${S3_DATA_DIR}/analytical"
-S3_REFERENCE_DIR="${S3_DATA_DIR}/ground_truth"
+S3_FILES_DIR="${S3_DATA_DIR}/files"
+S3_REFERENCE_DIR="${S3_DATA_DIR}/references"
 
 if [ -d "${S3_FILES_DIR}" ]; then
     rm -rf "${S3_FILES_DIR:?}/"*

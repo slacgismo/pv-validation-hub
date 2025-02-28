@@ -51,7 +51,7 @@ class TaskConfig(TypedDict):
     performance_metrics: list[str]
     metrics_operations: dict[str, list[str]]
     allowable_kwargs: list[str]
-    ground_truth_compare: list[str]
+    references_compare: list[str]
     public_results_table: str
     private_results_columns: list[str]
 
@@ -120,7 +120,7 @@ class InsertAnalysis:
         self.markdown_files_folder_path = markdown_files_folder_path
         self.front_end_assets_folder_path = front_end_assets_folder_path
         self.data_files_hash = ""
-        self.ground_truth_files_hash = ""
+        self.references_files_hash = ""
         self.combined_hash = ""
         self.db_hash = ""
 
@@ -378,8 +378,6 @@ class InsertAnalysis:
         s3_path: String. S3 path that we want to write the files to.
         """
 
-        # s3_data_files = list_s3_bucket(self.is_local, self.s3_bucket_name, "data_files/analytical/")
-
         body = file_metadata_df.to_json(orient="records")  # type: ignore
         metadata_json_list = json.loads(body)
 
@@ -404,7 +402,7 @@ class InsertAnalysis:
             local_path = os.path.join(
                 self.file_data_folder_path, metadata["file_name"]
             )
-            upload_path = f'data_files/analytical/{metadata["file_name"]}'
+            upload_path = f'data_files/files/{metadata["file_name"]}'
 
             # upload metadata to s3
             upload_to_s3_bucket(
@@ -427,7 +425,7 @@ class InsertAnalysis:
                 self.validation_data_folder_path, file_name
             )
             upload_path = (
-                f"data_files/ground_truth/{str(self.analysis_id)}/{file_name}"
+                f"data_files/references/{str(self.analysis_id)}/{file_name}"
             )
             upload_to_s3_bucket(
                 self.s3_url,
@@ -858,21 +856,21 @@ class InsertAnalysis:
 
         self.data_files_hash = hash_for_data_files
 
-        ground_truth_files = os.listdir(self.validation_data_folder_path)
+        references_files = os.listdir(self.validation_data_folder_path)
 
-        hash_for_ground_truth_files = get_hash_for_list_of_files(
+        hash_for_references_files = get_hash_for_list_of_files(
             [
                 os.path.join(self.validation_data_folder_path, file)
-                for file in ground_truth_files
+                for file in references_files
             ]
         )
 
-        logger.info(f"Ground truth files hash: {hash_for_ground_truth_files}")
+        logger.info(f"Data files hash: {hash_for_references_files}")
 
-        self.ground_truth_files_hash = hash_for_ground_truth_files
+        self.references_files_hash = hash_for_references_files
 
         self.combined_hash = combine_hashes(
-            [self.data_files_hash, self.ground_truth_files_hash]
+            [self.data_files_hash, self.references_files_hash]
         )
 
         logger.info(f"Combined hash: {self.combined_hash}")
@@ -1055,7 +1053,7 @@ if __name__ == "__main__":
             task_dir, "data/file_metadata.csv"
         )
         validation_data_folder_path = os.path.join(
-            task_dir, "data/ground-truth/"
+            task_dir, "data/references/"
         )
         private_report_template_file_path = os.path.join(
             task_dir, "template.py"

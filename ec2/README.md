@@ -27,7 +27,7 @@ A new analysis task for insertion into the PV Validation Hub needs to contain ce
 - `system_metadata.csv` - contains the metadata for each system associated with the data files
 - `template.py` - marimo template for the private results page for each submission
 - Data files - folder containing all csv files the analysis
-- Ground truth files - folder containing all results for each data file
+- Reference files - folder containing all results for each data file
 
 ### config.json
 
@@ -60,7 +60,7 @@ Example JSON:
     "longitude",
     "data_sampling_frequency"
   ],
-  "ground_truth_compare": [
+  "references_compare": [
     "time_series"
   ],
   "public_results_table": "time-shift-public-metrics.json",
@@ -82,18 +82,18 @@ Example JSON:
 - "function_name" - name of function required within submission file
 - "comparison_type" - type of comparison
 - "display_metrics" - mapping of final metric name to the display name for the leaderboard
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
   - e.g. `median_mean_absolute_error_time_series`
 - "performance_metrics" - list of metrics to calculate for analysis task
 - "metrics_operations" - contains a mapping of aggregate metric to the operation list to be performed on each metric
-  - The formatting is as follows `<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<performance_metric>_<references_type>`
   - e.g. `mean_absolute_error_time_series`
 - "allowable_kwargs" - kwargs for the submission function that are allowed
-- "ground_truth_compare" - results from submission function
+- "references_compare" - results from submission function
 - "public_results_table" - name of json result file that contains information about submission results
 - "private_results_columns" - name of columns that will be in final dataframe that is passed to marimo template
   - will need to contain final metric name to be used in marimo template
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
 
 ### system_metadata.csv
 

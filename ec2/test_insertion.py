@@ -43,7 +43,7 @@ if __name__ == "__main__":
             task_dir, "data/file_metadata.csv"
         )
         validation_data_folder_path = os.path.join(
-            task_dir, "data/ground-truth/"
+            task_dir, "data/references/"
         )
         private_report_template_file_path = os.path.join(
             task_dir, "template.py"

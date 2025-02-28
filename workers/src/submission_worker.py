@@ -266,7 +266,7 @@ def extract_analysis_data(  # noqa: C901
     # the master table for files associated with different tests (az-tilt,
     # time shifts, degradation, etc.). Contains file name, associated file
     # information (sampling frequency, specific test, timezone, etc) as well
-    # as ground truth information to test against in the validation_dictionary
+    # as reference information to test against in the validation_dictionary
     # field
     # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
     file_metadata_list: list[dict[str, Any]] = []
@@ -302,58 +302,49 @@ def extract_analysis_data(  # noqa: C901
 
     files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
 
-    analyticals = list_s3_bucket(
-        f"pv-validation-hub-bucket/data_files/analytical/"
+    files_list = list_s3_bucket(f"pv-validation-hub-bucket/data_files/files/")
+    files = [file.split("/")[-1] for file in files_list]
+    references_list = list_s3_bucket(
+        f"pv-validation-hub-bucket/data_files/references/{analysis_id}/"
     )
-    analytical_files = [
-        analytical.split("/")[-1] for analytical in analyticals
+    references_files = [
+        references.split("/")[-1] for references in references_list
     ]
-    ground_truths = list_s3_bucket(
-        f"pv-validation-hub-bucket/data_files/ground_truth/{analysis_id}/"
-    )
-    ground_truth_files = [
-        ground_truth.split("/")[-1] for ground_truth in ground_truths
-    ]
-
-    # if not all(file in ground_truth_files for file in files_for_analysis):
-    #     raise FileNotFoundError(
-    #         9, f"Ground truth data files not found for analysis {analysis_id}"
-    #     )
 
     for analysis_file in files_for_analysis:
-        if analysis_file not in ground_truth_files:
+        if analysis_file not in references_files:
             raise FileNotFoundError(
                 9,
-                f"Ground truth data file {analysis_file} not found for analysis {analysis_id}",
+                f"Reference data file {analysis_file} not found for analysis {analysis_id}",
             )
 
     logger.info(f"files for analysis: {files_for_analysis}")
-    logger.info(f"analytical files: {analytical_files}")
+    logger.info(f"files: {files}")
 
-    if not all(file in analytical_files for file in files_for_analysis):
+    if not all(file in files for file in files_for_analysis):
         raise FileNotFoundError(
-            10, f"Analytical data files not found for analysis {analysis_id}"
+            10, f"Data files not found for analysis {analysis_id}"
         )
 
     for file in files_for_analysis:
 
-        analytical = analyticals[analytical_files.index(file)]
+        data_file = files_list[files.index(file)]
 
         tmp_path = pull_from_s3(
-            IS_LOCAL, S3_BUCKET_NAME, analytical, BASE_TEMP_DIR, logger
+            IS_LOCAL, S3_BUCKET_NAME, data_file, BASE_TEMP_DIR, logger
         )
         logger.info(f"move analysis file {tmp_path} to {file_data_dir}")
         shutil.move(
             tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
         )
 
-        ground_truth = ground_truths[ground_truth_files.index(file)]
+        references = references_list[references_files.index(file)]
 
         tmp_path = pull_from_s3(
-            IS_LOCAL, S3_BUCKET_NAME, ground_truth, BASE_TEMP_DIR, logger
+            IS_LOCAL, S3_BUCKET_NAME, references, BASE_TEMP_DIR, logger
         )
         logger.info(
-            f'move ground truth file "{tmp_path}" to "{validation_data_dir}"'
+            f'move reference file "{tmp_path}" to "{validation_data_dir}"'
         )
         shutil.move(
             tmp_path,
