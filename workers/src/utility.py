@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from functools import wraps
 import json
+import logging
 import shutil
 from types import TracebackType
 from dask.delayed import delayed, Delayed  # type: ignore
@@ -14,7 +15,6 @@ from docker.models.images import Image
 from concurrent.futures import (
     ThreadPoolExecutor,
 )
-from logging import Logger
 from time import perf_counter
 import os
 from typing import (
@@ -27,7 +27,6 @@ from typing import (
     Union,
     cast,
 )
-import logging
 import boto3
 import botocore.exceptions
 from mypy_boto3_s3 import S3Client
@@ -38,10 +37,37 @@ import math
 import subprocess
 import pandas as pd
 
+from logger import setup_logging
+
+
+logger = setup_logging(__name__)
 
 WORKER_ERROR_PREFIX = "wr"
 RUNNER_ERROR_PREFIX = "op"
 SUBMISSION_ERROR_PREFIX = "sb"
+
+S3_BUCKET_NAME = "pv-validation-hub-bucket"
+
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
+
+
+def is_local():
+    """
+    Checks if the application is running locally or in an Amazon ECS environment.
+
+    Returns:
+        bool: True if the application is running locally, False otherwise.
+    """
+    return "PROD" not in os.environ
+
+
+IS_LOCAL = is_local()
+
+API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
 
 
 T = TypeVar("T")
@@ -77,7 +103,7 @@ class SubmissionFunctionArgs:
 
 
 def logger_if_able(
-    message: object, logger: Logger | None = None, level: str = "INFO"
+    message: object, logger: logging.Logger | None = None, level: str = "INFO"
 ):
     if logger is not None:
         levels_dict = {
@@ -101,7 +127,7 @@ def logger_if_able(
 
 
 def get_error_codes_dict(
-    dir: str, prefix: str, logger: Logger | None
+    dir: str, prefix: str, logger: logging.Logger | None
 ) -> dict[str, str]:
     try:
         with open(
@@ -138,8 +164,10 @@ submission_error_codes = get_error_codes_dict(
     FILE_DIR, SUBMISSION_ERROR_PREFIX, None
 )
 
+worker_error_codes = get_error_codes_dict(FILE_DIR, WORKER_ERROR_PREFIX, None)
 
-def timing(verbose: bool = True, logger: Union[Logger, None] = None):
+
+def timing(verbose: bool = True, logger: Union[logging.Logger, None] = None):
     # @wraps(timing)
     def decorator(func: Callable[P, T]):
         # @wraps(func)
@@ -175,7 +203,7 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
 #     return results
 
 
-def timeout(seconds: int, logger: Union[Logger, None] = None):
+def timeout(seconds: int, logger: Union[logging.Logger, None] = None):
     def decorator(func: Callable[P, T]):
         # @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -202,7 +230,7 @@ def set_workers_and_threads(
     memory_per_run: float | int,
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> Tuple[int, int]:
 
     def handle_exceeded_resources(
@@ -337,7 +365,7 @@ def dask_multiprocess(
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
     memory_per_run: float | int | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
     **kwargs: Any,
 ) -> list[T]:
 
@@ -400,16 +428,6 @@ def dask_multiprocess(
     return results
 
 
-def is_local():
-    """
-    Checks if the application is running locally or in an Amazon ECS environment.
-
-    Returns:
-        bool: True if the application is running locally, False otherwise.
-    """
-    return "PROD" not in os.environ
-
-
 class WorkerException(Exception):
     def __init__(
         self, code: int, message: str, error_rate: float | None = None
@@ -437,12 +455,123 @@ class SubmissionException(Exception):
         self.error_rate = error_rate
 
 
+def list_s3_bucket(s3_dir: str):
+    logger.info(f"list s3 bucket {s3_dir}")
+    if s3_dir.startswith("/"):
+        s3_dir = s3_dir[1:]
+
+    if IS_LOCAL:
+        s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
+        # s3_dir_full_path = 'http://127.0.0.1:5000/list_bucket/' + s3_dir
+    else:
+        s3_dir_full_path = "s3://" + s3_dir
+
+    all_files: list[str] = []
+    if IS_LOCAL:
+        r = requests.get(s3_dir_full_path)
+        ret = r.json()
+        for entry in ret["Contents"]:
+            all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
+    else:
+        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
+        # if so, remove it
+        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
+        logger.info(
+            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
+        )
+
+        s3: S3Client = boto3.client("s3")  # type: ignore
+        paginator = s3.get_paginator("list_objects_v2")
+        pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
+        for page in pages:
+            if page["KeyCount"] > 0:
+                if "Contents" in page:
+                    for entry in page["Contents"]:
+                        if "Key" in entry:
+                            all_files.append(entry["Key"])
+
+        # remove the first entry if it is the same as s3_dir
+        if len(all_files) > 0 and all_files[0] == s3_dir:
+            all_files.pop(0)
+
+    logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
+    return all_files
+
+
+def update_submission_status(submission_id: int, new_status: str):
+    # route needs to be a string stored in a variable, cannot parse in deployed environment
+    api_route = f"submissions/change_submission_status/{submission_id}"
+
+    try:
+        data = request_to_API_w_credentials(
+            "PUT", api_route, data={"status": new_status}
+        )
+        return data
+    except Exception as e:
+        logger.error(f"Error updating submission status to {new_status}")
+        logger.exception(e)
+        error_code = 5
+        raise WorkerException(
+            *get_error_by_code(error_code, worker_error_codes, logger),
+        )
+
+
+def push_to_s3(local_file_path: str, s3_file_path: str, submission_id: int):
+    logger.info(f"push file {local_file_path} to s3")
+    if s3_file_path.startswith("/"):
+        s3_file_path = s3_file_path[1:]
+
+    if IS_LOCAL:
+        s3_file_full_path = (
+            f"http://s3:5000/put_object/{S3_BUCKET_NAME}/" + s3_file_path
+        )
+    else:
+        s3_file_full_path = "s3://" + s3_file_path
+
+    if IS_LOCAL:
+        with open(local_file_path, "rb") as f:
+            file_content = f.read()
+            logger.info(
+                f"Sending emulator PUT request to {s3_file_full_path} with file content (100 chars): {file_content[:100]}"
+            )
+            r = requests.put(s3_file_full_path, data=file_content)
+            logger.info(f"Received S3 emulator response: {r.status_code}")
+            if not r.ok:
+                logger.error(f"S3 emulator error: {r.content}")
+                error_code = 1
+                raise WorkerException(
+                    *get_error_by_code(error_code, worker_error_codes, logger),
+                )
+            return {"status": "success"}
+    else:
+        s3: S3Client = boto3.client("s3")  # type: ignore
+        try:
+            extra_args = {}
+            if s3_file_path.endswith(".html"):
+                extra_args = {"ContentType": "text/html"}
+            ExtraArgs = extra_args if extra_args else None
+            s3.upload_file(
+                local_file_path,
+                S3_BUCKET_NAME,
+                s3_file_path,
+                ExtraArgs=ExtraArgs,
+            )
+        except botocore.exceptions.ClientError as e:
+            logger.error(f"Error: {e}")
+            logger.info(f"update submission status to {FAILED}")
+            update_submission_status(submission_id, FAILED)
+            error_code = 1
+            raise WorkerException(
+                *get_error_by_code(error_code, worker_error_codes, logger)
+            )
+
+
 def pull_from_s3(
     IS_LOCAL: bool,
     S3_BUCKET_NAME: str,
     s3_file_path: str,
     local_file_path: str,
-    logger: Logger,
+    logger: logging.Logger,
 ) -> str:
     logger.info(f"pull file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
@@ -496,7 +625,9 @@ def pull_from_s3(
 
 
 def get_error_by_code(
-    error_code: int, error_codes_dict: dict[str, str], logger: Logger | None
+    error_code: int,
+    error_codes_dict: dict[str, str],
+    logger: logging.Logger | None,
 ) -> tuple[int, str]:
     error_code_str = str(error_code)
     if error_code_str not in error_codes_dict:
@@ -510,7 +641,10 @@ def get_error_by_code(
 
 
 def copy_file_to_directory(
-    file: str, src_dir: str, dest_dir: str, logger: Logger | None = None
+    file: str,
+    src_dir: str,
+    dest_dir: str,
+    logger: logging.Logger | None = None,
 ):
     src_file_path = os.path.join(src_dir, file)
 
@@ -531,7 +665,10 @@ def copy_file_to_directory(
 
 
 def move_file_to_directory(
-    file: str, src_dir: str, dest_dir: str, logger: Logger | None = None
+    file: str,
+    src_dir: str,
+    dest_dir: str,
+    logger: logging.Logger | None = None,
 ):
     src_file_path = os.path.join(src_dir, file)
 
@@ -567,7 +704,7 @@ def method_request(
     url: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     logger_if_able(f"{method} request to {url}", logger)
@@ -587,7 +724,9 @@ def method_request(
     return response
 
 
-def login_to_API(username: str, password: str, logger: Logger | None = None):
+def login_to_API(
+    username: str, password: str, logger: logging.Logger | None = None
+):
 
     login_url = f"{API_BASE_URL}/login"
 
@@ -634,7 +773,7 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
     return username, password
 
 
-def with_credentials(logger: Logger | None = None):
+def with_credentials(logger: logging.Logger | None = None):
 
     if IS_LOCAL:
         username = os.environ.get("admin_username", None)
@@ -670,7 +809,7 @@ def request_to_API_w_credentials(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
     **kwargs: Any,
 ):
 
@@ -697,7 +836,7 @@ def request_to_API(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     url = f"{API_BASE_URL}/{endpoint}"
@@ -711,7 +850,7 @@ def request_to_s3(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     url = f"{S3_BASE_URL}{endpoint}"
@@ -725,7 +864,7 @@ def request_handler(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     r = method_request(method, endpoint, headers=headers, data=data)
@@ -752,7 +891,7 @@ def flatten_list(items: list[T]) -> list[T]:
 
 def format_tuple(
     t: tuple[str, Union[int, float, str, dict[str, Any], bool, list[Any]]],
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> str | list[str]:
     key, value = t
 
@@ -813,7 +952,7 @@ def generate_private_report_for_submission(
     action: str,
     template_file_path: str,
     html_file_path: str,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
     json_data: dict[str, Any] = {}
     json_data["results_df"] = df.to_dict(orient="records")  # type: ignore
@@ -933,7 +1072,7 @@ def docker_task(
     submission_args: tuple[Any, ...],
     data_dir: str,
     results_dir: str,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, int | None]:
 
     error_raised = False
@@ -991,7 +1130,9 @@ def docker_task(
 
 
 def update_submission_progress(
-    submission_id: str, data: dict[str, Any], logger: Logger | None = None
+    submission_id: str,
+    data: dict[str, Any],
+    logger: logging.Logger | None = None,
 ):
     result = request_to_API_w_credentials(
         "POST",
@@ -1012,7 +1153,7 @@ class NonBreakingErrorReport(TypedDict):
 def update_error_report_non_breaking(
     submission_id: str,
     data: NonBreakingErrorReport,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
     result = request_to_API_w_credentials(
         "POST",
@@ -1034,7 +1175,7 @@ class ErrorReport(TypedDict):
 
 def create_blank_error_report(
     submission_id: int,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
     error_report: ErrorReport = {
         "submission": submission_id,
@@ -1061,7 +1202,7 @@ def submission_task(
     submission_args: tuple[Any, ...],
     data_dir: str,
     results_dir: str,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, int | None]:
 
     error = False
@@ -1149,7 +1290,7 @@ def create_docker_image(
     submission_file_name: str,
     client: docker.DockerClient,
     overwrite: bool = False,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     # file_path = os.path.join(os.path.dirname(__file__), "environment")
@@ -1275,7 +1416,7 @@ def create_docker_image_for_submission(
     python_version: str,
     submission_file_name: str,
     overwrite: bool = True,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     is_docker_daemon_running()

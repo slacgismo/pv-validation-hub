@@ -26,24 +26,22 @@ metric_operations_map = {
 # ----------------------------
 
 
-def p_absolute_error(output: pd.Series[float], references: pd.Series[float]):
-    difference: pd.Series[float] = output - references
+def p_absolute_error(output: pd.Series, references: pd.Series):
+    difference: pd.Series = output - references
     absolute_difference = np.abs(difference)
     return absolute_difference
 
 
-def p_mean_absolute_error(
-    output: pd.Series[float], references: pd.Series[float]
-):
+def p_mean_absolute_error(output: pd.Series, references: pd.Series):
     output.index = references.index
-    difference: pd.Series[float] = output - references
+    difference: pd.Series = output - references
     absolute_difference = np.abs(difference)
     mean_absolute_error = np.mean(absolute_difference)
     return mean_absolute_error
 
 
-def p_error(output: pd.Series[float], references: pd.Series[float]):
-    difference: pd.Series[float] = output - references
+def p_error(output: pd.Series, references: pd.Series):
+    difference: pd.Series = output - references
     return difference
 
 

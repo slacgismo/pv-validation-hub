@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install the Python dependencies for the submission wrapper
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 ARG zip_file
