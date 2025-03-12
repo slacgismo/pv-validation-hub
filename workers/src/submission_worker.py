@@ -432,6 +432,7 @@ def get_or_create_sqs_queue(queue_name: str):
         queue_name = "valhub_submission_queue.fifo"
     # Check if the queue exists. If no, then create one
     logger.info(f"Getting queue by name: {queue_name}")
+    queue = None
 
     try:
         queue = sqs.get_queue_by_name(
@@ -443,9 +444,18 @@ def get_or_create_sqs_queue(queue_name: str):
             != "AWS.SimpleQueueService.NonExistentQueue"
         ):
             logger.exception("Cannot get queue: {}".format(queue_name))
-        queue = sqs.create_queue(
-            QueueName=queue_name, Attributes={"FifoQueue": "true"}
-        )
+            logger.info(f"Creating queue: {queue_name}")
+            queue = sqs.create_queue(
+                QueueName=queue_name, Attributes={"FifoQueue": "true"}
+            )
+    except botocore.exceptions.EndpointConnectionError as e:
+        logger.error("Cannot connect to SQS")
+        logger.exception(e)
+        raise e
+    except Exception as e:
+        logger.error("Cannot get queue")
+        logger.exception(e)
+        raise e
 
     logger.info(f"Queue retrieved")
     return queue
