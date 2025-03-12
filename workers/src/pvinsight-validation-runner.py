@@ -714,7 +714,7 @@ def get_results_dict(
 ):
 
     filtered_results_df = (
-        results_df[results_df["is_real"] == False].copy()
+        results_df[results_df["include_on_leaderboard"] == False].copy()
         if is_public
         else results_df.copy()
     )

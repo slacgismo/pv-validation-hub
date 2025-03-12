@@ -679,7 +679,7 @@ class InsertAnalysis:
                 "issue",
                 "subissue",
                 "file_hash",
-                "is_real",
+                "include_on_leaderboard",
             ]
         ]
 
