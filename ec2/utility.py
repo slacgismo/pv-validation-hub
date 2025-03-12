@@ -4,6 +4,11 @@ import hashlib
 import pandas as pd
 import numpy as np
 import boto3
+from botocore.exceptions import (
+    NoCredentialsError,
+    PartialCredentialsError,
+    ClientError,
+)
 from mypy_boto3_s3 import S3Client
 import requests
 import logging
@@ -352,7 +357,7 @@ def list_s3_bucket(
         s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
         # s3_dir_full_path = 'http://127.0.0.1:5000/list_bucket/' + s3_dir
     else:
-        s3_dir_full_path = "s3://" + s3_dir
+        s3_dir_full_path = f"s3://{s3_bucket_name}/{s3_dir}"
 
     all_files: list[str] = []
     if is_s3_emulation:
@@ -361,13 +366,6 @@ def list_s3_bucket(
         for entry in ret["Contents"]:
             all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
     else:
-        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
-        # if so, remove it
-        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
-        )
-
         s3: S3Client = boto3.client("s3")  # type: ignore
         paginator = s3.get_paginator("list_objects_v2")
         pages = paginator.paginate(Bucket=s3_bucket_name, Prefix=s3_dir)
@@ -384,3 +382,69 @@ def list_s3_bucket(
 
     logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
     return all_files
+
+
+def pull_from_s3(
+    IS_LOCAL: bool,
+    S3_BUCKET_NAME: str,
+    s3_file_path: str,
+    local_file_path: str,
+    logger: logging.Logger,
+) -> str:
+    logger.info(f"pull file {s3_file_path} from s3")
+    if s3_file_path.startswith("/"):
+        s3_file_path = s3_file_path[1:]
+
+    if IS_LOCAL:
+        logger.info("running locally")
+        s3_file_full_path = "http://s3:5000/get_object/" + s3_file_path
+        # s3_file_full_path = 'http://127.0.0.1:5000/get_object/' + s3_file_path
+    else:
+        logger.info("running in ecs")
+        s3_file_full_path = f"s3://{S3_BUCKET_NAME}/{s3_file_path}"
+
+    target_file_path = os.path.join(
+        local_file_path, s3_file_full_path.split("/")[-1]
+    )
+
+    if IS_LOCAL:
+        r = requests.get(s3_file_full_path, stream=True)
+        if not r.ok:
+            logger.error(f"Error: {r.content}")
+
+            raise requests.HTTPError(
+                2, f"Error downloading file from s3: {r.content}"
+            )
+        with open(target_file_path, "wb") as f:
+            f.write(r.content)
+    else:
+        s3: S3Client = boto3.client("s3")  # type: ignore
+        try:
+            logger.info(
+                f"Downloading {s3_file_path} from {S3_BUCKET_NAME} to {target_file_path}"
+            )
+            s3.download_file(S3_BUCKET_NAME, s3_file_path, target_file_path)
+
+        except ClientError as e:
+            logger.error(f"Error: {e}")
+            raise requests.HTTPError(
+                2, f"File {target_file_path} not found in s3 bucket."
+            )
+
+    return target_file_path
+
+
+def check_aws_credentials():
+    try:
+        # Create a session using the default profile
+        session = boto3.Session()
+        # Get the credentials
+        credentials = session.get_credentials()
+        # Check if credentials are available
+        if credentials is None:
+            raise NoCredentialsError
+        # Check if the credentials are complete
+        credentials.get_frozen_credentials()
+        print("AWS credentials are available.")
+    except (NoCredentialsError, PartialCredentialsError):
+        print("AWS credentials are not available or incomplete.")

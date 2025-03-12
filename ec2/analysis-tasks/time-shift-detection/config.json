@@ -1,5 +1,6 @@
 {
   "category_name": "Time Shift Detection",
+  "s3_bucket_folder_name": "time-shift-detection",
   "function_name": "detect_time_shifts",
   "comparison_type": "time_series",
   "display_metrics": {

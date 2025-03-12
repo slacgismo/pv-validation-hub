@@ -17,10 +17,13 @@ from utility import (
     get_file_hash,
     get_hash_for_list_of_files,
     hasAllColumns,
+    list_s3_bucket,
     post_data_to_api_to_df,
+    pull_from_s3,
     request_to_API_w_credentials,
     upload_to_s3_bucket,
     with_credentials,
+    check_aws_credentials,
 )
 
 import logging
@@ -45,6 +48,7 @@ logger.addHandler(console)
 
 class TaskConfig(TypedDict):
     category_name: str
+    s3_bucket_folder_name: str
     function_name: str
     comparison_type: str
     display_metrics: dict[str, str]
@@ -124,6 +128,80 @@ class InsertAnalysis:
         self.combined_hash = ""
         self.db_hash = ""
 
+    def pullFilesFromAWSS3(self, file_metadata_files: list[str]):
+        """
+        Pull the files from the S3 bucket.
+        """
+        # Pull all the data files from the S3 bucket
+        list_of_data_files = [
+            file.split("/")[-1]
+            for file in list_s3_bucket(
+                is_s3_emulation=False,
+                s3_bucket_name=self.s3_task_bucket_name,
+                s3_dir="files/",
+            )
+        ]
+
+        list_of_reference_files = [
+            file.split("/")[-1]
+            for file in list_s3_bucket(
+                is_s3_emulation=False,
+                s3_bucket_name=self.s3_task_bucket_name,
+                s3_dir=f"references/{self.config['s3_bucket_folder_name']}/",
+            )
+        ]
+
+        logger.info(f"List of data files from S3: {list_of_data_files}")
+
+        # Check if all data files exist in the s3 bucket
+        for file in file_metadata_files:
+            if file not in list_of_data_files:
+                raise ValueError(
+                    f"File {file} does not exist in the S3 bucket."
+                )
+        # Check if all reference files exist in the s3 bucket
+        for file in file_metadata_files:
+            if file not in list_of_reference_files:
+                raise ValueError(
+                    f"File {file} does not exist in the S3 bucket."
+                )
+
+        for file in file_metadata_files:
+            download_path = self.file_data_folder_path
+            s3_file_path = f"files/{file}"
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
+        for file in file_metadata_files:
+            download_path = self.validation_data_folder_path
+            s3_file_path = (
+                f"references/{self.config['s3_bucket_folder_name']}/{file}"
+            )
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
     def hasAllValidNewAnalysisData(self, use_cloud_files: bool = False):
         """
         Check if we have all the required data to create a new analysis.
@@ -162,6 +240,14 @@ class InsertAnalysis:
                 raise ValueError(
                     f"Duplicate system name {filename} in the system metadata."
                 )
+
+        # if use_cloud_files is True, pull the files from the cloud
+        if use_cloud_files:
+            # Check if AWS credentials are set up
+
+            check_aws_credentials()
+            print("AWS credentials are set up.")
+            self.pullFilesFromAWSS3(file_metadata_files.to_list())
 
         file_data_files = os.listdir(self.file_data_folder_path)
 
