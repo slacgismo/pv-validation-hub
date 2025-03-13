@@ -714,7 +714,7 @@ def get_results_dict(
 ):
 
     filtered_results_df = (
-        results_df[results_df["include_on_leaderboard"] == False].copy()
+        results_df[results_df["include_on_leaderboard"] == True].copy()
         if is_public
         else results_df.copy()
     )
@@ -723,20 +723,20 @@ def get_results_dict(
     logger.info(f"filtered_results_length: {len(filtered_results_df)}")
     logger.info(f"filtered_resutls_df: {filtered_results_df}")
 
-    public_results_dict = {}
-    public_results_dict["module"] = module_name
+    results_dict = {}
+    results_dict["module"] = module_name
+    results_dict["number_of_files"] = len(filtered_results_df)
+
     # Get the mean and median run times
-    public_results_dict["mean_runtime"] = filtered_results_df["runtime"].mean()
-    public_results_dict["median_runtime"] = filtered_results_df[
-        "runtime"
-    ].median()
+    results_dict["mean_runtime"] = filtered_results_df["runtime"].mean()
+    results_dict["median_runtime"] = filtered_results_df["runtime"].median()
     logger.info(
         f'function_parameters: {submission_function_info["function_parameters"]}'
     )
-    public_results_dict["function_parameters"] = submission_function_info[
+    results_dict["function_parameters"] = submission_function_info[
         "function_parameters"
     ]
-    public_results_dict["data_requirements"] = filtered_results_df[
+    results_dict["data_requirements"] = filtered_results_df[
         "data_requirements"
     ].iloc[0]
 
@@ -748,9 +748,9 @@ def get_results_dict(
         config_data, performance_metrics, filtered_results_df
     )
 
-    public_results_dict["metrics"] = metrics_dict
+    results_dict["metrics"] = metrics_dict
 
-    return public_results_dict
+    return results_dict
 
 
 def install_module_dependencies(
