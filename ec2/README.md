@@ -29,9 +29,10 @@ A new analysis task for insertion into the PV Validation Hub needs to contain ce
 - Data files - folder containing all csv files the analysis
 - Reference files - folder containing all results for each data file
 
-Below is an screenshot of an example folder containing all of the files/subfolders for an analysis insertion.
+Below are screenshots of an example folder structure containing all of the files/subfolders for an analysis insertion.
 
 ![alt text](file-structure-example.png)
+![alt text](file-structure-example-2.png)
 
 ### config.json
 
