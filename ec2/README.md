@@ -91,11 +91,11 @@ Example JSON:
 - "function_name" - name of function required within submission file
 - "comparison_type" - type of comparison
 - "display_metrics" - mapping of final metric name to the display name for the leaderboard
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
   - e.g. `median_mean_absolute_error_time_series`
 - "performance_metrics" - list of metrics to calculate for analysis task
 - "metrics_operations" - contains a mapping of aggregate metric to the operation list to be performed on each metric
-  - The formatting is as follows `<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<performance_metric>_<references_type>`
   - e.g. `mean_absolute_error_time_series`
 - "allowable_kwargs" - kwargs for the submission function that are allowed
 - "references_compare" - results from submission function
