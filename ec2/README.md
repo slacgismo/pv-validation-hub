@@ -29,6 +29,10 @@ A new analysis task for insertion into the PV Validation Hub needs to contain ce
 - Data files - folder containing all csv files the analysis
 - Reference files - folder containing all results for each data file
 
+Below is an screenshot of an example folder containing all of the files/subfolders for an analysis insertion.
+
+![alt text](file-structure-example.png)
+
 ### config.json
 
 Example JSON:
@@ -36,6 +40,7 @@ Example JSON:
 ```json
 {
   "category_name": "Time Shift Detection",
+  "s3_bucket_folder_name": "time-shift-detection",
   "function_name": "detect_time_shifts",
   "comparison_type": "time_series",
   "display_metrics": {
@@ -64,6 +69,7 @@ Example JSON:
     "time_series"
   ],
   "public_results_table": "time-shift-public-metrics.json",
+  "private_results_table": "time-shift-private-metrics.json",
   "private_results_columns": [
     "system_id",
     "file_name",
@@ -79,37 +85,67 @@ Example JSON:
 #### Properties
 
 - "category_name" - name of analysis which will be used on frontend
+- "s3_bucket_folder_name" - name of the folder for the analysis in the S3 bucket
 - "function_name" - name of function required within submission file
 - "comparison_type" - type of comparison
 - "display_metrics" - mapping of final metric name to the display name for the leaderboard
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
   - e.g. `median_mean_absolute_error_time_series`
 - "performance_metrics" - list of metrics to calculate for analysis task
 - "metrics_operations" - contains a mapping of aggregate metric to the operation list to be performed on each metric
-  - The formatting is as follows `<performance_metric>_<references_type>`
+  - The formatting is as follows `<performance_metric>_<ground_truth_type>`
   - e.g. `mean_absolute_error_time_series`
 - "allowable_kwargs" - kwargs for the submission function that are allowed
-- "references_compare" - results from submission function
+- "ground_truth_compare" - results from submission function
 - "public_results_table" - name of json result file that contains information about submission results
 - "private_results_columns" - name of columns that will be in final dataframe that is passed to marimo template
   - will need to contain final metric name to be used in marimo template
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
 
 ### system_metadata.csv
 
 Required columns:
 
 ```csv
-system_id,name,azimuth,tilt,elevation,latitude,longitude,tracking,climate_type,dc_capacity
+system_id,name,latitude,longitude
 ```
+
+Optional columns:
+
+```csv
+azimuth,tilt,elevation,tracking,dc_capacity
+```
+
+Ideally we want to include as many optional columns as we can, although for some data sets this may not be possible as the data is unavailable.
+
 
 ### file_metadata.csv
 
 Required columns:
 
 ```csv
-file_id,system_id,file_name,timezone,data_sampling_frequency,issue
+file_id,system_id,file_name,include_on_leaderboard
 ```
+
+Optional columns:
+
+```csv
+timezone,data_sampling_frequency,issue,data_type
+```
+
+Optional columns may vary based on the type of problem being solved, and is subject to change as needed.
+
+### ./data/files/ folder
+
+This folder contains all of the individual files that we are going to feed into the runner to assess the associated algorithm. File names in this folder link directly to the file_name column in the `file_metadata.csv` file. Columns in these files can vary based on the type of inputs being assessed. A screenshot of an example file for the time shift problem is shown below.
+
+![alt text](input-file-data.png)
+
+### ./data/references/ folder
+
+This folder contains all of the files that contains the reference data, to be assessed against the runner outputs. Files in this folder have the same naming conventions as the files in the ./data/files/ folder, so these files can be successfully linked to their input data file counterparts. Data in these files will vary based on what target variable is being assessed. A screenshot of an example output file for the time shift problem is shown below.
+
+![alt text](output-file-data.png)
 
 ### template.py (Marimo template with cli args input)
 
