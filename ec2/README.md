@@ -27,7 +27,7 @@ A new analysis task for insertion into the PV Validation Hub needs to contain ce
 - `system_metadata.csv` - contains the metadata for each system associated with the data files
 - `template.py` - marimo template for the private results page for each submission
 - Data files - folder containing all csv files the analysis
-- Ground truth files - folder containing all results for each data file
+- Reference files - folder containing all results for each data file
 
 Below is an screenshot of an example folder containing all of the files/subfolders for an analysis insertion.
 
@@ -132,15 +132,15 @@ timezone,data_sampling_frequency,issue,data_type
 
 Optional columns may vary based on the type of problem being solved, and is subject to change as needed.
 
-### ./file_data/ folder
+### ./data/files/ folder
 
 This folder contains all of the individual files that we are going to feed into the runner to assess the associated algorithm. File names in this folder link directly to the file_name column in the `file_metadata.csv` file. Columns in these files can vary based on the type of inputs being assessed. A screenshot of an example file for the time shift problem is shown below.
 
 ![alt text](input-file-data.png)
 
-### ./validation_data/ folder
+### ./data/references/ folder
 
-This folder contains all of the files that contains the "ground-truth" results, to be assessed against the runner outputs. Files in this folder have the same naming conventions as the files in the ./file_data/ folder, so these files can be successfully linked to their input data file counterparts. Data in these files will vary based on what target variable is being assessed. A screenshot of an example output file for the time shift problem is shown below.
+This folder contains all of the files that contains the reference data, to be assessed against the runner outputs. Files in this folder have the same naming conventions as the files in the ./data/files/ folder, so these files can be successfully linked to their input data file counterparts. Data in these files will vary based on what target variable is being assessed. A screenshot of an example output file for the time shift problem is shown below.
 
 ![alt text](output-file-data.png)
 
