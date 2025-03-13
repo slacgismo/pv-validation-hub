@@ -121,7 +121,7 @@ Ideally we want to include as many optional columns as we can, although for some
 Required columns:
 
 ```csv
-file_id,system_id,file_name
+file_id,system_id,file_name,include_on_leaderboard
 ```
 
 Optional columns:
