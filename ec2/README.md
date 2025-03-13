@@ -32,6 +32,7 @@ A new analysis task for insertion into the PV Validation Hub needs to contain ce
 Below are screenshots of an example folder structure containing all of the files/subfolders for an analysis insertion.
 
 ![alt text](file-structure-example.png)
+
 ![alt text](file-structure-example-2.png)
 
 ### config.json
