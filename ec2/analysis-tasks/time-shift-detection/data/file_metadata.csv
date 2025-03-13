@@ -1,144 +1,144 @@
-file_id,system_id,file_name,timezone,data_sampling_frequency,issue,is_real
-0,4,4_ac_power__315_full_DST.csv,Etc/GMT+7,15,Full DST,False
-1,4,4_ac_power__315_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,False
-2,4,4_ac_power__315_60min_wrong_timezone.csv,Etc/GMT+7,60,Wrong Timezone,False
-3,4,4_ac_power__315_60min.csv,Etc/GMT+7,60,No Issue,False
-4,4,4_ac_power__315_30min.csv,Etc/GMT+7,30,No Issue,False
-5,4,4_ac_power__315_15min.csv,Etc/GMT+7,15,No Issue,False
-6,4,4_ac_power__315_15min_full_DST.csv,Etc/GMT+7,15,Full DST,False
-7,50,50_ac_power_wrong_timezone.csv,Etc/GMT+7,1,Wrong Timezone,False
-8,50,50_ac_power_1_random_time_shifts.csv,Etc/GMT+7,1,Random Time Shifts,False
-9,50,50_ac_power_15min_wrong_timezone.csv,Etc/GMT+7,15,Wrong Timezone,False
-10,50,50_ac_power_1_15min_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,False
-11,50,50_ac_power_1_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,False
-12,50,50_ac_power_1_60min_wrong_timezone.csv,Etc/GMT+7,60,Wrong Timezone,False
-13,50,50_ac_power_2_full_DST.csv,Etc/GMT+7,1,Full DST,False
-14,50,50_ac_power_30min.csv,Etc/GMT+7,30,No Issue,False
-15,50,50_ac_power_2_30min_random_time_shifts.csv,Etc/GMT+7,30,Random Time Shifts,False
-16,50,50_ac_power_2_15min_wrong_timezone.csv,Etc/GMT+7,15,Wrong Timezone,False
-17,50,50_ac_power_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,False
-18,50,50_ac_power.csv,Etc/GMT+7,1,No Issue,False
-19,50,50_ac_power_1.csv,Etc/GMT+7,1,No Issue,False
-20,50,50_ac_power_15min.csv,Etc/GMT+7,15,No Issue,False
-21,50,50_ac_power_1_15min.csv,Etc/GMT+7,15,No Issue,False
-22,50,50_ac_power_1_30min.csv,Etc/GMT+7,30,No Issue,False
-23,50,50_ac_power_1_60min.csv,Etc/GMT+7,60,No Issue,False
-24,50,50_ac_power_2.csv,Etc/GMT+7,1,No Issue,False
-25,50,50_ac_power_2_15min.csv,Etc/GMT+7,15,No Issue,False
-26,50,50_ac_power_2_30min.csv,Etc/GMT+7,30,No Issue,False
-27,50,50_ac_power_2_60min.csv,Etc/GMT+7,60,No Issue,False
-28,50,50_ac_power_2_60min_random_time_shifts.csv,Etc/GMT+7,60,Random Time Shifts,False
-29,50,50_ac_power_60min_random_time_shifts.csv,Etc/GMT+7,60,Random Time Shifts,False
-30,50,50_ac_power_60min.csv,Etc/GMT+7,60,No Issue,False
-31,1229,1229_poa_irradiance_west_array_60min.csv,Etc/GMT+5,60,No Issue,False
-32,1229,1229_gh_irradiance_15min.csv,Etc/GMT+5,15,No Issue,False
-33,1229,1229_gh_irradiance_30min.csv,Etc/GMT+5,30,No Issue,False
-34,1229,1229_gh_irradiance_60min.csv,Etc/GMT+5,60,No Issue,False
-35,1229,1229_poa_irradiance_15min.csv,Etc/GMT+5,15,No Issue,False
-36,1229,1229_poa_irradiance_30min.csv,Etc/GMT+5,30,No Issue,False
-37,1229,1229_poa_irradiance_60min.csv,Etc/GMT+5,60,No Issue,False
-38,1229,1229_poa_irradiance_south_array_15min.csv,Etc/GMT+5,15,No Issue,False
-39,1229,1229_poa_irradiance_south_array_30min.csv,Etc/GMT+5,30,No Issue,False
-40,1229,1229_poa_irradiance_south_array_60min.csv,Etc/GMT+5,60,No Issue,False
-41,1229,1229_poa_irradiance_west_array_15min.csv,Etc/GMT+5,15,No Issue,False
-42,1229,1229_poa_irradiance_west_array_30min.csv,Etc/GMT+5,30,No Issue,False
-43,1229,1229_poa_irradiance_west_array_30min_partial_DST.csv,Etc/GMT+5,30,Partial DST,False
-44,1229,1229_poa_irradiance_west_array_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,False
-45,1229,1229_poa_irradiance_south_array_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,False
-46,1229,1229_poa_irradiance_south_array_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,False
-47,1229,1229_poa_irradiance_south_array_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-48,1229,1229_poa_irradiance_south_array_full_DST.csv,Etc/GMT+5,15,Full DST,False
-49,1229,1229_poa_irradiance_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,False
-50,1229,1229_poa_irradiance_30min_wrong_timezone.csv,Etc/GMT+5,30,Wrong Timezone,False
-51,1229,1229_poa_irradiance_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-52,1229,1229_poa_irradiance_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-53,1229,1229_gh_irradiance_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,False
-54,1229,1229_gh_irradiance_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,False
-55,1229,1229_gh_irradiance_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-56,1229,1229_poa_irradiance_west_array_full_DST.csv,Etc/GMT+5,15,Full DST,False
-57,1229,1229_poa_irradiance_west_array_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,False
-58,1229,1229_gh_irradiance_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-59,1333,1333_inv3_ac_power__2650_15min.csv,Etc/GMT+7,15,No Issue,False
-60,1332,1332_inv_total_ac_power__2654_30min.csv,Etc/GMT+7,30,No Issue,False
-61,1332,1332_inv_total_ac_power__2654_15min.csv,Etc/GMT+7,15,No Issue,False
-62,1333,1333_inv3_ac_power__2650_60min.csv,Etc/GMT+7,60,No Issue,False
-63,1332,1332_inv2_ac_power__2646_60min.csv,Etc/GMT+7,60,No Issue,False
-64,1333,1333_inv3_ac_power__2650_30min.csv,Etc/GMT+7,30,No Issue,False
-65,1332,1332_inv2_ac_power__2646_partial_DST.csv,Etc/GMT+7,15,Partial DST,False
-66,1332,1332_inv2_ac_power__2646_15min_full_DST.csv,Etc/GMT+7,15,Full DST,False
-67,1332,1332_inv2_ac_power__2646_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,False
-68,1332,1332_inv2_ac_power__2646_60min_wrong_timezone.csv,Etc/GMT+7,60,Wrong Timezone,False
-69,1333,1333_inv3_ac_power__2650_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,False
-70,1333,1333_inv3_ac_power__2650_15min_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,False
-71,1333,1333_inv3_ac_power__2650_30min_random_time_shifts.csv,Etc/GMT+7,30,Random Time Shifts,False
-72,1333,1333_inv3_ac_power__2650_60min_random_time_shifts.csv,Etc/GMT+7,60,Random Time Shifts,False
-73,1332,1332_inv_total_ac_power__2654_partial_DST.csv,Etc/GMT+7,15,Partial DST,False
-74,1332,1332_inv_total_ac_power__2654_15min_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,False
-75,1332,1332_inv_total_ac_power__2654_30min_partial_DST.csv,Etc/GMT+7,30,Partial DST,False
-76,1332,1332_inv_total_ac_power__2654_60min_partial_DST.csv,Etc/GMT+7,60,Partial DST,False
-77,1332,1332_inv2_ac_power__2646_15min.csv,Etc/GMT+7,15,No Issue,False
-78,1332,1332_inv2_ac_power__2646_30min.csv,Etc/GMT+7,30,No Issue,False
-79,1332,1332_inv_total_ac_power__2654_60min.csv,Etc/GMT+7,60,No Issue,False
-80,1422,1422_inv1_ac_power.csv,Etc/GMT+5,1,No Issue,False
-81,1422,1422_inv2_ac_power.csv,Etc/GMT+5,1,No Issue,False
-82,1422,1422_inv1_ac_power_30min.csv,Etc/GMT+5,30,No Issue,False
-83,1422,1422_inv1_ac_power_60min.csv,Etc/GMT+5,60,No Issue,False
-84,1422,1422_inv2_ac_power_15min.csv,Etc/GMT+5,15,No Issue,False
-85,1422,1422_inv2_ac_power_30min.csv,Etc/GMT+5,30,No Issue,False
-86,1422,1422_inv2_ac_power_60min.csv,Etc/GMT+5,60,No Issue,False
-87,1422,1422_inv2_ac_power_30min_full_DST.csv,Etc/GMT+5,30,Full DST,False
-88,1422,1422_inv2_ac_power_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,False
-89,1422,1422_inv2_ac_power_partial_DST.csv,Etc/GMT+5,1,Partial DST,False
-90,1422,1422_inv1_ac_power_15min.csv,Etc/GMT+5,15,No Issue,False
-91,1422,1422_inv2_ac_power_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,False
-92,1422,1422_inv1_ac_power_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,False
-93,1422,1422_inv1_ac_power_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,False
-94,1422,1422_inv1_ac_power_random_time_shifts.csv,Etc/GMT+5,1,Random Time Shifts,False
-95,1422,1422_inv1_ac_power_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,False
-96,1423,1423_inv1_ac_power_15min.csv,Etc/GMT+8,15,No Issue,False
-97,1423,1423_inv2_ac_power_30min.csv,Etc/GMT+8,30,No Issue,False
-98,1423,1423_inv2_ac_power_15min.csv,Etc/GMT+8,15,No Issue,False
-99,1423,1423_inv2_ac_power.csv,Etc/GMT+8,1,No Issue,False
-100,1423,1423_inv1_ac_power_60min.csv,Etc/GMT+8,60,No Issue,False
-101,1423,1423_inv1_ac_power_30min.csv,Etc/GMT+8,30,No Issue,False
-102,1423,1423_inv1_ac_power.csv,Etc/GMT+8,1,No Issue,False
-103,1423,1423_inv2_ac_power_30min_wrong_timezone.csv,Etc/GMT+8,30,Wrong Timezone,False
-104,1423,1423_inv2_ac_power_15min_wrong_timezone.csv,Etc/GMT+8,15,Wrong Timezone,False
-105,1423,1423_inv2_ac_power_wrong_timezone.csv,Etc/GMT+8,1,Wrong Timezone,False
-106,1423,1423_inv1_ac_power_60min_wrong_timezone.csv,Etc/GMT+8,60,Wrong Timezone,False
-107,1423,1423_inv1_ac_power_30min_random_time_shifts.csv,Etc/GMT+8,30,Random Time Shifts,False
-108,1423,1423_inv1_ac_power_15min_wrong_timezone.csv,Etc/GMT+8,15,Wrong Timezone,False
-109,1423,1423_inv1_ac_power_full_DST.csv,Etc/GMT+8,1,Full DST,False
-110,1423,1423_inv2_ac_power_60min_full_DST.csv,Etc/GMT+8,60,Full DST,False
-111,1423,1423_inv2_ac_power_60min.csv,Etc/GMT+8,60,No Issue,False
-112,4901,4901_InvPAC_kW_Avg_60min.csv,Etc/GMT+5,60,No Issue,False
-113,4901,4901_InvPAC_kW_Avg_30min.csv,Etc/GMT+5,30,No Issue,False
-114,4901,4901_InvPAC_kW_Avg_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-115,4901,4901_InvPAC_kW_Avg.csv,Etc/GMT+5,1,No Issue,False
-116,4901,4901_InvPAC_kW_Avg_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,False
-117,4901,4901_InvPAC_kW_Avg_30min_full_DST.csv,Etc/GMT+5,30,Full DST,False
-118,4901,4901_InvPAC_kW_Avg_15min.csv,Etc/GMT+5,15,No Issue,False
-119,4901,4901_InvPAC_kW_Avg_partial_DST.csv,Etc/GMT+5,1,Partial DST,False
-120,4902,4902_ac_power_inv_14538_15min.csv,Etc/GMT+5,15,No Issue,False
-121,4902,4902_ac_power_inv_14538_random_time_shifts.csv,Etc/GMT+5,1,Random Time Shifts,False
-122,4902,4902_ac_power_inv_14538_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,False
-123,4902,4902_ac_power_inv_14538_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,False
-124,4902,4902_ac_power_inv_14538_60min_partial_DST.csv,Etc/GMT+5,60,Partial DST,False
-125,4902,4902_ac_power_inv_14538_30min.csv,Etc/GMT+5,30,No Issue,False
-126,4902,4902_ac_power_inv_14538.csv,Etc/GMT+5,1,No Issue,False
-127,4902,4902_ac_power_inv_14538_60min.csv,Etc/GMT+5,60,No Issue,False
-128,4903,4903_ac_power_inv_14539.csv,Etc/GMT+5,1,No Issue,False
-129,4903,4903_ac_power_other_inv_14539_2_15min_partial_DST.csv,Etc/GMT+5,15,Partial DST,False
-130,4903,4903_ac_power_other_inv_14539_2_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-131,4903,4903_ac_power_inv_14539_wrong_timezone.csv,Etc/GMT+5,1,Wrong Timezone,False
-132,4903,4903_ac_power_other_inv_14539_2_30min_wrong_timezone.csv,Etc/GMT+5,30,Wrong Timezone,False
-133,4903,4903_ac_power_inv_14539_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,False
-134,4903,4903_ac_power_inv_14539_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,False
-135,4903,4903_ac_power_other_inv_14539_2_60min.csv,Etc/GMT+5,60,No Issue,False
-136,4903,4903_ac_power_other_inv_14539_2_30min.csv,Etc/GMT+5,30,No Issue,False
-137,4903,4903_ac_power_other_inv_14539_2_15min.csv,Etc/GMT+5,15,No Issue,False
-138,4903,4903_ac_power_inv_14539_60min.csv,Etc/GMT+5,60,No Issue,False
-139,4903,4903_ac_power_inv_14539_30min.csv,Etc/GMT+5,30,No Issue,False
-140,4903,4903_ac_power_inv_14539_15min.csv,Etc/GMT+5,15,No Issue,False
-141,4903,4903_ac_power_inv_14539_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,False
-142,4903,4903_ac_power_other_inv_14539_2_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,False
+file_id,system_id,file_name,timezone,data_sampling_frequency,issue,include_on_leaderboard
+0,4,4_ac_power__315_full_DST.csv,Etc/GMT+7,15,Full DST,True
+1,4,4_ac_power__315_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,True
+2,4,4_ac_power__315_60min_wrong_timezone.csv,Etc/GMT+7,60,Wrong Timezone,True
+3,4,4_ac_power__315_60min.csv,Etc/GMT+7,60,No Issue,True
+4,4,4_ac_power__315_30min.csv,Etc/GMT+7,30,No Issue,True
+5,4,4_ac_power__315_15min.csv,Etc/GMT+7,15,No Issue,True
+6,4,4_ac_power__315_15min_full_DST.csv,Etc/GMT+7,15,Full DST,True
+7,50,50_ac_power_wrong_timezone.csv,Etc/GMT+7,1,Wrong Timezone,True
+8,50,50_ac_power_1_random_time_shifts.csv,Etc/GMT+7,1,Random Time Shifts,True
+9,50,50_ac_power_15min_wrong_timezone.csv,Etc/GMT+7,15,Wrong Timezone,True
+10,50,50_ac_power_1_15min_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,True
+11,50,50_ac_power_1_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,True
+12,50,50_ac_power_1_60min_wrong_timezone.csv,Etc/GMT+7,60,Wrong Timezone,True
+13,50,50_ac_power_2_full_DST.csv,Etc/GMT+7,1,Full DST,True
+14,50,50_ac_power_30min.csv,Etc/GMT+7,30,No Issue,True
+15,50,50_ac_power_2_30min_random_time_shifts.csv,Etc/GMT+7,30,Random Time Shifts,True
+16,50,50_ac_power_2_15min_wrong_timezone.csv,Etc/GMT+7,15,Wrong Timezone,True
+17,50,50_ac_power_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,True
+18,50,50_ac_power.csv,Etc/GMT+7,1,No Issue,True
+19,50,50_ac_power_1.csv,Etc/GMT+7,1,No Issue,True
+20,50,50_ac_power_15min.csv,Etc/GMT+7,15,No Issue,True
+21,50,50_ac_power_1_15min.csv,Etc/GMT+7,15,No Issue,True
+22,50,50_ac_power_1_30min.csv,Etc/GMT+7,30,No Issue,True
+23,50,50_ac_power_1_60min.csv,Etc/GMT+7,60,No Issue,True
+24,50,50_ac_power_2.csv,Etc/GMT+7,1,No Issue,True
+25,50,50_ac_power_2_15min.csv,Etc/GMT+7,15,No Issue,True
+26,50,50_ac_power_2_30min.csv,Etc/GMT+7,30,No Issue,True
+27,50,50_ac_power_2_60min.csv,Etc/GMT+7,60,No Issue,True
+28,50,50_ac_power_2_60min_random_time_shifts.csv,Etc/GMT+7,60,Random Time Shifts,True
+29,50,50_ac_power_60min_random_time_shifts.csv,Etc/GMT+7,60,Random Time Shifts,True
+30,50,50_ac_power_60min.csv,Etc/GMT+7,60,No Issue,True
+31,1229,1229_poa_irradiance_west_array_60min.csv,Etc/GMT+5,60,No Issue,True
+32,1229,1229_gh_irradiance_15min.csv,Etc/GMT+5,15,No Issue,True
+33,1229,1229_gh_irradiance_30min.csv,Etc/GMT+5,30,No Issue,True
+34,1229,1229_gh_irradiance_60min.csv,Etc/GMT+5,60,No Issue,True
+35,1229,1229_poa_irradiance_15min.csv,Etc/GMT+5,15,No Issue,True
+36,1229,1229_poa_irradiance_30min.csv,Etc/GMT+5,30,No Issue,True
+37,1229,1229_poa_irradiance_60min.csv,Etc/GMT+5,60,No Issue,True
+38,1229,1229_poa_irradiance_south_array_15min.csv,Etc/GMT+5,15,No Issue,True
+39,1229,1229_poa_irradiance_south_array_30min.csv,Etc/GMT+5,30,No Issue,True
+40,1229,1229_poa_irradiance_south_array_60min.csv,Etc/GMT+5,60,No Issue,True
+41,1229,1229_poa_irradiance_west_array_15min.csv,Etc/GMT+5,15,No Issue,True
+42,1229,1229_poa_irradiance_west_array_30min.csv,Etc/GMT+5,30,No Issue,True
+43,1229,1229_poa_irradiance_west_array_30min_partial_DST.csv,Etc/GMT+5,30,Partial DST,True
+44,1229,1229_poa_irradiance_west_array_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,True
+45,1229,1229_poa_irradiance_south_array_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,True
+46,1229,1229_poa_irradiance_south_array_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,True
+47,1229,1229_poa_irradiance_south_array_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+48,1229,1229_poa_irradiance_south_array_full_DST.csv,Etc/GMT+5,15,Full DST,True
+49,1229,1229_poa_irradiance_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,True
+50,1229,1229_poa_irradiance_30min_wrong_timezone.csv,Etc/GMT+5,30,Wrong Timezone,True
+51,1229,1229_poa_irradiance_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+52,1229,1229_poa_irradiance_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+53,1229,1229_gh_irradiance_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,True
+54,1229,1229_gh_irradiance_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,True
+55,1229,1229_gh_irradiance_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+56,1229,1229_poa_irradiance_west_array_full_DST.csv,Etc/GMT+5,15,Full DST,True
+57,1229,1229_poa_irradiance_west_array_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,True
+58,1229,1229_gh_irradiance_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+59,1333,1333_inv3_ac_power__2650_15min.csv,Etc/GMT+7,15,No Issue,True
+60,1332,1332_inv_total_ac_power__2654_30min.csv,Etc/GMT+7,30,No Issue,True
+61,1332,1332_inv_total_ac_power__2654_15min.csv,Etc/GMT+7,15,No Issue,True
+62,1333,1333_inv3_ac_power__2650_60min.csv,Etc/GMT+7,60,No Issue,True
+63,1332,1332_inv2_ac_power__2646_60min.csv,Etc/GMT+7,60,No Issue,True
+64,1333,1333_inv3_ac_power__2650_30min.csv,Etc/GMT+7,30,No Issue,True
+65,1332,1332_inv2_ac_power__2646_partial_DST.csv,Etc/GMT+7,15,Partial DST,True
+66,1332,1332_inv2_ac_power__2646_15min_full_DST.csv,Etc/GMT+7,15,Full DST,True
+67,1332,1332_inv2_ac_power__2646_30min_wrong_timezone.csv,Etc/GMT+7,30,Wrong Timezone,True
+68,1332,1332_inv2_ac_power__2646_60min_wrong_timezone.csv,Etc/GMT+7,60,Wrong Timezone,True
+69,1333,1333_inv3_ac_power__2650_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,True
+70,1333,1333_inv3_ac_power__2650_15min_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,True
+71,1333,1333_inv3_ac_power__2650_30min_random_time_shifts.csv,Etc/GMT+7,30,Random Time Shifts,True
+72,1333,1333_inv3_ac_power__2650_60min_random_time_shifts.csv,Etc/GMT+7,60,Random Time Shifts,True
+73,1332,1332_inv_total_ac_power__2654_partial_DST.csv,Etc/GMT+7,15,Partial DST,True
+74,1332,1332_inv_total_ac_power__2654_15min_random_time_shifts.csv,Etc/GMT+7,15,Random Time Shifts,True
+75,1332,1332_inv_total_ac_power__2654_30min_partial_DST.csv,Etc/GMT+7,30,Partial DST,True
+76,1332,1332_inv_total_ac_power__2654_60min_partial_DST.csv,Etc/GMT+7,60,Partial DST,True
+77,1332,1332_inv2_ac_power__2646_15min.csv,Etc/GMT+7,15,No Issue,True
+78,1332,1332_inv2_ac_power__2646_30min.csv,Etc/GMT+7,30,No Issue,True
+79,1332,1332_inv_total_ac_power__2654_60min.csv,Etc/GMT+7,60,No Issue,True
+80,1422,1422_inv1_ac_power.csv,Etc/GMT+5,1,No Issue,True
+81,1422,1422_inv2_ac_power.csv,Etc/GMT+5,1,No Issue,True
+82,1422,1422_inv1_ac_power_30min.csv,Etc/GMT+5,30,No Issue,True
+83,1422,1422_inv1_ac_power_60min.csv,Etc/GMT+5,60,No Issue,True
+84,1422,1422_inv2_ac_power_15min.csv,Etc/GMT+5,15,No Issue,True
+85,1422,1422_inv2_ac_power_30min.csv,Etc/GMT+5,30,No Issue,True
+86,1422,1422_inv2_ac_power_60min.csv,Etc/GMT+5,60,No Issue,True
+87,1422,1422_inv2_ac_power_30min_full_DST.csv,Etc/GMT+5,30,Full DST,True
+88,1422,1422_inv2_ac_power_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,True
+89,1422,1422_inv2_ac_power_partial_DST.csv,Etc/GMT+5,1,Partial DST,True
+90,1422,1422_inv1_ac_power_15min.csv,Etc/GMT+5,15,No Issue,True
+91,1422,1422_inv2_ac_power_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,True
+92,1422,1422_inv1_ac_power_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,True
+93,1422,1422_inv1_ac_power_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,True
+94,1422,1422_inv1_ac_power_random_time_shifts.csv,Etc/GMT+5,1,Random Time Shifts,True
+95,1422,1422_inv1_ac_power_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,True
+96,1423,1423_inv1_ac_power_15min.csv,Etc/GMT+8,15,No Issue,True
+97,1423,1423_inv2_ac_power_30min.csv,Etc/GMT+8,30,No Issue,True
+98,1423,1423_inv2_ac_power_15min.csv,Etc/GMT+8,15,No Issue,True
+99,1423,1423_inv2_ac_power.csv,Etc/GMT+8,1,No Issue,True
+100,1423,1423_inv1_ac_power_60min.csv,Etc/GMT+8,60,No Issue,True
+101,1423,1423_inv1_ac_power_30min.csv,Etc/GMT+8,30,No Issue,True
+102,1423,1423_inv1_ac_power.csv,Etc/GMT+8,1,No Issue,True
+103,1423,1423_inv2_ac_power_30min_wrong_timezone.csv,Etc/GMT+8,30,Wrong Timezone,True
+104,1423,1423_inv2_ac_power_15min_wrong_timezone.csv,Etc/GMT+8,15,Wrong Timezone,True
+105,1423,1423_inv2_ac_power_wrong_timezone.csv,Etc/GMT+8,1,Wrong Timezone,True
+106,1423,1423_inv1_ac_power_60min_wrong_timezone.csv,Etc/GMT+8,60,Wrong Timezone,True
+107,1423,1423_inv1_ac_power_30min_random_time_shifts.csv,Etc/GMT+8,30,Random Time Shifts,True
+108,1423,1423_inv1_ac_power_15min_wrong_timezone.csv,Etc/GMT+8,15,Wrong Timezone,True
+109,1423,1423_inv1_ac_power_full_DST.csv,Etc/GMT+8,1,Full DST,True
+110,1423,1423_inv2_ac_power_60min_full_DST.csv,Etc/GMT+8,60,Full DST,True
+111,1423,1423_inv2_ac_power_60min.csv,Etc/GMT+8,60,No Issue,True
+112,4901,4901_InvPAC_kW_Avg_60min.csv,Etc/GMT+5,60,No Issue,True
+113,4901,4901_InvPAC_kW_Avg_30min.csv,Etc/GMT+5,30,No Issue,True
+114,4901,4901_InvPAC_kW_Avg_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+115,4901,4901_InvPAC_kW_Avg.csv,Etc/GMT+5,1,No Issue,True
+116,4901,4901_InvPAC_kW_Avg_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,True
+117,4901,4901_InvPAC_kW_Avg_30min_full_DST.csv,Etc/GMT+5,30,Full DST,True
+118,4901,4901_InvPAC_kW_Avg_15min.csv,Etc/GMT+5,15,No Issue,True
+119,4901,4901_InvPAC_kW_Avg_partial_DST.csv,Etc/GMT+5,1,Partial DST,True
+120,4902,4902_ac_power_inv_14538_15min.csv,Etc/GMT+5,15,No Issue,True
+121,4902,4902_ac_power_inv_14538_random_time_shifts.csv,Etc/GMT+5,1,Random Time Shifts,True
+122,4902,4902_ac_power_inv_14538_15min_wrong_timezone.csv,Etc/GMT+5,15,Wrong Timezone,True
+123,4902,4902_ac_power_inv_14538_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,True
+124,4902,4902_ac_power_inv_14538_60min_partial_DST.csv,Etc/GMT+5,60,Partial DST,True
+125,4902,4902_ac_power_inv_14538_30min.csv,Etc/GMT+5,30,No Issue,True
+126,4902,4902_ac_power_inv_14538.csv,Etc/GMT+5,1,No Issue,True
+127,4902,4902_ac_power_inv_14538_60min.csv,Etc/GMT+5,60,No Issue,True
+128,4903,4903_ac_power_inv_14539.csv,Etc/GMT+5,1,No Issue,True
+129,4903,4903_ac_power_other_inv_14539_2_15min_partial_DST.csv,Etc/GMT+5,15,Partial DST,True
+130,4903,4903_ac_power_other_inv_14539_2_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+131,4903,4903_ac_power_inv_14539_wrong_timezone.csv,Etc/GMT+5,1,Wrong Timezone,True
+132,4903,4903_ac_power_other_inv_14539_2_30min_wrong_timezone.csv,Etc/GMT+5,30,Wrong Timezone,True
+133,4903,4903_ac_power_inv_14539_30min_random_time_shifts.csv,Etc/GMT+5,30,Random Time Shifts,True
+134,4903,4903_ac_power_inv_14539_60min_random_time_shifts.csv,Etc/GMT+5,60,Random Time Shifts,True
+135,4903,4903_ac_power_other_inv_14539_2_60min.csv,Etc/GMT+5,60,No Issue,True
+136,4903,4903_ac_power_other_inv_14539_2_30min.csv,Etc/GMT+5,30,No Issue,True
+137,4903,4903_ac_power_other_inv_14539_2_15min.csv,Etc/GMT+5,15,No Issue,True
+138,4903,4903_ac_power_inv_14539_60min.csv,Etc/GMT+5,60,No Issue,True
+139,4903,4903_ac_power_inv_14539_30min.csv,Etc/GMT+5,30,No Issue,True
+140,4903,4903_ac_power_inv_14539_15min.csv,Etc/GMT+5,15,No Issue,True
+141,4903,4903_ac_power_inv_14539_15min_random_time_shifts.csv,Etc/GMT+5,15,Random Time Shifts,True
+142,4903,4903_ac_power_other_inv_14539_2_60min_wrong_timezone.csv,Etc/GMT+5,60,Wrong Timezone,True

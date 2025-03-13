@@ -29,6 +29,7 @@
     "time_series"
   ],
   "public_results_table": "time-shift-public-metrics.json",
+  "private_results_table": "time-shift-private-metrics.json",
   "private_results_columns": [
     "system_id",
     "file_name",
