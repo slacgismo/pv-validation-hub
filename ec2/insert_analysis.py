@@ -14,12 +14,16 @@ from utility import (
     are_hashes_the_same,
     combine_hashes,
     get_data_from_api_to_df,
+    get_file_hash,
     get_hash_for_list_of_files,
     hasAllColumns,
+    list_s3_bucket,
     post_data_to_api_to_df,
+    pull_from_s3,
     request_to_API_w_credentials,
     upload_to_s3_bucket,
     with_credentials,
+    check_aws_credentials,
 )
 
 import logging
@@ -44,13 +48,14 @@ logger.addHandler(console)
 
 class TaskConfig(TypedDict):
     category_name: str
+    s3_bucket_folder_name: str
     function_name: str
     comparison_type: str
     display_metrics: dict[str, str]
     performance_metrics: list[str]
     metrics_operations: dict[str, list[str]]
     allowable_kwargs: list[str]
-    ground_truth_compare: list[str]
+    references_compare: list[str]
     public_results_table: str
     private_results_columns: list[str]
 
@@ -119,9 +124,83 @@ class InsertAnalysis:
         self.markdown_files_folder_path = markdown_files_folder_path
         self.front_end_assets_folder_path = front_end_assets_folder_path
         self.data_files_hash = ""
-        self.ground_truth_files_hash = ""
+        self.references_files_hash = ""
         self.combined_hash = ""
         self.db_hash = ""
+
+    def pullFilesFromAWSS3(self, file_metadata_files: list[str]):
+        """
+        Pull the files from the S3 bucket.
+        """
+        # Pull all the data files from the S3 bucket
+        list_of_data_files = [
+            file.split("/")[-1]
+            for file in list_s3_bucket(
+                is_s3_emulation=False,
+                s3_bucket_name=self.s3_task_bucket_name,
+                s3_dir="files/",
+            )
+        ]
+
+        list_of_reference_files = [
+            file.split("/")[-1]
+            for file in list_s3_bucket(
+                is_s3_emulation=False,
+                s3_bucket_name=self.s3_task_bucket_name,
+                s3_dir=f"references/{self.config['s3_bucket_folder_name']}/",
+            )
+        ]
+
+        logger.info(f"List of data files from S3: {list_of_data_files}")
+
+        # Check if all data files exist in the s3 bucket
+        for file in file_metadata_files:
+            if file not in list_of_data_files:
+                raise ValueError(
+                    f"File {file} does not exist in the S3 bucket."
+                )
+        # Check if all reference files exist in the s3 bucket
+        for file in file_metadata_files:
+            if file not in list_of_reference_files:
+                raise ValueError(
+                    f"File {file} does not exist in the S3 bucket."
+                )
+
+        for file in file_metadata_files:
+            download_path = self.file_data_folder_path
+            s3_file_path = f"files/{file}"
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
+        for file in file_metadata_files:
+            download_path = self.validation_data_folder_path
+            s3_file_path = (
+                f"references/{self.config['s3_bucket_folder_name']}/{file}"
+            )
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
 
     def hasAllValidNewAnalysisData(self, use_cloud_files: bool = False):
         """
@@ -161,6 +240,14 @@ class InsertAnalysis:
                 raise ValueError(
                     f"Duplicate system name {filename} in the system metadata."
                 )
+
+        # if use_cloud_files is True, pull the files from the cloud
+        if use_cloud_files:
+            # Check if AWS credentials are set up
+
+            check_aws_credentials()
+            print("AWS credentials are set up.")
+            self.pullFilesFromAWSS3(file_metadata_files.to_list())
 
         file_data_files = os.listdir(self.file_data_folder_path)
 
@@ -377,8 +464,6 @@ class InsertAnalysis:
         s3_path: String. S3 path that we want to write the files to.
         """
 
-        # s3_data_files = list_s3_bucket(self.is_local, self.s3_bucket_name, "data_files/analytical/")
-
         body = file_metadata_df.to_json(orient="records")  # type: ignore
         metadata_json_list = json.loads(body)
 
@@ -391,6 +476,7 @@ class InsertAnalysis:
                 "data_sampling_frequency": metadata["data_sampling_frequency"],
                 "issue": metadata["issue"],
                 "subissue": metadata["subissue"],
+                "file_hash": metadata["file_hash"],
             }
 
             logger.info(json_body)
@@ -402,7 +488,7 @@ class InsertAnalysis:
             local_path = os.path.join(
                 self.file_data_folder_path, metadata["file_name"]
             )
-            upload_path = f'data_files/analytical/{metadata["file_name"]}'
+            upload_path = f'data_files/files/{metadata["file_name"]}'
 
             # upload metadata to s3
             upload_to_s3_bucket(
@@ -425,7 +511,7 @@ class InsertAnalysis:
                 self.validation_data_folder_path, file_name
             )
             upload_path = (
-                f"data_files/ground_truth/{str(self.analysis_id)}/{file_name}"
+                f"data_files/references/{str(self.analysis_id)}/{file_name}"
             )
             upload_to_s3_bucket(
                 self.s3_url,
@@ -661,7 +747,14 @@ class InsertAnalysis:
         else:
             df_new["subissue"] = df_new["subissue"].fillna("N/A")  # type: ignore
 
-        # self.new_file_metadata_df = df_new
+        # hash the files
+
+        for file_name in df_new["file_name"]:
+            local_path = os.path.join(self.file_data_folder_path, file_name)
+            file_hash = get_file_hash(local_path)
+            df_new.loc[df_new["file_name"] == file_name, "file_hash"] = (
+                file_hash
+            )
 
         return df_new[
             [
@@ -671,6 +764,8 @@ class InsertAnalysis:
                 "data_sampling_frequency",
                 "issue",
                 "subissue",
+                "file_hash",
+                "include_on_leaderboard",
             ]
         ]
 
@@ -848,21 +943,21 @@ class InsertAnalysis:
 
         self.data_files_hash = hash_for_data_files
 
-        ground_truth_files = os.listdir(self.validation_data_folder_path)
+        references_files = os.listdir(self.validation_data_folder_path)
 
-        hash_for_ground_truth_files = get_hash_for_list_of_files(
+        hash_for_references_files = get_hash_for_list_of_files(
             [
                 os.path.join(self.validation_data_folder_path, file)
-                for file in ground_truth_files
+                for file in references_files
             ]
         )
 
-        logger.info(f"Ground truth files hash: {hash_for_ground_truth_files}")
+        logger.info(f"Data files hash: {hash_for_references_files}")
 
-        self.ground_truth_files_hash = hash_for_ground_truth_files
+        self.references_files_hash = hash_for_references_files
 
         self.combined_hash = combine_hashes(
-            [self.data_files_hash, self.ground_truth_files_hash]
+            [self.data_files_hash, self.references_files_hash]
         )
 
         logger.info(f"Combined hash: {self.combined_hash}")
@@ -957,7 +1052,7 @@ class InsertAnalysis:
         logger.info("Data inserted successfully")
 
         logger.warning(
-            "***** WARNING: IF YOU ARE RUNNING THIS IN A DEVELOPMENT ENVIRONMENT, REMEMBER TO REBUILD THE FRONT END USING THE COMMAND `docker compose build react-client` THEN REDEPLOY THE FRONTEND CONTAINER. *****"
+            "If you are running this in a development environment without the `docker compose up --watch` command, you will need to manually rebuild the front end image and restart the container to see the changes."
         )
 
 
@@ -1045,7 +1140,7 @@ if __name__ == "__main__":
             task_dir, "data/file_metadata.csv"
         )
         validation_data_folder_path = os.path.join(
-            task_dir, "data/ground-truth/"
+            task_dir, "data/references/"
         )
         private_report_template_file_path = os.path.join(
             task_dir, "template.py"

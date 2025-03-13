@@ -1,5 +1,6 @@
 {
   "category_name": "Time Shift Detection",
+  "s3_bucket_folder_name": "time-shift-detection",
   "function_name": "detect_time_shifts",
   "comparison_type": "time_series",
   "display_metrics": {
@@ -24,10 +25,11 @@
     "longitude",
     "data_sampling_frequency"
   ],
-  "ground_truth_compare": [
+  "references_compare": [
     "time_series"
   ],
   "public_results_table": "time-shift-public-metrics.json",
+  "private_results_table": "time-shift-private-metrics.json",
   "private_results_columns": [
     "system_id",
     "file_name",

@@ -1,1 +1,0 @@
-{"module": "pvanalytics-cpd-module-pva", "mean_run_time": 78.4254280592867, "median_run_time": 13.315558671951294, "function_parameters": ["time_series", "latitude", "longitude", "data_sampling_frequency"], "mean_mean_absolute_error_time_series": 2.967270219394481, "median_mean_absolute_error_time_series": 0.0}
