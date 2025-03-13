@@ -98,11 +98,11 @@ Example JSON:
   - The formatting is as follows `<performance_metric>_<ground_truth_type>`
   - e.g. `mean_absolute_error_time_series`
 - "allowable_kwargs" - kwargs for the submission function that are allowed
-- "ground_truth_compare" - results from submission function
+- "references_compare" - results from submission function
 - "public_results_table" - name of json result file that contains information about submission results
 - "private_results_columns" - name of columns that will be in final dataframe that is passed to marimo template
   - will need to contain final metric name to be used in marimo template
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
 
 ### system_metadata.csv
 
