@@ -1,0 +1,1 @@
+{"module": "pvwatts-5-module", "mean_run_time": 83.12288373166865, "median_run_time": 66.2422297000885, "function_parameters": ["time_series", "latitude", "longitude"], "mean_absolute_error_azimuth": 8.638917553226749, "median_absolute_error_azimuth": 5.220809659420837, "mean_absolute_error_tilt": 1.6175645974972124, "median_absolute_error_tilt": 1.2115503028679964}

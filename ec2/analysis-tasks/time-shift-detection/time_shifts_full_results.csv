@@ -1,0 +1,226 @@
+,system_id,file_name,run_time,data_requirements,mean_absolute_error_time_series,data_sampling_frequency,issue
+0,4,4_ac_power__315_full_DST.csv,18.830113172531128,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",12.40407204385278,15,Full DST
+1,4,4_ac_power__315_30min_wrong_timezone.csv,9.96409273147583,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",37.676332288401255,30,Wrong Timezone
+2,4,4_ac_power__315_60min_wrong_timezone.csv,6.543065309524536,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.29365700861394,60,Wrong Timezone
+3,4,4_ac_power__315_60min.csv,6.601576328277588,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",2.8778386844166013,60,No Issue
+4,4,4_ac_power__315_30min.csv,14.413450717926025,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.8574784651527017,30,No Issue
+5,4,4_ac_power__315_15min.csv,19.629616498947144,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",2.137823022709475,15,No Issue
+6,4,4_ac_power__315_15min_full_DST.csv,27.506799459457397,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",12.40407204385278,15,Full DST
+7,50,50_ac_power_wrong_timezone.csv,365.19071793556213,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,Wrong Timezone
+8,50,50_ac_power_1_random_time_shifts.csv,376.5482888221741,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.12096774193548387,1,Random Time Shifts
+9,50,50_ac_power_15min_wrong_timezone.csv,25.03329300880432,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+10,50,50_ac_power_1_15min_random_time_shifts.csv,24.982542753219604,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.3326612903225806,15,Random Time Shifts
+11,50,50_ac_power_1_30min_wrong_timezone.csv,13.90609073638916,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+12,50,50_ac_power_1_60min_wrong_timezone.csv,4.574662923812866,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",13.92641129032258,60,Wrong Timezone
+13,50,50_ac_power_2_full_DST.csv,368.22898745536804,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.12096774193548387,1,Full DST
+14,50,50_ac_power_30min.csv,12.097249746322632,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+15,50,50_ac_power_2_30min_random_time_shifts.csv,14.361329317092896,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",9.329637096774194,30,Random Time Shifts
+16,50,50_ac_power_2_15min_wrong_timezone.csv,25.421506643295288,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+17,50,50_ac_power_30min_wrong_timezone.csv,12.185845851898193,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+18,50,50_ac_power.csv,207.22214818000793,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+19,50,50_ac_power_1.csv,208.75459551811218,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+20,50,50_ac_power_15min.csv,12.34924840927124,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+21,50,50_ac_power_1_15min.csv,12.39419174194336,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+22,50,50_ac_power_1_30min.csv,6.9678709506988525,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+23,50,50_ac_power_1_60min.csv,4.159549713134766,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",13.92641129032258,60,No Issue
+24,50,50_ac_power_2.csv,228.48227071762085,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+25,50,50_ac_power_2_15min.csv,15.239885807037354,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+26,50,50_ac_power_2_30min.csv,7.395113706588745,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,30,No Issue
+27,50,50_ac_power_2_60min.csv,6.804012298583984,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",13.941532258064516,60,No Issue
+28,50,50_ac_power_2_60min_random_time_shifts.csv,4.644904851913452,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.090725806451612,60,Random Time Shifts
+29,50,50_ac_power_60min_random_time_shifts.csv,4.830859422683716,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",11.930443548387096,60,Random Time Shifts
+30,50,50_ac_power_60min.csv,5.1325109004974365,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",13.92641129032258,60,No Issue
+31,1229,1229_poa_irradiance_west_array_60min.csv,6.955023288726807,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+32,1229,1229_gh_irradiance_15min.csv,20.539912223815918,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+33,1229,1229_gh_irradiance_30min.csv,11.597663879394531,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+34,1229,1229_gh_irradiance_60min.csv,7.080140113830566,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+35,1229,1229_poa_irradiance_15min.csv,25.168532133102417,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+36,1229,1229_poa_irradiance_30min.csv,16.446418046951294,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+37,1229,1229_poa_irradiance_60min.csv,10.786420345306396,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+38,1229,1229_poa_irradiance_south_array_15min.csv,21.43882656097412,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+39,1229,1229_poa_irradiance_south_array_30min.csv,12.985199213027954,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+40,1229,1229_poa_irradiance_south_array_60min.csv,7.553039789199829,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+41,1229,1229_poa_irradiance_west_array_15min.csv,19.650710344314575,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+42,1229,1229_poa_irradiance_west_array_30min.csv,11.386460304260254,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+43,1229,1229_poa_irradiance_west_array_30min_partial_DST.csv,13.315558671951294,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Partial DST
+44,1229,1229_poa_irradiance_west_array_15min_wrong_timezone.csv,26.307789087295532,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+45,1229,1229_poa_irradiance_south_array_60min_wrong_timezone.csv,5.828544616699219,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+46,1229,1229_poa_irradiance_south_array_30min_random_time_shifts.csv,12.609826564788818,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.04633204633204633,30,Random Time Shifts
+47,1229,1229_poa_irradiance_south_array_15min_random_time_shifts.csv,24.809378623962402,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.011583011583011582,15,Random Time Shifts
+48,1229,1229_poa_irradiance_south_array_full_DST.csv,22.43193507194519,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Full DST
+49,1229,1229_poa_irradiance_60min_wrong_timezone.csv,7.151170253753662,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+50,1229,1229_poa_irradiance_30min_wrong_timezone.csv,13.485921382904053,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+51,1229,1229_poa_irradiance_15min_random_time_shifts.csv,21.55881118774414,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.09266409266409266,15,Random Time Shifts
+52,1229,1229_poa_irradiance_random_time_shifts.csv,19.81346082687378,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.011583011583011582,15,Random Time Shifts
+53,1229,1229_gh_irradiance_60min_random_time_shifts.csv,7.132343292236328,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.09266409266409266,60,Random Time Shifts
+54,1229,1229_gh_irradiance_30min_random_time_shifts.csv,12.957679986953735,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.09266409266409266,30,Random Time Shifts
+55,1229,1229_gh_irradiance_15min_random_time_shifts.csv,22.91370129585266,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.011583011583011582,15,Random Time Shifts
+56,1229,1229_poa_irradiance_west_array_full_DST.csv,24.72825598716736,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Full DST
+57,1229,1229_poa_irradiance_west_array_60min_random_time_shifts.csv,9.602325201034546,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",11.305019305019306,60,Random Time Shifts
+58,1229,1229_gh_irradiance_random_time_shifts.csv,19.308517456054688,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.04633204633204633,15,Random Time Shifts
+59,1332,1332_inv3_ac_power__2650_15min.csv,8.57125973701477,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+60,1332,1332_inv3_ac_power__2650_15min.csv,8.57125973701477,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+61,1332,1332_inv3_ac_power__2650_15min.csv,9.856366157531738,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+62,1332,1332_inv3_ac_power__2650_15min.csv,9.856366157531738,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+63,1332,1332_inv_total_ac_power__2654_30min.csv,4.580288410186768,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+64,1332,1332_inv_total_ac_power__2654_30min.csv,4.580288410186768,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+65,1332,1332_inv_total_ac_power__2654_30min.csv,4.630299806594849,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+66,1332,1332_inv_total_ac_power__2654_30min.csv,4.630299806594849,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+67,1332,1332_inv_total_ac_power__2654_15min.csv,7.520233869552612,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+68,1332,1332_inv_total_ac_power__2654_15min.csv,7.520233869552612,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+69,1332,1332_inv_total_ac_power__2654_15min.csv,8.588587522506714,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+70,1332,1332_inv_total_ac_power__2654_15min.csv,8.588587522506714,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+71,1332,1332_inv3_ac_power__2650_60min.csv,2.522028923034668,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,60,No Issue
+72,1332,1332_inv3_ac_power__2650_60min.csv,2.522028923034668,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,60,No Issue
+73,1332,1332_inv3_ac_power__2650_60min.csv,2.6538469791412354,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,60,No Issue
+74,1332,1332_inv3_ac_power__2650_60min.csv,2.6538469791412354,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,60,No Issue
+75,1332,1332_inv2_ac_power__2646_60min.csv,6.364583730697632,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+76,1332,1332_inv2_ac_power__2646_60min.csv,6.364583730697632,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+77,1332,1332_inv2_ac_power__2646_60min.csv,6.048230409622192,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+78,1332,1332_inv2_ac_power__2646_60min.csv,6.048230409622192,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+79,1332,1332_inv3_ac_power__2650_30min.csv,6.019947528839111,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+80,1332,1332_inv3_ac_power__2650_30min.csv,6.019947528839111,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+81,1332,1332_inv3_ac_power__2650_30min.csv,7.071189880371094,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+82,1332,1332_inv3_ac_power__2650_30min.csv,7.071189880371094,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+83,1332,1332_inv2_ac_power__2646_partial_DST.csv,18.859569549560547,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.2745869394177813,15,Partial DST
+84,1332,1332_inv2_ac_power__2646_partial_DST.csv,18.859569549560547,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.2745869394177813,15,Partial DST
+85,1332,1332_inv2_ac_power__2646_partial_DST.csv,16.14967155456543,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.2745869394177813,15,Partial DST
+86,1332,1332_inv2_ac_power__2646_partial_DST.csv,16.14967155456543,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.2745869394177813,15,Partial DST
+87,1332,1332_inv2_ac_power__2646_15min_full_DST.csv,17.403905630111694,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.14162077104642015,15,Full DST
+88,1332,1332_inv2_ac_power__2646_15min_full_DST.csv,17.403905630111694,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.14162077104642015,15,Full DST
+89,1332,1332_inv2_ac_power__2646_15min_full_DST.csv,15.580873966217041,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.14162077104642015,15,Full DST
+90,1332,1332_inv2_ac_power__2646_15min_full_DST.csv,15.580873966217041,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.14162077104642015,15,Full DST
+91,1332,1332_inv2_ac_power__2646_30min_wrong_timezone.csv,7.699001789093018,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+92,1332,1332_inv2_ac_power__2646_30min_wrong_timezone.csv,7.699001789093018,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+93,1332,1332_inv2_ac_power__2646_30min_wrong_timezone.csv,8.896512031555176,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+94,1332,1332_inv2_ac_power__2646_30min_wrong_timezone.csv,8.896512031555176,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+95,1332,1332_inv2_ac_power__2646_60min_wrong_timezone.csv,10.036876916885376,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+96,1332,1332_inv2_ac_power__2646_60min_wrong_timezone.csv,10.036876916885376,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+97,1332,1332_inv2_ac_power__2646_60min_wrong_timezone.csv,4096.849172115326,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+98,1332,1332_inv2_ac_power__2646_60min_wrong_timezone.csv,4096.849172115326,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+99,1332,1332_inv3_ac_power__2650_random_time_shifts.csv,16.917093515396118,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,15,Random Time Shifts
+100,1332,1332_inv3_ac_power__2650_random_time_shifts.csv,16.917093515396118,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,15,Random Time Shifts
+101,1332,1332_inv3_ac_power__2650_random_time_shifts.csv,17.20373511314392,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,15,Random Time Shifts
+102,1332,1332_inv3_ac_power__2650_random_time_shifts.csv,17.20373511314392,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,15,Random Time Shifts
+103,1332,1332_inv3_ac_power__2650_15min_random_time_shifts.csv,14.497919082641602,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.08021390374331551,15,Random Time Shifts
+104,1332,1332_inv3_ac_power__2650_15min_random_time_shifts.csv,14.497919082641602,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.08021390374331551,15,Random Time Shifts
+105,1332,1332_inv3_ac_power__2650_15min_random_time_shifts.csv,14.653126001358032,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.08021390374331551,15,Random Time Shifts
+106,1332,1332_inv3_ac_power__2650_15min_random_time_shifts.csv,14.653126001358032,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.08021390374331551,15,Random Time Shifts
+107,1332,1332_inv3_ac_power__2650_30min_random_time_shifts.csv,7.2034080028533936,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,30,Random Time Shifts
+108,1332,1332_inv3_ac_power__2650_30min_random_time_shifts.csv,7.2034080028533936,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,30,Random Time Shifts
+109,1332,1332_inv3_ac_power__2650_30min_random_time_shifts.csv,6.963090896606445,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,30,Random Time Shifts
+110,1332,1332_inv3_ac_power__2650_30min_random_time_shifts.csv,6.963090896606445,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.16042780748663102,30,Random Time Shifts
+111,1332,1332_inv3_ac_power__2650_60min_random_time_shifts.csv,4.308997869491577,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",8.803475935828876,60,Random Time Shifts
+112,1332,1332_inv3_ac_power__2650_60min_random_time_shifts.csv,4.308997869491577,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",8.803475935828876,60,Random Time Shifts
+113,1332,1332_inv3_ac_power__2650_60min_random_time_shifts.csv,3.9570000171661377,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",8.803475935828876,60,Random Time Shifts
+114,1332,1332_inv3_ac_power__2650_60min_random_time_shifts.csv,3.9570000171661377,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",8.803475935828876,60,Random Time Shifts
+115,1332,1332_inv_total_ac_power__2654_partial_DST.csv,13.751193046569824,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",9.959677419354838,15,Partial DST
+116,1332,1332_inv_total_ac_power__2654_partial_DST.csv,13.751193046569824,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",9.959677419354838,15,Partial DST
+117,1332,1332_inv_total_ac_power__2654_partial_DST.csv,14.115089654922485,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",9.959677419354838,15,Partial DST
+118,1332,1332_inv_total_ac_power__2654_partial_DST.csv,14.115089654922485,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",9.959677419354838,15,Partial DST
+119,1332,1332_inv_total_ac_power__2654_15min_random_time_shifts.csv,13.98009204864502,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.6129032258064515,15,Random Time Shifts
+120,1332,1332_inv_total_ac_power__2654_15min_random_time_shifts.csv,13.98009204864502,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.6129032258064515,15,Random Time Shifts
+121,1332,1332_inv_total_ac_power__2654_15min_random_time_shifts.csv,13.552443504333496,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.6129032258064515,15,Random Time Shifts
+122,1332,1332_inv_total_ac_power__2654_15min_random_time_shifts.csv,13.552443504333496,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.6129032258064515,15,Random Time Shifts
+123,1332,1332_inv_total_ac_power__2654_30min_partial_DST.csv,7.583796977996826,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Partial DST
+124,1332,1332_inv_total_ac_power__2654_30min_partial_DST.csv,7.583796977996826,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Partial DST
+125,1332,1332_inv_total_ac_power__2654_30min_partial_DST.csv,7.625634670257568,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Partial DST
+126,1332,1332_inv_total_ac_power__2654_30min_partial_DST.csv,7.625634670257568,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Partial DST
+127,1332,1332_inv_total_ac_power__2654_60min_partial_DST.csv,5.084035396575928,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Partial DST
+128,1332,1332_inv_total_ac_power__2654_60min_partial_DST.csv,5.084035396575928,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Partial DST
+129,1332,1332_inv_total_ac_power__2654_60min_partial_DST.csv,4.25100040435791,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Partial DST
+130,1332,1332_inv_total_ac_power__2654_60min_partial_DST.csv,4.25100040435791,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Partial DST
+131,1332,1332_inv2_ac_power__2646_15min.csv,23.738205671310425,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+132,1332,1332_inv2_ac_power__2646_15min.csv,23.738205671310425,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+133,1332,1332_inv2_ac_power__2646_15min.csv,23.68103265762329,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+134,1332,1332_inv2_ac_power__2646_15min.csv,23.68103265762329,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+135,1332,1332_inv2_ac_power__2646_30min.csv,14.349507570266724,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+136,1332,1332_inv2_ac_power__2646_30min.csv,14.349507570266724,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+137,1332,1332_inv2_ac_power__2646_30min.csv,14.228468418121338,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+138,1332,1332_inv2_ac_power__2646_30min.csv,14.228468418121338,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+139,1332,1332_inv_total_ac_power__2654_60min.csv,4.628998517990112,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+140,1332,1332_inv_total_ac_power__2654_60min.csv,4.628998517990112,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+141,1332,1332_inv_total_ac_power__2654_60min.csv,3.899998903274536,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+142,1332,1332_inv_total_ac_power__2654_60min.csv,3.899998903274536,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+143,1422,1422_inv1_ac_power.csv,329.5113568305969,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+144,1422,1422_inv2_ac_power.csv,276.51875734329224,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+145,1422,1422_inv1_ac_power_30min.csv,9.502019166946411,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+146,1422,1422_inv1_ac_power_60min.csv,4.4046790599823,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+147,1422,1422_inv2_ac_power_15min.csv,15.02925729751587,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+148,1422,1422_inv2_ac_power_30min.csv,7.256957530975342,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+149,1422,1422_inv2_ac_power_60min.csv,4.3679726123809814,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+150,1422,1422_inv2_ac_power_30min_full_DST.csv,8.729579210281372,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.6678082191780822,30,Full DST
+151,1422,1422_inv2_ac_power_15min_wrong_timezone.csv,17.959052324295044,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+152,1422,1422_inv2_ac_power_partial_DST.csv,243.38549995422363,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.040797824116048,1,Partial DST
+153,1422,1422_inv1_ac_power_15min.csv,12.34145975112915,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+154,1422,1422_inv2_ac_power_60min_wrong_timezone.csv,3.491999864578247,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Wrong Timezone
+155,1422,1422_inv1_ac_power_60min_random_time_shifts.csv,3.661188840866089,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",4.700342465753424,60,Random Time Shifts
+156,1422,1422_inv1_ac_power_15min_wrong_timezone.csv,11.894993543624878,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+157,1422,1422_inv1_ac_power_random_time_shifts.csv,151.00323152542114,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",22.188090737240074,1,Random Time Shifts
+158,1422,1422_inv1_ac_power_30min_random_time_shifts.csv,7.745015621185303,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",4.674657534246576,30,Random Time Shifts
+159,1423,1423_inv1_ac_power_15min.csv,31.405709981918335,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+160,1423,1423_inv2_ac_power_30min.csv,18.66277027130127,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+161,1423,1423_inv2_ac_power_15min.csv,34.78596329689026,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+162,1423,1423_inv2_ac_power.csv,516.8010802268982,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+163,1423,1423_inv1_ac_power_60min.csv,21.185796976089478,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.5824039653035935,60,No Issue
+164,1423,1423_inv1_ac_power_30min.csv,28.17335605621338,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+165,1423,1423_inv1_ac_power.csv,531.9869368076324,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+166,1423,1423_inv2_ac_power_30min_wrong_timezone.csv,22.578685522079468,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Wrong Timezone
+167,1423,1423_inv2_ac_power_15min_wrong_timezone.csv,41.03016257286072,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+168,1423,1423_inv2_ac_power_wrong_timezone.csv,826.2154247760773,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,Wrong Timezone
+169,1423,1423_inv1_ac_power_60min_wrong_timezone.csv,19.967979907989502,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.5824039653035935,60,Wrong Timezone
+170,1423,1423_inv1_ac_power_30min_random_time_shifts.csv,19.724013566970825,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.04956629491945477,30,Random Time Shifts
+171,1423,1423_inv1_ac_power_15min_wrong_timezone.csv,38.35711598396301,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+172,1423,1423_inv1_ac_power_full_DST.csv,453.54144167900085,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",9.442379182156134,1,Full DST
+173,1423,1423_inv2_ac_power_60min_full_DST.csv,26.845848321914673,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",7.060546875,60,Full DST
+174,1423,1423_inv2_ac_power_60min.csv,30.554606437683105,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",1.2421875,60,No Issue
+175,4901,4901_InvPAC_kW_Avg_60min.csv,5.16202974319458,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+176,4901,4901_InvPAC_kW_Avg_60min.csv,5.16202974319458,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+177,4901,4901_InvPAC_kW_Avg_60min.csv,5.475994825363159,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+178,4901,4901_InvPAC_kW_Avg_60min.csv,5.475994825363159,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+179,4901,4901_InvPAC_kW_Avg_30min.csv,9.602619171142578,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+180,4901,4901_InvPAC_kW_Avg_30min.csv,9.602619171142578,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+181,4901,4901_InvPAC_kW_Avg_30min.csv,8.822126865386963,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+182,4901,4901_InvPAC_kW_Avg_30min.csv,8.822126865386963,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+183,4901,4901_InvPAC_kW_Avg_15min_random_time_shifts.csv,16.472388982772827,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.045317220543806644,15,Random Time Shifts
+184,4901,4901_InvPAC_kW_Avg_15min_random_time_shifts.csv,16.472388982772827,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.045317220543806644,15,Random Time Shifts
+185,4901,4901_InvPAC_kW_Avg_15min_random_time_shifts.csv,17.365429878234863,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.045317220543806644,15,Random Time Shifts
+186,4901,4901_InvPAC_kW_Avg_15min_random_time_shifts.csv,17.365429878234863,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.045317220543806644,15,Random Time Shifts
+187,4901,4901_InvPAC_kW_Avg.csv,255.33652305603027,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+188,4901,4901_InvPAC_kW_Avg.csv,255.33652305603027,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+189,4901,4901_InvPAC_kW_Avg.csv,259.7840850353241,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+190,4901,4901_InvPAC_kW_Avg.csv,259.7840850353241,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+191,4901,4901_InvPAC_kW_Avg_60min_random_time_shifts.csv,5.847094297409058,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Random Time Shifts
+192,4901,4901_InvPAC_kW_Avg_60min_random_time_shifts.csv,5.847094297409058,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Random Time Shifts
+193,4901,4901_InvPAC_kW_Avg_60min_random_time_shifts.csv,6.241239547729492,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Random Time Shifts
+194,4901,4901_InvPAC_kW_Avg_60min_random_time_shifts.csv,6.241239547729492,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,Random Time Shifts
+195,4901,4901_InvPAC_kW_Avg_30min_full_DST.csv,11.682185173034668,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.45317220543806647,30,Full DST
+196,4901,4901_InvPAC_kW_Avg_30min_full_DST.csv,11.682185173034668,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.45317220543806647,30,Full DST
+197,4901,4901_InvPAC_kW_Avg_30min_full_DST.csv,11.35204792022705,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.45317220543806647,30,Full DST
+198,4901,4901_InvPAC_kW_Avg_30min_full_DST.csv,11.35204792022705,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.45317220543806647,30,Full DST
+199,4901,4901_InvPAC_kW_Avg_15min.csv,18.148995876312256,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+200,4901,4901_InvPAC_kW_Avg_15min.csv,18.148995876312256,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+201,4901,4901_InvPAC_kW_Avg_15min.csv,17.037468671798706,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+202,4901,4901_InvPAC_kW_Avg_15min.csv,17.037468671798706,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+203,4901,4901_InvPAC_kW_Avg_partial_DST.csv,263.1433343887329,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.5891238670694864,1,Partial DST
+204,4901,4901_InvPAC_kW_Avg_partial_DST.csv,263.1433343887329,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.5891238670694864,1,Partial DST
+205,4901,4901_InvPAC_kW_Avg_partial_DST.csv,261.2420082092285,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.5891238670694864,1,Partial DST
+206,4901,4901_InvPAC_kW_Avg_partial_DST.csv,261.2420082092285,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.5891238670694864,1,Partial DST
+207,4902,4902_ac_power_inv_14538_15min.csv,15.979040622711182,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,No Issue
+208,4902,4902_ac_power_inv_14538_random_time_shifts.csv,250.62322282791138,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.09063444108761329,1,Random Time Shifts
+209,4902,4902_ac_power_inv_14538_15min_wrong_timezone.csv,15.961017608642578,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,15,Wrong Timezone
+210,4902,4902_ac_power_inv_14538_30min_random_time_shifts.csv,9.46309757232666,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,Random Time Shifts
+211,4902,4902_ac_power_inv_14538_60min_partial_DST.csv,6.163048982620239,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",7.182779456193353,60,Partial DST
+212,4902,4902_ac_power_inv_14538_30min.csv,9.555004358291626,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,30,No Issue
+213,4902,4902_ac_power_inv_14538.csv,248.62708568572998,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+214,4902,4902_ac_power_inv_14538_60min.csv,4.957221031188965,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,60,No Issue
+215,4903,4903_ac_power_inv_14539.csv,254.58531260490417,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,No Issue
+216,4903,4903_ac_power_other_inv_14539_2_15min_partial_DST.csv,10.887035608291626,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",17.72965879265092,15,Partial DST
+217,4903,4903_ac_power_other_inv_14539_2_random_time_shifts.csv,9.339041709899902,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",21.614173228346456,15,Random Time Shifts
+218,4903,4903_ac_power_inv_14539_wrong_timezone.csv,256.68192052841187,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",0.0,1,Wrong Timezone
+219,4903,4903_ac_power_other_inv_14539_2_30min_wrong_timezone.csv,5.459724426269531,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,30,Wrong Timezone
+220,4903,4903_ac_power_inv_14539_30min_random_time_shifts.csv,8.778224229812622,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",2.9121725731895225,30,Random Time Shifts
+221,4903,4903_ac_power_inv_14539_60min_random_time_shifts.csv,6.10811972618103,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",42.27272727272727,60,Random Time Shifts
+222,4903,4903_ac_power_other_inv_14539_2_60min.csv,4.603696823120117,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",12.931034482758621,60,No Issue
+223,4903,4903_ac_power_other_inv_14539_2_30min.csv,6.315152406692505,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,30,No Issue
+224,4903,4903_ac_power_other_inv_14539_2_15min.csv,9.607762813568115,"['time_series', 'latitude', 'longitude', 'data_sampling_frequency']",15.0,15,No Issue
