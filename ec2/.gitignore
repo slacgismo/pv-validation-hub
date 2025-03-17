@@ -1,2 +1,10 @@
-**/data/files/*.csv
-**/data/references/*.csv
+analysis-tasks/*/data/files/*.csv
+analysis-tasks/*/data/references/*.csv
+
+analysis-tasks/*/data/file_metadata.csv
+analysis-tasks/*/data/system_metadata.csv
+!analysis-tasks/example-task/data/file_metadata.csv
+!analysis-tasks/example-task/data/system_metadata.csv
+
+evaluation_scripts/*
+front_end_assets/*
