@@ -5,6 +5,8 @@ including system metadata and file metadata.
 
 import json
 from typing import Any, TypedDict
+import boto3
+from mypy_boto3_s3 import S3Client
 import pandas as pd
 import os
 import shutil
@@ -12,6 +14,7 @@ import argparse
 
 from utility import (
     are_hashes_the_same,
+    get_s3_file_hash,
     combine_hashes,
     get_data_from_api_to_df,
     get_file_hash,
@@ -64,24 +67,19 @@ class InsertAnalysis:
 
     def __init__(
         self,
-        markdown_files_folder_path: str,
-        config_file_path: str,
-        file_data_folder_path: str,
-        validation_data_folder_path: str,
+        task_dir: str,
         evaluation_scripts_folder_path: str,
-        sys_metadata_file_path: str,
-        file_metadata_file_path: str,
-        private_report_template_file_path: str,
         front_end_assets_folder_path: str,
-        # validation_tests_file_path: str,
         s3_bucket_name: str,
         s3_task_bucket_name: str,
         api_url: str,
         s3_url: str,
         is_local: bool,
+        use_cloud_files: bool = False,
     ):
-
-        config: TaskConfig = json.load(open(config_file_path, "r"))
+        self.task_dir = task_dir
+        self.config_file_path = os.path.join(task_dir, "config.json")
+        config: TaskConfig = json.load(open(self.config_file_path, "r"))
         self.analysis_version: str = "1.0"
         self.config = config
         self.is_local = is_local
@@ -99,19 +97,22 @@ class InsertAnalysis:
 
         self.db_sys_metadata_df = db_sys_metadata_df
         self.db_file_metadata_df = db_file_metadata_df
-        self.config_file_path = config_file_path
-
-        self.private_report_template_file_path = (
-            private_report_template_file_path
+        self.private_report_template_file_path = os.path.join(
+            task_dir, "template.py"
         )
-        self.file_data_folder_path = file_data_folder_path
+
+        self.data_folder_path = os.path.join(self.task_dir, "data")
+        self.file_data_folder_path = os.path.join(
+            self.data_folder_path, "files"
+        )
         self.evaluation_scripts_folder_path = evaluation_scripts_folder_path
         # self.validation_tests_file_path = validation_tests_file_path
-        self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
-            sys_metadata_file_path
+        self.file_metadata_file_path = os.path.join(
+            self.data_folder_path, "file_metadata.csv"
         )
-        self.new_file_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
-            file_metadata_file_path
+
+        self.sys_metadata_file_path = os.path.join(
+            self.data_folder_path, "system_metadata.csv"
         )
 
         self.analysis_id = None
@@ -119,16 +120,28 @@ class InsertAnalysis:
         self.file_id_mapping: dict[int, int] = dict()
         self.s3_bucket_name = s3_bucket_name
         self.s3_task_bucket_name = s3_task_bucket_name
-        self.validation_data_folder_path = validation_data_folder_path
+        self.validation_data_folder_path = os.path.join(
+            self.data_folder_path, "references"
+        )
 
-        self.markdown_files_folder_path = markdown_files_folder_path
+        self.markdown_files_folder_path = os.path.join(self.task_dir, "assets")
         self.front_end_assets_folder_path = front_end_assets_folder_path
         self.data_files_hash = ""
         self.references_files_hash = ""
         self.combined_hash = ""
         self.db_hash = ""
 
-    def pullFilesFromAWSS3(self, file_metadata_files: list[str]):
+        if use_cloud_files:
+            self.pullFilesFromCloud(use_cloud_files)
+        else:
+            self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
+                self.sys_metadata_file_path
+            )
+            self.new_file_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
+                self.file_metadata_file_path
+            )
+
+    def pullDataFilesFromAWSS3(self, file_metadata_files: list[str]):
         """
         Pull the files from the S3 bucket.
         """
@@ -166,7 +179,32 @@ class InsertAnalysis:
                     f"File {file} does not exist in the S3 bucket."
                 )
 
+        # does file exist in the data folder?
+
+        files_in_data_folder = os.listdir(self.file_data_folder_path)
+        files_to_exclude: list[str] = []
+
         for file in file_metadata_files:
+            s3_client: S3Client = boto3.client("s3")  # type: ignore
+            if file in files_in_data_folder:
+                local_file_hash = get_file_hash(
+                    os.path.join(self.file_data_folder_path, file)
+                )
+                s3_file_hash = get_s3_file_hash(
+                    s3_client=s3_client,
+                    bucket_name=self.s3_task_bucket_name,
+                    file_key=f"files/{file}",
+                )
+                if are_hashes_the_same(local_file_hash, s3_file_hash):
+                    files_to_exclude.append(file)
+
+        file_data_to_pull = [
+            file
+            for file in file_metadata_files
+            if file not in files_to_exclude
+        ]
+
+        for file in file_data_to_pull:
             download_path = self.file_data_folder_path
             s3_file_path = f"files/{file}"
             try:
@@ -183,7 +221,33 @@ class InsertAnalysis:
                 logger.exception(e)
                 raise e
 
+        # does file exist in the validation data folder?
+        files_in_reference_folder = os.listdir(
+            self.validation_data_folder_path
+        )
+        files_to_exclude = []
+
         for file in file_metadata_files:
+            s3_client = boto3.client("s3")  # type: ignore
+            if file in files_in_reference_folder:
+                local_file_hash = get_file_hash(
+                    os.path.join(self.validation_data_folder_path, file)
+                )
+                s3_file_hash = get_s3_file_hash(
+                    s3_client=s3_client,
+                    bucket_name=self.s3_task_bucket_name,
+                    file_key=f"references/{self.config['s3_bucket_folder_name']}/{file}",
+                )
+                if are_hashes_the_same(local_file_hash, s3_file_hash):
+                    files_to_exclude.append(file)
+
+        reference_files_to_pull = [
+            file
+            for file in file_metadata_files
+            if file not in files_to_exclude
+        ]
+
+        for file in reference_files_to_pull:
             download_path = self.validation_data_folder_path
             s3_file_path = (
                 f"references/{self.config['s3_bucket_folder_name']}/{file}"
@@ -201,6 +265,46 @@ class InsertAnalysis:
                 logger.error(f"Error pulling file {file} from S3: {e}")
                 logger.exception(e)
                 raise e
+
+    def pullFilesFromCloud(self, use_cloud_files: bool = False):
+        if not use_cloud_files:
+            return
+
+        check_aws_credentials()
+
+        # Pull metadata files from the cloud
+
+        files = ["file_metadata.csv", "system_metadata.csv"]
+
+        for file in files:
+            download_path = self.data_folder_path
+            s3_file_path = (
+                f"metadata/{self.config['s3_bucket_folder_name']}/{file}"
+            )
+
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
+        self.new_file_metadata_df = pd.read_csv(  # type: ignore
+            self.file_metadata_file_path
+        )
+        self.new_sys_metadata_df = pd.read_csv(  # type: ignore
+            self.sys_metadata_file_path
+        )
+        self.pullDataFilesFromAWSS3(
+            self.new_file_metadata_df["file_name"].to_list()  # type: ignore
+        )
 
     def hasAllValidNewAnalysisData(self, use_cloud_files: bool = False):
         """
@@ -240,14 +344,6 @@ class InsertAnalysis:
                 raise ValueError(
                     f"Duplicate system name {filename} in the system metadata."
                 )
-
-        # if use_cloud_files is True, pull the files from the cloud
-        if use_cloud_files:
-            # Check if AWS credentials are set up
-
-            check_aws_credentials()
-            print("AWS credentials are set up.")
-            self.pullFilesFromAWSS3(file_metadata_files.to_list())
 
         file_data_files = os.listdir(self.file_data_folder_path)
 
@@ -1130,40 +1226,20 @@ if __name__ == "__main__":
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
 
-        config_file_path = os.path.join(task_dir, "config.json")
-        file_data_folder_path = os.path.join(task_dir, "data/files/")
         evaluation_scripts_folder_path = "./evaluation_scripts/"
-        sys_metadata_file_path = os.path.join(
-            task_dir, "data/system_metadata.csv"
-        )
-        file_metadata_file_path = os.path.join(
-            task_dir, "data/file_metadata.csv"
-        )
-        validation_data_folder_path = os.path.join(
-            task_dir, "data/references/"
-        )
-        private_report_template_file_path = os.path.join(
-            task_dir, "template.py"
-        )
 
-        analysis_markdown_files_folder_path = os.path.join(task_dir, "assets")
         front_end_assets_folder_path = "./front_end_assets"
 
         analysis_instance = InsertAnalysis(
-            markdown_files_folder_path=analysis_markdown_files_folder_path,
-            config_file_path=config_file_path,
-            file_data_folder_path=file_data_folder_path,
-            sys_metadata_file_path=sys_metadata_file_path,
-            file_metadata_file_path=file_metadata_file_path,
-            validation_data_folder_path=validation_data_folder_path,
+            task_dir=task_dir,
             evaluation_scripts_folder_path=evaluation_scripts_folder_path,
-            private_report_template_file_path=private_report_template_file_path,
             front_end_assets_folder_path=front_end_assets_folder_path,
             s3_bucket_name="pv-validation-hub-bucket",
             s3_task_bucket_name="pv-validation-hub-task-data-bucket",
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
+            use_cloud_files=use_cloud_files,
         )
 
         if limit > 0:
@@ -1181,6 +1257,7 @@ if __name__ == "__main__":
             if response.lower() != "yes":
                 logger.info("Exiting...")
                 exit()
+                raise ValueError("Exiting...")
 
         if is_dry_run:
             logger.info("Dry run mode enabled. No data will be inserted.")
