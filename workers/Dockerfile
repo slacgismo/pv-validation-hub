@@ -1,11 +1,11 @@
-FROM python:3.11-slim
+FROM python:3.11
 
 WORKDIR /root/worker
 COPY . .
 
 RUN mkdir -p /root/worker/logs
 
-ENV PORT 8500
+ENV PORT=8500
 EXPOSE 8500
 EXPOSE 65535
 
