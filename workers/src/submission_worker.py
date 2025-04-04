@@ -73,6 +73,8 @@ def prepare_docker_files_for_submission(src_dir: str, docker_dir: str):
         "submission_wrapper.py",
         "requirements.txt",
         "unzip.py",
+        "whitelist-packages.txt",
+        "verify_packages.py",
     ]
 
     for file in files:

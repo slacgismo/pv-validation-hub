@@ -103,6 +103,8 @@ services:
                   path: ./pv-validation-hub-client/public/static/assets/analysis
 
     sqs:
+        container_name: sqs
+
         image: softwaremill/elasticmq:latest
         ports:
             - '9324:9324'
@@ -113,6 +115,8 @@ services:
             - ./application.ini:/opt/docker/conf/application.ini
 
     worker:
+        container_name: worker
+
         build:
             context: ./workers
         env_file:
@@ -139,3 +143,6 @@ services:
 
 volumes:
     valhub:
+
+networks:
+    private-network:

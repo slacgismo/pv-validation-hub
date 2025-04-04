@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y \
 
 # COPY unzip.py .
 COPY requirements.txt .
+COPY whitelist-packages.txt .
+COPY verify_packages.py .
+COPY submission_wrapper.py .
 
 # Install the Python dependencies for the submission wrapper
 RUN pip install --upgrade pip
@@ -28,20 +31,23 @@ ARG zip_file
 COPY $zip_file .
 
 # Unzip the submission package
-
 RUN unzip -j $zip_file -d submission
 
 WORKDIR /app/submission
 
 # Install the Python dependencies
 RUN pip install --upgrade pip
+
+# Check if package is in whitelist-packages.txt
+RUN python ../verify_packages.py requirements.txt ../whitelist-packages.txt
+
+# Install the Python dependencies for the submission package
 RUN pip install -r requirements.txt
 RUN pip install typing-extensions
-
 
 # Set the working directory in the container
 WORKDIR /app
 
-COPY submission_wrapper.py .
+
 # Command to keep the container running without doing anything
 # CMD tail -f /dev/null

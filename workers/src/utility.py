@@ -9,7 +9,7 @@ from dask.distributed import Client
 from dask import config
 import docker
 from docker.models.containers import Container
-from docker.errors import ImageNotFound, BuildError
+from docker.errors import ImageNotFound, BuildError, APIError
 from docker.models.images import Image
 
 from concurrent.futures import (
@@ -1324,6 +1324,7 @@ def create_docker_image(
         return image
     else:
         logger_if_able("Docker image does not exist", logger)
+
         logger_if_able("Creating Docker image", logger)
 
         try:
@@ -1339,32 +1340,49 @@ def create_docker_image(
                     "python_version": python_version,
                 },
             )
-            for line in live_log_generator:
-                try:
-                    line_dict = json.loads(line)
-                    if line_dict.get("stream"):
-                        logger_if_able(
-                            line_dict["stream"].rstrip(), logger, "INFO"
+            image_id = None
+            last_event = None
+            for chunk in live_log_generator:
+                logs_list = parse_docker_logs(chunk)
+                for log in logs_list:
+                    json_dict: dict[str, str] = json.loads(log)
+                    if "error" in json_dict:
+                        raise BuildError(
+                            json_dict["error"].rstrip(), live_log_generator
                         )
-                except json.JSONDecodeError:
-                    logger_if_able(line, logger, "INFO")
+                    if "stream" in json_dict:
+                        logger_if_able(json_dict["stream"].rstrip(), logger)
+
+                last_event = chunk
+            if image_id:
+                image = client.images.get(image_id)
+            else:
+                raise BuildError(last_event or "Unknown", live_log_generator)
 
             logger_if_able("Docker image created")
-
-            try:
-                image = client.images.get(tag)
-            except ImageNotFound:
-                logger_if_able("Docker image not found", logger)
-            except Exception as e:
-                raise e
-
             return image
+        except APIError as e:
+            logger_if_able(f"Error: {e}", logger, "ERROR")
+            raise e
         except BuildError as e:
             logger_if_able(f"Error: {e}", logger, "ERROR")
             raise e
         except Exception as e:
             logger_if_able(f"Error: {e}", logger, "ERROR")
             raise e
+
+
+def parse_docker_logs(input: bytes) -> list[str]:
+    """
+    Parses the logs from the Docker container and returns a list of strings.
+    """
+    logs = input.decode("utf-8")
+    log_lines = logs.split("\r\n")
+    parsed_logs: list[str] = []
+    for line in log_lines:
+        if line:
+            parsed_logs.append(line.strip())
+    return parsed_logs
 
 
 class DockerClientContextManager:
@@ -1422,14 +1440,18 @@ def create_docker_image_for_submission(
     is_docker_daemon_running()
 
     with DockerClientContextManager() as client:
-        image = create_docker_image(
-            dir_path,
-            image_tag,
-            python_version,
-            submission_file_name,
-            client,
-            overwrite=overwrite,
-            logger=logger,
-        )
+        try:
+            image = create_docker_image(
+                dir_path,
+                image_tag,
+                python_version,
+                submission_file_name,
+                client,
+                overwrite=overwrite,
+                logger=logger,
+            )
+        except Exception as e:
+            logger_if_able(f"Error: {e}", logger, "ERROR")
+            raise e
 
     return image, image_tag
