@@ -415,8 +415,8 @@ def get_or_create_sqs_queue(queue_name: str):
     logger.info(f"Getting or creating SQS queue: {queue_name}")
     # Use the Docker endpoint URL for local development
     if IS_LOCAL:
-        sqs: SQSServiceResource = boto3.resource(
-            "sqs",  # type: ignore
+        sqs: SQSServiceResource = boto3.resource(  # type: ignore
+            "sqs",
             endpoint_url="http://sqs:9324",
             region_name="elasticmq",
             aws_secret_access_key="x",
@@ -425,8 +425,8 @@ def get_or_create_sqs_queue(queue_name: str):
         )
     # Use the production AWS environment for other environments
     else:
-        sqs: SQSServiceResource = boto3.resource(
-            "sqs",  # type: ignore
+        sqs: SQSServiceResource = boto3.resource(  # type: ignore
+            "sqs",
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
     logger.info(f"Retrieved SQS resource")
@@ -486,8 +486,8 @@ def get_analysis_pk():
 
 def get_aws_sqs_client():
     if IS_LOCAL:
-        sqs: SQSClient = boto3.client(
-            "sqs",  # type: ignore
+        sqs: SQSClient = boto3.client(  # type: ignore
+            "sqs",
             endpoint_url="http://sqs:9324",
             region_name="elasticmq",
             aws_secret_access_key="x",
@@ -496,8 +496,8 @@ def get_aws_sqs_client():
         )
         logger.info(f"Using local SQS endpoint")
     else:
-        sqs: SQSClient = boto3.client(
-            "sqs",  # type: ignore
+        sqs: SQSClient = boto3.client(  # type: ignore
+            "sqs",
             region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
         logger.info(f"Using AWS SQS endpoint")
@@ -578,6 +578,15 @@ def main():
         f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
+
+    if queue is None:
+        logger.error(
+            f"Failed to create or get SQS queue: valhub_submission_queue.fifo"
+        )
+        raise Exception(
+            f"Failed to create or get SQS queue: valhub_submission_queue.fifo"
+        )
+
     logger.info(f'Retrieved queue "valhub_submission_queue.fifo"')
     logger.info(f"SQS queue URL: {queue.url}")
 
