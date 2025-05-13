@@ -139,3 +139,39 @@ resource "aws_nat_gateway" "nat_gw" {
     Name = "valhub-nat-gw-${count.index + 1}"
   }
 }
+
+# TODO: Clean up the NAT Gateway and EIP resources
+resource "aws_lb" "ElasticLoadBalancingV2LoadBalancer" {
+  name               = "pv-validation-hub-api-lb-tf"
+  internal           = false
+  load_balancer_type = "application"
+  subnets = [
+    "subnet-0de884df2b205823d",
+    "subnet-0e882e68ceca68715"
+  ]
+  security_groups = [
+    "sg-014bf3b8a42b9db1d"
+  ]
+  ip_address_type = "ipv4"
+  access_logs {
+    enabled = false
+    bucket  = ""
+    prefix  = ""
+  }
+  idle_timeout                     = "60"
+  enable_deletion_protection       = "false"
+  enable_http2                     = "true"
+  enable_cross_zone_load_balancing = "true"
+}
+
+module "asg" {
+  source = "./autoscalinggroups"
+
+
+  private_subnet_ids = aws_subnet.private_subnets[*].id
+
+}
+
+module "cloudfront" {
+  source = "./cloudfront"
+}
