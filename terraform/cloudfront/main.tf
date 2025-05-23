@@ -3,8 +3,8 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
     "private-content.pv-validation-hub.org"
   ]
   origin {
-    domain_name = "pv-validation-hub-bucket.s3.us-west-2.amazonaws.com"
-    origin_id   = "pv-validation-hub-bucket.s3.us-west-2.amazonaws.com"
+    domain_name = "valhub-bucket.s3.us-west-2.amazonaws.com"
+    origin_id   = "valhub-bucket.s3.us-west-2.amazonaws.com"
 
     origin_path = ""
     s3_origin_config {
@@ -12,7 +12,10 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
     }
   }
   default_cache_behavior {
-    cached_methods = aws_cloudfront_distribution.CloudFrontDistribution2.default_cache_behavior[0].cached_methods
+    cached_methods = [
+      "HEAD",
+      "GET"
+    ]
     allowed_methods = [
       "HEAD",
       "GET"
@@ -28,7 +31,7 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
     max_ttl                = 31536000
     min_ttl                = 0
     smooth_streaming       = false
-    target_origin_id       = "pv-validation-hub-bucket.s3.us-west-2.amazonaws.com"
+    target_origin_id       = "valhub-bucket.s3.us-west-2.amazonaws.com"
     viewer_protocol_policy = "redirect-to-https"
   }
   comment     = ""
@@ -51,7 +54,7 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
 
 resource "aws_cloudfront_distribution" "CloudFrontDistribution2" {
   aliases = [
-    "pv-validation-hub.org"
+    "valhub.org"
   ]
   origin {
     custom_origin_config {
@@ -66,8 +69,8 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution2" {
         "TLSv1.2"
       ]
     }
-    domain_name = "pv-validation-hub-website.s3-website-us-west-2.amazonaws.com"
-    origin_id   = "S3-WEBSITE-pv-validation-hub-website"
+    domain_name = "valhub-website.s3-website-us-west-2.amazonaws.com"
+    origin_id   = "S3-WEBSITE-valhub-website"
 
     origin_path = ""
   }
@@ -89,7 +92,7 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution2" {
     max_ttl                = 86400
     min_ttl                = 0
     smooth_streaming       = false
-    target_origin_id       = "S3-WEBSITE-pv-validation-hub-website"
+    target_origin_id       = "S3-WEBSITE-valhub-website"
     viewer_protocol_policy = "redirect-to-https"
   }
   comment     = ""

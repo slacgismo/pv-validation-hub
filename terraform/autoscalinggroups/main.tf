@@ -54,34 +54,65 @@ resource "aws_launch_configuration" "lc" {
 }
 
 # resource "aws_ecs_cluster" "worker_cluster" {
-#   name = "pv-validation-hub-worker-cluster"
+#   name = "valhub-worker-cluster"
 # }
 
 resource "aws_ecs_cluster" "worker_cluster_prod" {
-  name = "pv-validation-hub-worker-cluster-prod"
+  name = "valhub-worker-cluster-prod"
 }
 
 resource "aws_ecs_cluster" "api_cluster" {
-  name = "pv-validation-hub-api-cluster"
+  name = "valhub-api-cluster"
 }
 
 resource "aws_ecr_repository" "api_repository" {
-  name = "pv-validation-hub-api"
+  name = "valhub-api"
 }
 
 resource "aws_ecr_repository" "worker_repository" {
-  name = "pv-validation-hub-worker"
+  name = "valhub-worker"
 }
 
-# TODO: Clean up ECS service
+# IAM role for ECS task execution
+
+
+# TODO: Fix issue with policy that is throwing an error
+data "aws_iam_policy_document" "ecs_assume_role_policy" {
+  statement {
+    actions = [
+      "sts:AssumeRole"
+    ]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_service_role_policy" {
+  name   = "valhub-ecs-service-role-policy"
+  role   = aws_iam_role.ecs_service_role.id
+  policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+}
+
+resource "aws_iam_role" "ecs_service_role" {
+  name               = "valhub-ecs-service-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+}
+
+# # TODO: Clean up ECS service
 resource "aws_ecs_service" "ECSService" {
   name                               = "worker-service"
-  cluster                            = "arn:aws:ecs:us-west-2:041414866712:cluster/pv-validation-hub-worker-cluster-prod"
+  cluster                            = aws_ecs_cluster.worker_cluster_prod.id
   desired_count                      = 1
-  task_definition                    = aws_ecs_task_definition.ECSTaskDefinition.arn
+  task_definition                    = aws_ecs_task_definition.worker_task_definition.arn
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
-  iam_role                           = "arn:aws:iam::041414866712:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
+  iam_role                           = aws_iam_role.ecs_service_role.arn
+
+  depends_on = [aws_iam_role_policy.ecs_service_role_policy]
+
   ordered_placement_strategy {
     type  = "spread"
     field = "attribute:ecs.availability-zone"
@@ -91,25 +122,91 @@ resource "aws_ecs_service" "ECSService" {
     field = "instanceId"
   }
   network_configuration {
-    assign_public_ip = "DISABLED"
-    security_groups = [
-      "sg-0ec6afe88decf3d1a"
-    ]
-    subnets = [
-      "subnet-0767b7cb80009dfe8",
-      "subnet-0d8bbfb46646711d2"
-    ]
+    assign_public_ip = false
+
+    subnets = var.private_subnet_ids
   }
   scheduling_strategy = "REPLICA"
 }
 
 # TODO: Clean up ECS task definition
-resource "aws_ecs_task_definition" "ECSTaskDefinition" {
-  container_definitions = "[{\"name\":\"pv-validation-hub-worker-task-ec2\",\"image\":\"041414866712.dkr.ecr.us-west-2.amazonaws.com/pv-validation-hub-worker:latest\",\"cpu\":4096,\"memory\":12288,\"memoryReservation\":12288,\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\",\"name\":\"pv-validation-hub-worker-task-ec2-80-tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\",\"name\":\"pv-validation-hub-worker-task-ec2-443-tcp\"},{\"containerPort\":22,\"hostPort\":22,\"protocol\":\"tcp\",\"name\":\"pv-validation-hub-worker-task-22-ec2-tcp\"},{\"containerPort\":65535,\"hostPort\":65535,\"protocol\":\"tcp\",\"name\":\"pv-validation-hub-worker-task-ec2-65535-tcp\"}],\"essential\":true,\"environment\":[],\"mountPoints\":[{\"sourceVolume\":\"docker_in_docker\",\"containerPath\":\"/var/run/docker.sock\"},{\"sourceVolume\":\"current_evaluation\",\"containerPath\":\"/root/worker/current_evaluation\",\"readOnly\":false}],\"volumesFrom\":[],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/pv-validation-hub-worker-task-ec2\",\"awslogs-create-group\":\"true\",\"awslogs-region\":\"us-west-2\",\"awslogs-stream-prefix\":\"pv-validation-hub-worker-task-ec2\"}},\"systemControls\":[]}]"
-  family                = "pv-validation-hub-worker-task-ec2"
-  task_role_arn         = "arn:aws:iam::041414866712:role/valhub-ecs-task-role"
-  execution_role_arn    = "arn:aws:iam::041414866712:role/valhub_worker_ecs_task_execution_role"
-  network_mode          = "awsvpc"
+
+resource "aws_iam_role" "ecs_task_role" {
+  name               = "valhub-ecs-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+}
+
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name               = "valhub_worker_ecs_task_execution_role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+}
+
+
+resource "aws_ecs_task_definition" "worker_task_definition" {
+  container_definitions = jsonencode([
+    {
+      name              = "pv-validation-hub-worker-task-ec2",
+      image             = aws_ecr_repository.worker_repository.repository_url,
+      cpu               = 4096,
+      memory            = 12288,
+      memoryReservation = 12288,
+      portMappings = [
+        {
+          containerPort = 80,
+          hostPort      = 80,
+          protocol      = "tcp",
+          name          = "pv-validation-hub-worker-task-ec2-80-tcp"
+        },
+        {
+          containerPort = 443,
+          hostPort      = 443,
+          protocol      = "tcp",
+          name          = "pv-validation-hub-worker-task-ec2-443-tcp"
+        },
+        {
+          containerPort = 22,
+          hostPort      = 22,
+          protocol      = "tcp",
+          name          = "pv-validation-hub-worker-task-22-ec2-tcp"
+        },
+        {
+          containerPort = 65535,
+          hostPort      = 65535,
+          protocol      = "tcp",
+          name          = "pv-validation-hub-worker-task-ec2-65535-tcp"
+        }
+      ],
+      essential   = true,
+      environment = [],
+      mountPoints = [
+        {
+          sourceVolume  = "docker_in_docker",
+          containerPath = "/var/run/docker.sock"
+        },
+        {
+          sourceVolume  = "current_evaluation",
+          containerPath = "/root/worker/current_evaluation",
+          readOnly      = false
+        }
+      ],
+      volumesFrom = [],
+      logConfiguration = {
+        logDriver = "awslogs",
+        options = {
+          awslogs-group         = "/ecs/pv-validation-hub-worker-task-ec2",
+          awslogs-create-group  = "true",
+          awslogs-region        = "us-west-2",
+          awslogs-stream-prefix = "pv-validation-hub-worker-task-ec2"
+        }
+      },
+      systemControls = []
+    }
+  ])
+
+  family             = "valhub-worker-task-ec2"
+  task_role_arn      = aws_iam_role.ecs_task_role.arn
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  network_mode       = "awsvpc"
   volume {
     name      = "docker_in_docker"
     host_path = "/var/run/docker.sock"
@@ -126,30 +223,36 @@ resource "aws_ecs_task_definition" "ECSTaskDefinition" {
 }
 
 # TODO: Clean up ECS service
-resource "aws_ecs_service" "ECSService2" {
+
+resource "aws_lb_target_group" "api_target_group" {
+  name     = "valhub-api-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+}
+
+resource "aws_ecs_service" "ecs_api_service" {
   name    = "ecs-api-service"
-  cluster = "arn:aws:ecs:us-west-2:041414866712:cluster/pv-validation-hub-api-cluster"
+  cluster = aws_ecs_cluster.api_cluster.id
   load_balancer {
-    target_group_arn = "arn:aws:elasticloadbalancing:us-west-2:041414866712:targetgroup/valhub-api-target-group/f3f1612b69db93c6"
-    container_name   = "pv-validation-hub-api-task"
+    target_group_arn = aws_lb_target_group.api_target_group.arn
+    container_name   = "valhub-api-task"
     container_port   = 80
   }
   desired_count                      = 1
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
-  task_definition                    = aws_ecs_task_definition.ECSTaskDefinition2.arn
+  task_definition                    = aws_ecs_task_definition.ecs_api_task_definition.arn
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
-  iam_role                           = "arn:aws:iam::041414866712:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
+  iam_role                           = aws_iam_role.ecs_service_role.arn
+  depends_on                         = [aws_iam_role_policy.ecs_service_role_policy]
   network_configuration {
-    assign_public_ip = "ENABLED"
+    assign_public_ip = false
     security_groups = [
       "sg-08f04514e1770cd92"
     ]
-    subnets = [
-      "subnet-0de884df2b205823d",
-      "subnet-0e882e68ceca68715"
-    ]
+    subnets = var.public_subnet_ids
   }
   health_check_grace_period_seconds = 120
   scheduling_strategy               = "REPLICA"
@@ -157,12 +260,50 @@ resource "aws_ecs_service" "ECSService2" {
 
 
 # TODO: Clean up ECS task definition
-resource "aws_ecs_task_definition" "ECSTaskDefinition2" {
-  container_definitions = "[{\"name\":\"pv-validation-hub-api-task\",\"image\":\"041414866712.dkr.ecr.us-west-2.amazonaws.com/pv-validation-hub-api:latest\",\"cpu\":1024,\"memory\":2048,\"portMappings\":[{\"containerPort\":80,\"hostPort\":80,\"protocol\":\"tcp\"},{\"containerPort\":443,\"hostPort\":443,\"protocol\":\"tcp\"},{\"containerPort\":22,\"hostPort\":22,\"protocol\":\"tcp\"}],\"essential\":true,\"environment\":[],\"mountPoints\":[],\"volumesFrom\":[],\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/pv-validation-hub-api-task\",\"awslogs-create-group\":\"true\",\"awslogs-region\":\"us-west-2\",\"awslogs-stream-prefix\":\"pv-validation-hub-api-task\"}},\"systemControls\":[]}]"
-  family                = "pv-validation-hub-api-task"
-  task_role_arn         = "arn:aws:iam::041414866712:role/valhub-ecs-task-role"
-  execution_role_arn    = "arn:aws:iam::041414866712:role/valhub_ecs_task_execution_role"
-  network_mode          = "awsvpc"
+resource "aws_ecs_task_definition" "ecs_api_task_definition" {
+  container_definitions = jsonencode([
+    {
+      name   = "pv-validation-hub-api-task",
+      image  = aws_ecr_repository.api_repository.repository_url,
+      cpu    = 1024,
+      memory = 2048,
+      portMappings = [
+        {
+          containerPort = 80,
+          hostPort      = 80,
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 443,
+          hostPort      = 443,
+          protocol      = "tcp"
+        },
+        {
+          containerPort = 22,
+          hostPort      = 22,
+          protocol      = "tcp"
+        }
+      ],
+      essential   = true,
+      environment = [],
+      mountPoints = [],
+      volumesFrom = [],
+      logConfiguration = {
+        logDriver = "awslogs",
+        options = {
+          awslogs-group         = "/ecs/pv-validation-hub-api-task",
+          awslogs-create-group  = "true",
+          awslogs-region        = "us-west-2",
+          awslogs-stream-prefix = "pv-validation-hub-api-task"
+        }
+      },
+      systemControls = []
+    }
+  ])
+  family             = "valhub-api-task"
+  task_role_arn      = aws_iam_role.ecs_task_role.arn
+  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  network_mode       = "awsvpc"
   requires_compatibilities = [
     "FARGATE"
   ]

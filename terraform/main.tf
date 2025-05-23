@@ -33,21 +33,21 @@ resource "aws_flow_log" "vpc_flow_log" {
 }
 
 resource "aws_iam_role" "vpc_flow_log_role" {
-  name               = "valhub-vpc-flow-log-role"
-  assume_role_policy = <<EOF
-  {
-    "Version": "2012-10-17",
-    "Statement": [
+  name = "valhub-vpc-flow-log-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
       {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "vpc-flow-logs.amazonaws.com"
-        },
-        "Action": "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "vpc-flow-logs.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
       }
     ]
-  }
-EOF
+  })
+
+
   tags = {
     Name = "valhub-vpc-flow-log-role"
   }
@@ -142,13 +142,10 @@ resource "aws_nat_gateway" "nat_gw" {
 
 # TODO: Clean up the NAT Gateway and EIP resources
 resource "aws_lb" "ElasticLoadBalancingV2LoadBalancer" {
-  name               = "pv-validation-hub-api-lb-tf"
+  name               = "valhub-api-lb-tf"
   internal           = false
   load_balancer_type = "application"
-  subnets = [
-    "subnet-0de884df2b205823d",
-    "subnet-0e882e68ceca68715"
-  ]
+  subnets            = aws_subnet.public_subnets[*].id
   security_groups = [
     "sg-014bf3b8a42b9db1d"
   ]
@@ -164,14 +161,18 @@ resource "aws_lb" "ElasticLoadBalancingV2LoadBalancer" {
   enable_cross_zone_load_balancing = "true"
 }
 
+
+
 module "asg" {
   source = "./autoscalinggroups"
 
 
   private_subnet_ids = aws_subnet.private_subnets[*].id
+  public_subnet_ids  = aws_subnet.public_subnets[*].id
+  vpc_id             = aws_vpc.main.id
 
 }
 
-module "cloudfront" {
-  source = "./cloudfront"
-}
+# module "cloudfront" {
+#   source = "./cloudfront"
+# }
