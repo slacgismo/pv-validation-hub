@@ -9,7 +9,9 @@ resource "aws_ami" "worker_ami" {
     delete_on_termination = true
     encrypted             = true
   }
-
+  tags = {
+    Name = "valhub-worker-ami"
+  }
 }
 
 resource "aws_autoscaling_group" "asg" {
@@ -20,22 +22,17 @@ resource "aws_autoscaling_group" "asg" {
   launch_configuration = aws_launch_configuration.lc.id
   # availability_zones   = var.private_subnet_ids
 
-
-
   tag {
     key                 = "Name"
     value               = "valhub-asg"
     propagate_at_launch = true
   }
-
-
 }
 
 resource "aws_launch_configuration" "lc" {
   name          = "valhub-launch-configuration"
   image_id      = aws_ami.worker_ami.id
   instance_type = "t2.micro"
-
 
   root_block_device {
     volume_size = 8
@@ -50,61 +47,95 @@ resource "aws_launch_configuration" "lc" {
     create_before_destroy = true
   }
 
-
 }
 
-# resource "aws_ecs_cluster" "worker_cluster" {
-#   name = "valhub-worker-cluster"
-# }
-
-resource "aws_ecs_cluster" "worker_cluster_prod" {
-  name = "valhub-worker-cluster-prod"
+resource "aws_ecs_cluster" "worker_cluster" {
+  name = "valhub-worker-cluster"
+  tags = {
+    Name = "valhub-worker-cluster"
+  }
 }
 
 resource "aws_ecs_cluster" "api_cluster" {
   name = "valhub-api-cluster"
+  tags = {
+    Name = "valhub-api-cluster"
+  }
 }
 
 resource "aws_ecr_repository" "api_repository" {
   name = "valhub-api"
+  tags = {
+    Name = "valhub-api-repository"
+  }
 }
 
 resource "aws_ecr_repository" "worker_repository" {
   name = "valhub-worker"
+  tags = {
+    Name = "valhub-worker-repository"
+  }
 }
 
 # IAM role for ECS task execution
 
 
 # TODO: Fix issue with policy that is throwing an error
-data "aws_iam_policy_document" "ecs_assume_role_policy" {
-  statement {
-    actions = [
-      "sts:AssumeRole"
-    ]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ecs.amazonaws.com"]
-    }
-  }
-}
 
 resource "aws_iam_role_policy" "ecs_service_role_policy" {
-  name   = "valhub-ecs-service-role-policy"
-  role   = aws_iam_role.ecs_service_role.id
-  policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+  name = "valhub-ecs-service-role-policy"
+  role = aws_iam_role.ecs_service_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:CreateCluster",
+          "ecs:DeregisterContainerInstance",
+          "ecs:DiscoverPollEndpoint",
+          "ecs:Poll",
+          "ecs:RegisterContainerInstance",
+          "ecs:StartTelemetrySession",
+          "ecs:Submit*"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+
 }
 
 resource "aws_iam_role" "ecs_service_role" {
-  name               = "valhub-ecs-service-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+  name = "valhub-ecs-service-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+  tags = {
+    Name = "valhub-ecs-service-role"
+  }
 }
 
 # # TODO: Clean up ECS service
-resource "aws_ecs_service" "ECSService" {
+resource "aws_ecs_service" "ecs_worker_service" {
   name                               = "worker-service"
-  cluster                            = aws_ecs_cluster.worker_cluster_prod.id
+  cluster                            = aws_ecs_cluster.worker_cluster.id
   desired_count                      = 1
   task_definition                    = aws_ecs_task_definition.worker_task_definition.arn
   deployment_maximum_percent         = 200
@@ -127,25 +158,54 @@ resource "aws_ecs_service" "ECSService" {
     subnets = var.private_subnet_ids
   }
   scheduling_strategy = "REPLICA"
+  tags = {
+    Name = "valhub-ecs-worker-service"
+  }
 }
 
-# TODO: Clean up ECS task definition
+# TODO: Clean up ECS task definition\
+
+
 
 resource "aws_iam_role" "ecs_task_role" {
-  name               = "valhub-ecs-task-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+  name = "valhub-ecs-task-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+  tags = {
+    Name = "valhub-ecs-task-role"
+  }
 }
 
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name               = "valhub_worker_ecs_task_execution_role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+  name = "valhub_worker_ecs_task_execution_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ecs-tasks.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+  tags = {
+    Name = "valhub-worker-ecs-task-execution-role"
+  }
 }
 
 
 resource "aws_ecs_task_definition" "worker_task_definition" {
   container_definitions = jsonencode([
     {
-      name              = "pv-validation-hub-worker-task-ec2",
+      name              = "valhub-worker-task-ec2",
       image             = aws_ecr_repository.worker_repository.repository_url,
       cpu               = 4096,
       memory            = 12288,
@@ -155,25 +215,25 @@ resource "aws_ecs_task_definition" "worker_task_definition" {
           containerPort = 80,
           hostPort      = 80,
           protocol      = "tcp",
-          name          = "pv-validation-hub-worker-task-ec2-80-tcp"
+          name          = "valhub-worker-task-ec2-80-tcp"
         },
         {
           containerPort = 443,
           hostPort      = 443,
           protocol      = "tcp",
-          name          = "pv-validation-hub-worker-task-ec2-443-tcp"
+          name          = "valhub-worker-task-ec2-443-tcp"
         },
         {
           containerPort = 22,
           hostPort      = 22,
           protocol      = "tcp",
-          name          = "pv-validation-hub-worker-task-22-ec2-tcp"
+          name          = "valhub-worker-task-22-ec2-tcp"
         },
         {
           containerPort = 65535,
           hostPort      = 65535,
           protocol      = "tcp",
-          name          = "pv-validation-hub-worker-task-ec2-65535-tcp"
+          name          = "valhub-worker-task-ec2-65535-tcp"
         }
       ],
       essential   = true,
@@ -193,10 +253,10 @@ resource "aws_ecs_task_definition" "worker_task_definition" {
       logConfiguration = {
         logDriver = "awslogs",
         options = {
-          awslogs-group         = "/ecs/pv-validation-hub-worker-task-ec2",
+          awslogs-group         = "/ecs/valhub-worker-task-ec2",
           awslogs-create-group  = "true",
-          awslogs-region        = "us-west-2",
-          awslogs-stream-prefix = "pv-validation-hub-worker-task-ec2"
+          awslogs-region        = "us-west-1",
+          awslogs-stream-prefix = "valhub-worker-task-ec2"
         }
       },
       systemControls = []
@@ -220,6 +280,9 @@ resource "aws_ecs_task_definition" "worker_task_definition" {
   ]
   cpu    = "4096"
   memory = "12288"
+  tags = {
+    Name = "valhub-ecs-worker-task-definition"
+  }
 }
 
 # TODO: Clean up ECS service
@@ -229,6 +292,9 @@ resource "aws_lb_target_group" "api_target_group" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = var.vpc_id
+  tags = {
+    Name = "valhub-api-target-group"
+  }
 }
 
 resource "aws_ecs_service" "ecs_api_service" {
@@ -256,6 +322,9 @@ resource "aws_ecs_service" "ecs_api_service" {
   }
   health_check_grace_period_seconds = 120
   scheduling_strategy               = "REPLICA"
+  tags = {
+    Name = "valhub-ecs-api-service"
+  }
 }
 
 
@@ -263,7 +332,7 @@ resource "aws_ecs_service" "ecs_api_service" {
 resource "aws_ecs_task_definition" "ecs_api_task_definition" {
   container_definitions = jsonencode([
     {
-      name   = "pv-validation-hub-api-task",
+      name   = "valhub-api-task",
       image  = aws_ecr_repository.api_repository.repository_url,
       cpu    = 1024,
       memory = 2048,
@@ -291,10 +360,10 @@ resource "aws_ecs_task_definition" "ecs_api_task_definition" {
       logConfiguration = {
         logDriver = "awslogs",
         options = {
-          awslogs-group         = "/ecs/pv-validation-hub-api-task",
+          awslogs-group         = "/ecs/valhub-api-task",
           awslogs-create-group  = "true",
-          awslogs-region        = "us-west-2",
-          awslogs-stream-prefix = "pv-validation-hub-api-task"
+          awslogs-region        = "us-west-1",
+          awslogs-stream-prefix = "valhub-api-task"
         }
       },
       systemControls = []
@@ -309,4 +378,7 @@ resource "aws_ecs_task_definition" "ecs_api_task_definition" {
   ]
   cpu    = "1024"
   memory = "2048"
+  tags = {
+    Name = "valhub-ecs-api-task-definition"
+  }
 }

@@ -16,4 +16,13 @@ variable "private_subnet_cidrs" {
   default     = ["10.0.128.0/24", "10.0.129.0/24"]
 }
 
+variable "global_tags" {
+  description = "Global tags to apply to all resources"
+  type        = map(string)
+  default = {
+    Environment = "production"
+    Project     = "valhub"
+    Owner       = "pvinsight"
+  }
+}
 

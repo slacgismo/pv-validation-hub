@@ -9,6 +9,9 @@ terraform {
 
 provider "aws" {
   region = "us-west-1"
+  default_tags {
+    tags = var.global_tags
+  }
 }
 
 resource "aws_vpc" "main" {
@@ -46,8 +49,6 @@ resource "aws_iam_role" "vpc_flow_log_role" {
       }
     ]
   })
-
-
   tags = {
     Name = "valhub-vpc-flow-log-role"
   }
@@ -71,7 +72,6 @@ resource "aws_kms_key" "cloudwatch_log_key" {
     Name = "valhub-cloudwatch-log-key"
   }
 }
-
 
 resource "aws_subnet" "public_subnets" {
   count             = length(var.public_subnet_cidrs)
@@ -141,24 +141,38 @@ resource "aws_nat_gateway" "nat_gw" {
 }
 
 # TODO: Clean up the NAT Gateway and EIP resources
-resource "aws_lb" "ElasticLoadBalancingV2LoadBalancer" {
+
+resource "aws_security_group" "valhub_api_lb_sg" {
+  name        = "valhub-api-lb-sg"
+  description = "Security group for Valhub API Load Balancer"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "valhub-api-lb-sg"
+  }
+}
+
+
+resource "aws_lb" "valhub_api_lb" {
   name               = "valhub-api-lb-tf"
   internal           = false
   load_balancer_type = "application"
   subnets            = aws_subnet.public_subnets[*].id
-  security_groups = [
-    "sg-014bf3b8a42b9db1d"
-  ]
+  security_groups    = [aws_security_group.valhub_api_lb_sg.id]
+
   ip_address_type = "ipv4"
   access_logs {
     enabled = false
     bucket  = ""
     prefix  = ""
   }
-  idle_timeout                     = "60"
-  enable_deletion_protection       = "false"
-  enable_http2                     = "true"
-  enable_cross_zone_load_balancing = "true"
+  idle_timeout                     = 60
+  enable_deletion_protection       = false
+  enable_http2                     = true
+  enable_cross_zone_load_balancing = true
+  tags = {
+    Name = "valhub-api-lb-tf"
+  }
 }
 
 
@@ -166,13 +180,15 @@ resource "aws_lb" "ElasticLoadBalancingV2LoadBalancer" {
 module "asg" {
   source = "./autoscalinggroups"
 
-
   private_subnet_ids = aws_subnet.private_subnets[*].id
   public_subnet_ids  = aws_subnet.public_subnets[*].id
   vpc_id             = aws_vpc.main.id
-
 }
 
 # module "cloudfront" {
 #   source = "./cloudfront"
 # }
+
+module "sqs" {
+  source = "./sqs"
+}
