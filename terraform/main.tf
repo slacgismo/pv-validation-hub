@@ -185,10 +185,21 @@ module "asg" {
   vpc_id             = aws_vpc.main.id
 }
 
-# module "cloudfront" {
-#   source = "./cloudfront"
-# }
+module "cloudfront" {
+  source = "./cloudfront"
+}
 
 module "sqs" {
   source = "./sqs"
+}
+
+module "s3" {
+  source = "./s3"
+}
+
+module "rds" {
+  source = "./rds"
+
+  vpc_id             = aws_vpc.main.id
+  private_subnet_ids = aws_subnet.private_subnets[*].id
 }

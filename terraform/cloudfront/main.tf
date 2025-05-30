@@ -1,10 +1,23 @@
-resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
+resource "aws_acm_certificate" "valhub_acm_certificate" {
+  domain_name       = "pv-validation-hub.org"
+  validation_method = "DNS"
+  tags = {
+    Name = "valhub-certificate"
+  }
+
+}
+
+data "aws_s3_bucket" "valhub_bucket" {
+  bucket = "valhub-bucket"
+}
+
+resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distribution" {
   aliases = [
     "private-content.pv-validation-hub.org"
   ]
   origin {
-    domain_name = "valhub-bucket.s3.us-west-2.amazonaws.com"
-    origin_id   = "valhub-bucket.s3.us-west-2.amazonaws.com"
+    domain_name = "valhub-bucket.s3.us-west-1.amazonaws.com"
+    origin_id   = "valhub-bucket.s3.us-west-1.amazonaws.com"
 
     origin_path = ""
     s3_origin_config {
@@ -31,14 +44,14 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
     max_ttl                = 31536000
     min_ttl                = 0
     smooth_streaming       = false
-    target_origin_id       = "valhub-bucket.s3.us-west-2.amazonaws.com"
+    target_origin_id       = "valhub-bucket.s3.us-west-1.amazonaws.com"
     viewer_protocol_policy = "redirect-to-https"
   }
   comment     = ""
   price_class = "PriceClass_All"
   enabled     = true
   viewer_certificate {
-    acm_certificate_arn            = "arn:aws:acm:us-east-1:041414866712:certificate/75619ac2-080f-45c4-bc88-c09fcb79d6fb"
+    acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
     cloudfront_default_certificate = false
     minimum_protocol_version       = "TLSv1.2_2021"
     ssl_support_method             = "sni-only"
@@ -52,9 +65,9 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution" {
   is_ipv6_enabled = true
 }
 
-resource "aws_cloudfront_distribution" "CloudFrontDistribution2" {
+resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" {
   aliases = [
-    "valhub.org"
+    "pv-validation-hub.org"
   ]
   origin {
     custom_origin_config {
@@ -75,7 +88,11 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution2" {
     origin_path = ""
   }
   default_cache_behavior {
-    cached_methods = aws_cloudfront_distribution.CloudFrontDistribution2.default_cache_behavior[0].cached_methods
+    cached_methods = [
+      "HEAD",
+      "GET",
+      "OPTIONS"
+    ]
     allowed_methods = [
       "HEAD",
       "GET",
@@ -99,7 +116,7 @@ resource "aws_cloudfront_distribution" "CloudFrontDistribution2" {
   price_class = "PriceClass_All"
   enabled     = true
   viewer_certificate {
-    acm_certificate_arn            = "arn:aws:acm:us-east-1:041414866712:certificate/75619ac2-080f-45c4-bc88-c09fcb79d6fb"
+    acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
     cloudfront_default_certificate = false
     minimum_protocol_version       = "TLSv1.2_2019"
     ssl_support_method             = "sni-only"
