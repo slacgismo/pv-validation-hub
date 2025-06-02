@@ -140,6 +140,14 @@ class InsertAnalysis:
             self.new_file_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
                 self.file_metadata_file_path
             )
+            if not hasAllColumns(self.new_file_metadata_df, ["file_id"]):
+                # If the file_id column does not exist, create it
+                logger.info(
+                    "file_id column does not exist in the file metadata dataframe. Creating it."
+                )
+                self.new_file_metadata_df.insert(
+                    0, "file_id", range(0, len(self.new_file_metadata_df))
+                )
 
     def pullDataFilesFromAWSS3(self, file_metadata_files: list[str]):
         """
@@ -405,7 +413,9 @@ class InsertAnalysis:
             )
 
         frontend_development_assets_folder_exists = os.path.exists(
-            os.path.join(self.front_end_assets_folder_path, "development")
+            os.path.join(
+                self.front_end_assets_folder_path, "analysis/development"
+            )
         )
 
         if not frontend_development_assets_folder_exists:

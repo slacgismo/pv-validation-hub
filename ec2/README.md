@@ -112,6 +112,9 @@ Required columns:
 system_id,name,latitude,longitude
 ```
 
+**name** is the primary key and must be unique to pass validation
+**system_id** must be unique within the file to pass validation
+
 Optional columns:
 
 ```csv
@@ -120,14 +123,16 @@ azimuth,tilt,elevation,tracking,dc_capacity
 
 Ideally we want to include as many optional columns as we can, although for some data sets this may not be possible as the data is unavailable.
 
-
 ### file_metadata.csv
 
 Required columns:
 
 ```csv
-file_id,system_id,file_name,include_on_leaderboard
+system_id,file_name,include_on_leaderboard
 ```
+
+**file_name** is the primary key and must be unique to pass validation
+**system_id** must match a local `system_id` within the `system_metadata.csv` file. All `system_id` are mapped to a new internal increment identifier within the database upon a valid insertion.
 
 Optional columns:
 
