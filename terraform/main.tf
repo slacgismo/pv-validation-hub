@@ -185,17 +185,20 @@ module "asg" {
   vpc_id             = aws_vpc.main.id
 }
 
+module "s3" {
+  source = "./s3"
+}
+
 module "cloudfront" {
-  source = "./cloudfront"
+  source                  = "./cloudfront"
+  valhub_logs_bucket_name = module.s3.valhub_logs_bucket_name
 }
 
 module "sqs" {
   source = "./sqs"
 }
 
-module "s3" {
-  source = "./s3"
-}
+
 
 module "rds" {
   source = "./rds"

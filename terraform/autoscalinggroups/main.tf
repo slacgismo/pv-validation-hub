@@ -51,6 +51,12 @@ resource "aws_launch_configuration" "lc" {
 
 resource "aws_ecs_cluster" "worker_cluster" {
   name = "valhub-worker-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
   tags = {
     Name = "valhub-worker-cluster"
   }
@@ -58,17 +64,41 @@ resource "aws_ecs_cluster" "worker_cluster" {
 
 resource "aws_ecs_cluster" "api_cluster" {
   name = "valhub-api-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
   tags = {
     Name = "valhub-api-cluster"
   }
 }
 
+resource "aws_kms_key" "ecr_kms_key" {
+  description             = "KMS key for ECR repository encryption"
+  enable_key_rotation     = true
+  deletion_window_in_days = 7
+
+  tags = {
+    Name = "valhub-ecr-kms-key"
+  }
+
+}
+
 resource "aws_ecr_repository" "api_repository" {
   name = "valhub-api"
+
+  image_tag_mutability = "IMMUTABLE"
+
   image_scanning_configuration {
     scan_on_push = true
   }
-  image_tag_mutability = "IMMUTABLE"
+
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.ecr_kms_key.arn
+  }
+
   tags = {
     Name = "valhub-api-repository"
   }
@@ -80,6 +110,11 @@ resource "aws_ecr_repository" "worker_repository" {
 
   image_scanning_configuration {
     scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.ecr_kms_key.arn
   }
   tags = {
     Name = "valhub-worker-repository"

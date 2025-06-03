@@ -38,7 +38,7 @@ resource "aws_db_instance" "valhub_rds_instance" {
   username                            = "valhub_admin"
   master_user_secret_kms_key_id       = aws_kms_key.valhub_kms_key.id
   backup_window                       = "09:39-10:09"
-  backup_retention_period             = 0
+  backup_retention_period             = 5
   maintenance_window                  = "fri:07:07-fri:07:37"
   multi_az                            = false
   engine_version                      = "14.12"
@@ -50,9 +50,11 @@ resource "aws_db_instance" "valhub_rds_instance" {
   storage_encrypted                   = true
   copy_tags_to_snapshot               = false
   monitoring_interval                 = 0
-  iam_database_authentication_enabled = false
-  deletion_protection                 = false
+  iam_database_authentication_enabled = true
+  deletion_protection                 = true
   skip_final_snapshot                 = true
+  performance_insights_enabled        = true
+  performance_insights_kms_key_id     = aws_kms_key.valhub_kms_key.id
   db_subnet_group_name                = aws_db_subnet_group.valhub_rds_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.valhub_rds_sg.id]
 

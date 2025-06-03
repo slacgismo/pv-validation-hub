@@ -7,10 +7,6 @@ resource "aws_acm_certificate" "valhub_acm_certificate" {
 
 }
 
-data "aws_s3_bucket" "valhub_bucket" {
-  bucket = "valhub-bucket"
-}
-
 resource "aws_wafv2_web_acl" "valhub_waf_web_acl" {
   name        = "valhub-web-acl"
   description = "WAF ACL for ValHub"
@@ -52,6 +48,9 @@ resource "aws_wafv2_web_acl" "valhub_waf_web_acl" {
 }
 
 resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distribution" {
+
+
+
   aliases = [
     "private-content.pv-validation-hub.org"
   ]
@@ -103,9 +102,18 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
       restriction_type = "none"
     }
   }
+
+  logging_config {
+    bucket          = "${var.valhub_logs_bucket_name}.s3.amazonaws.com"
+    include_cookies = false
+    prefix          = "cloudfront-logs/private-content/"
+  }
+
   http_version    = "http2"
   is_ipv6_enabled = true
 }
+
+
 
 resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" {
   aliases = [
@@ -171,6 +179,13 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
       restriction_type = "none"
     }
   }
+
+  logging_config {
+    bucket          = "${var.valhub_logs_bucket_name}.s3.amazonaws.com"
+    include_cookies = false
+    prefix          = "cloudfront-logs/valhub-website/"
+  }
+
   http_version    = "http2"
   is_ipv6_enabled = true
 }
