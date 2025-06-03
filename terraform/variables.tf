@@ -20,9 +20,8 @@ variable "global_tags" {
   description = "Global tags to apply to all resources"
   type        = map(string)
   default = {
-    Environment = "production"
-    Project     = "valhub"
-    Owner       = "pvinsight"
+    org       = "pvvalhub"
+    billingId = 250026
   }
 }
 

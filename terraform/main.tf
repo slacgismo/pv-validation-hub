@@ -154,13 +154,13 @@ resource "aws_security_group" "valhub_api_lb_sg" {
 
 
 resource "aws_lb" "valhub_api_lb" {
-  name               = "valhub-api-lb-tf"
-  internal           = false
-  load_balancer_type = "application"
-  subnets            = aws_subnet.public_subnets[*].id
-  security_groups    = [aws_security_group.valhub_api_lb_sg.id]
-
-  ip_address_type = "ipv4"
+  name                       = "valhub-api-lb-tf"
+  internal                   = true
+  load_balancer_type         = "application"
+  subnets                    = aws_subnet.public_subnets[*].id
+  security_groups            = [aws_security_group.valhub_api_lb_sg.id]
+  drop_invalid_header_fields = true
+  ip_address_type            = "ipv4"
   access_logs {
     enabled = false
     bucket  = ""

@@ -44,10 +44,10 @@ resource "aws_db_instance" "valhub_rds_instance" {
   engine_version                      = "14.12"
   auto_minor_version_upgrade          = true
   license_model                       = "postgresql-license"
-  publicly_accessible                 = true
+  publicly_accessible                 = false
   storage_type                        = "gp2"
   port                                = 5432
-  storage_encrypted                   = false
+  storage_encrypted                   = true
   copy_tags_to_snapshot               = false
   monitoring_interval                 = 0
   iam_database_authentication_enabled = false

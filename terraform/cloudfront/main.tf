@@ -11,10 +11,51 @@ data "aws_s3_bucket" "valhub_bucket" {
   bucket = "valhub-bucket"
 }
 
+resource "aws_wafv2_web_acl" "valhub_waf_web_acl" {
+  name        = "valhub-web-acl"
+  description = "WAF ACL for ValHub"
+  scope       = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "valhubWebACL"
+    sampled_requests_enabled   = true
+  }
+
+  rule {
+    name     = "RateLimitRule"
+    priority = 1
+    action {
+      block {}
+    }
+    statement {
+      rate_based_statement {
+        limit              = 1000
+        aggregate_key_type = "IP"
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimitRule"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  tags = {
+    Name = "valhub-waf-web-acl"
+  }
+
+}
+
 resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distribution" {
   aliases = [
     "private-content.pv-validation-hub.org"
   ]
+  web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
   origin {
     domain_name = "valhub-bucket.s3.us-west-1.amazonaws.com"
     origin_id   = "valhub-bucket.s3.us-west-1.amazonaws.com"
@@ -50,6 +91,7 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
   comment     = ""
   price_class = "PriceClass_All"
   enabled     = true
+
   viewer_certificate {
     acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
     cloudfront_default_certificate = false
@@ -69,6 +111,9 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
   aliases = [
     "pv-validation-hub.org"
   ]
+
+  web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
+
   origin {
     custom_origin_config {
       http_port                = 80
@@ -118,7 +163,7 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
   viewer_certificate {
     acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
     cloudfront_default_certificate = false
-    minimum_protocol_version       = "TLSv1.2_2019"
+    minimum_protocol_version       = "TLSv1.2_2021"
     ssl_support_method             = "sni-only"
   }
   restrictions {

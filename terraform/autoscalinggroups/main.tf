@@ -65,13 +65,22 @@ resource "aws_ecs_cluster" "api_cluster" {
 
 resource "aws_ecr_repository" "api_repository" {
   name = "valhub-api"
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  image_tag_mutability = "IMMUTABLE"
   tags = {
     Name = "valhub-api-repository"
   }
 }
 
 resource "aws_ecr_repository" "worker_repository" {
-  name = "valhub-worker"
+  name                 = "valhub-worker"
+  image_tag_mutability = "IMMUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
   tags = {
     Name = "valhub-worker-repository"
   }
@@ -81,6 +90,7 @@ resource "aws_ecr_repository" "worker_repository" {
 
 
 # TODO: Fix issue with policy that is throwing an error
+
 
 resource "aws_iam_role_policy" "ecs_service_role_policy" {
   name = "valhub-ecs-service-role-policy"
