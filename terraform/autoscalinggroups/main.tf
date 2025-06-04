@@ -121,57 +121,33 @@ resource "aws_ecr_repository" "worker_repository" {
   }
 }
 
-# IAM role for ECS task execution
+data "aws_iam_policy_document" "ecs_service_role_policy_document" {
+  statement {
+    effect = "Allow"
 
+    principals {
+      type        = "Service"
+      identifiers = ["ecs.amazonaws.com"]
+    }
+    actions = [
+      "sts:AssumeRole"
+    ]
 
-# TODO: Fix issue with policy that is throwing an error
-
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
+  }
+}
 
 resource "aws_iam_role_policy" "ecs_service_role_policy" {
-  name = "valhub-ecs-service-role-policy"
-  role = aws_iam_role.ecs_service_role.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecs:CreateCluster",
-          "ecs:DeregisterContainerInstance",
-          "ecs:DiscoverPollEndpoint",
-          "ecs:Poll",
-          "ecs:RegisterContainerInstance",
-          "ecs:StartTelemetrySession",
-          "ecs:Submit*"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-
-
+  name   = "valhub-ecs-service-role-policy"
+  role   = aws_iam_role.ecs_service_role.id
+  policy = data.aws_iam_policy_document.ecs_service_role_policy_document.json
 }
 
 resource "aws_iam_role" "ecs_service_role" {
-  name = "valhub-ecs-service-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ecs.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
+  name               = "valhub-ecs-service-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_service_role_policy_document.json
+
   tags = {
     Name = "valhub-ecs-service-role"
   }
@@ -182,7 +158,7 @@ resource "aws_ecs_service" "ecs_worker_service" {
   name                               = "worker-service"
   cluster                            = aws_ecs_cluster.worker_cluster.id
   desired_count                      = 1
-  task_definition                    = aws_ecs_task_definition.worker_task_definition.arn
+  task_definition                    = aws_ecs_task_definition.ecs_worker_task_definition.arn
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
   iam_role                           = aws_iam_role.ecs_service_role.arn
@@ -199,10 +175,10 @@ resource "aws_ecs_service" "ecs_worker_service" {
   }
   network_configuration {
     assign_public_ip = false
-
-    subnets = var.private_subnet_ids
+    subnets          = var.private_subnet_ids
   }
   scheduling_strategy = "REPLICA"
+
   tags = {
     Name = "valhub-ecs-worker-service"
   }
@@ -210,44 +186,160 @@ resource "aws_ecs_service" "ecs_worker_service" {
 
 # TODO: Clean up ECS task definition\
 
+data "aws_iam_policy_document" "ecs_task_role_policy_document" {
+  statement {
+    effect = "Allow"
 
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+    actions = [
+      "sts:AssumeRole"
+    ]
+
+
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "ecs_task_role_policy" {
+  name        = "valhub-ecs-task-role-policy"
+  description = "Policy for ECS task role to allow access to ECR and CloudWatch Logs"
+  policy      = data.aws_iam_policy_document.ecs_task_role_policy_document.json
+
+  tags = {
+    Name = "valhub-ecs-task-role-policy"
+  }
+
+}
 
 resource "aws_iam_role" "ecs_task_role" {
-  name = "valhub-ecs-task-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
+  name               = "valhub-ecs-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_role_policy_document.json
   tags = {
     Name = "valhub-ecs-task-role"
   }
 }
 
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "valhub_worker_ecs_task_execution_role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-  tags = {
-    Name = "valhub-worker-ecs-task-execution-role"
+data "aws_iam_policy_document" "ecs_worker_task_execution_role_policy_document" {
+  # TODO: Add task execution role policy document
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+    actions = [
+      "sts:AssumeRole"
+    ]
+
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
   }
+
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sqs.amazonaws.com"]
+    }
+    actions = ["sts:AssumeRole"]
+
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "kms:Decrypt",
+      "secretsmanager:GetSecretValue",
+    ]
+
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
+  }
+
+}
+
+resource "aws_iam_policy" "ecs_worker_task_execution_role_policy" {
+  name        = "valhub-ecs-worker-task-execution-role-policy"
+  description = "Policy for ECS worker task execution role to allow access to ECR and CloudWatch Logs"
+  policy      = data.aws_iam_policy_document.ecs_worker_task_execution_role_policy_document.json
+
+  tags = {
+    Name = "valhub-ecs-worker-task-execution-role-policy"
+  }
+
+}
+
+resource "aws_iam_role" "ecs_worker_task_execution_role" {
+  name               = "valhub-ecs-worker-task-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_worker_task_execution_role_policy_document.json
+
+  tags = {
+    Name = "valhub-ecs-worker-task-execution-role"
+  }
+
+}
+
+data "aws_iam_policy_document" "ecs_api_task_execution_role_policy_document" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ecs-tasks.amazonaws.com"]
+    }
+    actions = [
+      "sts:AssumeRole"
+    ]
+
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "kms:Decrypt",
+      "secretsmanager:GetSecretValue",
+    ]
+
+    # TODO: Specify the resources more precisely
+    resources = ["*"]
+  }
+
+}
+
+resource "aws_iam_policy" "ecs_api_task_execution_role_policy" {
+  name        = "valhub-ecs-api-task-execution-role-policy"
+  description = "Policy for ECS API task execution role to allow access to ECR and CloudWatch Logs"
+  policy      = data.aws_iam_policy_document.ecs_api_task_execution_role_policy_document.json
+
+  tags = {
+    Name = "valhub-ecs-api-task-execution-role-policy"
+  }
+
+}
+
+resource "aws_iam_role" "ecs_api_task_execution_role" {
+  name               = "valhub-ecs-api-task-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_api_task_execution_role_policy_document.json
+
+  tags = {
+    Name = "valhub-ecs-api-task-execution-role"
+  }
+
 }
 
 
-resource "aws_ecs_task_definition" "worker_task_definition" {
+
+resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
   container_definitions = jsonencode([
     {
       name              = "valhub-worker-task-ec2",
@@ -272,7 +364,7 @@ resource "aws_ecs_task_definition" "worker_task_definition" {
           containerPort = 22,
           hostPort      = 22,
           protocol      = "tcp",
-          name          = "valhub-worker-task-22-ec2-tcp"
+          name          = "valhub-worker-task-ec2-22-tcp"
         },
         {
           containerPort = 65535,
@@ -300,7 +392,7 @@ resource "aws_ecs_task_definition" "worker_task_definition" {
         options = {
           awslogs-group         = "/ecs/valhub-worker-task-ec2",
           awslogs-create-group  = "true",
-          awslogs-region        = "us-west-1",
+          awslogs-region        = var.aws_region,
           awslogs-stream-prefix = "valhub-worker-task-ec2"
         }
       },
@@ -310,8 +402,9 @@ resource "aws_ecs_task_definition" "worker_task_definition" {
 
   family             = "valhub-worker-task-ec2"
   task_role_arn      = aws_iam_role.ecs_task_role.arn
-  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn = aws_iam_role.ecs_worker_task_execution_role.arn
   network_mode       = "awsvpc"
+
   volume {
     name      = "docker_in_docker"
     host_path = "/var/run/docker.sock"
@@ -347,7 +440,7 @@ resource "aws_ecs_service" "ecs_api_service" {
   cluster = aws_ecs_cluster.api_cluster.id
   load_balancer {
     target_group_arn = aws_lb_target_group.api_target_group.arn
-    container_name   = "valhub-api-task"
+    container_name   = aws_ecr_repository.api_repository.name
     container_port   = 80
   }
   desired_count                      = 1
@@ -358,8 +451,10 @@ resource "aws_ecs_service" "ecs_api_service" {
   deployment_minimum_healthy_percent = 100
   iam_role                           = aws_iam_role.ecs_service_role.arn
   depends_on                         = [aws_iam_role_policy.ecs_service_role_policy]
+
   network_configuration {
     assign_public_ip = false
+    # TODO: Update security groups and subnets
     security_groups = [
       "sg-08f04514e1770cd92"
     ]
@@ -367,6 +462,7 @@ resource "aws_ecs_service" "ecs_api_service" {
   }
   health_check_grace_period_seconds = 120
   scheduling_strategy               = "REPLICA"
+
   tags = {
     Name = "valhub-ecs-api-service"
   }
@@ -407,7 +503,7 @@ resource "aws_ecs_task_definition" "ecs_api_task_definition" {
         options = {
           awslogs-group         = "/ecs/valhub-api-task",
           awslogs-create-group  = "true",
-          awslogs-region        = "us-west-1",
+          awslogs-region        = var.aws_region,
           awslogs-stream-prefix = "valhub-api-task"
         }
       },
@@ -416,13 +512,14 @@ resource "aws_ecs_task_definition" "ecs_api_task_definition" {
   ])
   family             = "valhub-api-task"
   task_role_arn      = aws_iam_role.ecs_task_role.arn
-  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn = aws_iam_role.ecs_worker_task_execution_role.arn
   network_mode       = "awsvpc"
   requires_compatibilities = [
     "FARGATE"
   ]
   cpu    = "1024"
   memory = "2048"
+
   tags = {
     Name = "valhub-ecs-api-task-definition"
   }

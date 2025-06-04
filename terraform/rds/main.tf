@@ -69,7 +69,7 @@ resource "aws_db_instance" "valhub_rds_instance" {
   deletion_protection                 = true
   skip_final_snapshot                 = true
   performance_insights_enabled        = true
-  performance_insights_kms_key_id     = aws_kms_key.valhub_performance_insights_key.id
+  performance_insights_kms_key_id     = aws_kms_key.valhub_performance_insights_key.arn
   db_subnet_group_name                = aws_db_subnet_group.valhub_rds_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.valhub_rds_sg.id]
 

@@ -1,7 +1,13 @@
+variable "aws_region" {
+  description = "AWS region where the VPC will be created"
+  type        = string
+  default     = "us-west-1"
+
+}
+
 variable "azs" {
   description = "Availability Zones to use for the VPC"
   type        = list(string)
-  default     = ["us-west-1a", "us-west-1b"]
 }
 
 variable "cidr_block" {

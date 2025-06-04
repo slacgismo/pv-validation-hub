@@ -1,3 +1,13 @@
+variable "logs_bucket" {
+
+}
+
+variable "aws_region" {
+  description = "AWS region where the resources will be created"
+  type        = string
+
+}
+
 variable "asg_desired_capacity" {
   description = "Desired capacity of the Auto Scaling group"
   type        = number
@@ -10,6 +20,7 @@ variable "asg_max_size" {
   type        = number
   default     = 1
 }
+
 variable "asg_min_size" {
   description = "Minimum size of the Auto Scaling group"
   type        = number

@@ -36,7 +36,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_bucket_enc
   rule {
     apply_server_side_encryption_by_default {
       kms_master_key_id = aws_kms_key.valhub_kms_bucket_key.id
-      sse_algorithm     = "AES256"
+      sse_algorithm     = "aws:kms"
     }
   }
 
@@ -90,7 +90,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_website_en
   rule {
     apply_server_side_encryption_by_default {
       kms_master_key_id = aws_kms_key.valhub_kms_bucket_key.id
-      sse_algorithm     = "AES256"
+      sse_algorithm     = "aws:kms"
     }
   }
 
@@ -134,7 +134,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_logs_encry
   rule {
     apply_server_side_encryption_by_default {
       kms_master_key_id = aws_kms_key.valhub_kms_bucket_key.id
-      sse_algorithm     = "AES256"
+      sse_algorithm     = "aws:kms"
     }
   }
 
@@ -178,7 +178,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_task_data_
   rule {
     apply_server_side_encryption_by_default {
       kms_master_key_id = aws_kms_key.valhub_kms_bucket_key.id
-      sse_algorithm     = "AES256"
+      sse_algorithm     = "aws:kms"
     }
   }
 
