@@ -51,7 +51,6 @@ resource "aws_s3_bucket_public_access_block" "valhub_bucket_public_access_block"
   restrict_public_buckets = true
 
 }
-# ------------ 
 
 resource "aws_s3_bucket" "valhub_website" {
   bucket = "valhub-website-bucket"

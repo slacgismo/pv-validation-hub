@@ -10,6 +10,7 @@ resource "aws_kms_key" "valhub_kms_key" {
 }
 
 resource "aws_sqs_queue" "SQSQueue" {
+  name                        = "valhub_submission_queue.fifo"
   content_based_deduplication = false
   delay_seconds               = 0
   fifo_queue                  = true
@@ -17,9 +18,8 @@ resource "aws_sqs_queue" "SQSQueue" {
   message_retention_seconds   = 345600
   receive_wait_time_seconds   = 0
   visibility_timeout_seconds  = 21600
-  name                        = "valhub_submission_queue.fifo"
+  kms_master_key_id           = aws_kms_key.valhub_kms_key.id
 
-  kms_master_key_id = aws_kms_key.valhub_kms_key.id
   tags = {
     Name = "valhub_submission_queue"
   }

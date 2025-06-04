@@ -1,19 +1,21 @@
-variable "azs" {
-  description = "Availability Zones to use for the VPC"
-  type        = list(string)
-  default     = ["us-west-1a", "us-west-1b"]
+variable "vpc_id" {
+  description = "VPC ID to use for the resources"
+  type        = string
+  default     = ""
+
 }
 
-variable "public_subnet_cidrs" {
-  description = "CIDR blocks for public subnets"
+variable "private_subnet_ids" {
+  description = "List of private subnet IDs"
   type        = list(string)
-  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+  default     = []
+
 }
 
-variable "private_subnet_cidrs" {
-  description = "CIDR blocks for private subnets"
+variable "public_subnet_ids" {
+  description = "List of public subnet IDs"
   type        = list(string)
-  default     = ["10.0.128.0/24", "10.0.129.0/24"]
+  default     = []
 }
 
 variable "global_tags" {

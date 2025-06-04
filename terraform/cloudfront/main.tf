@@ -1,5 +1,5 @@
 resource "aws_acm_certificate" "valhub_acm_certificate" {
-  domain_name       = "pv-validation-hub.org"
+  domain_name       = var.website_domain_name
   validation_method = "DNS"
   tags = {
     Name = "valhub-certificate"
@@ -56,8 +56,8 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
   ]
   web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
   origin {
-    domain_name = "valhub-bucket.s3.us-west-1.amazonaws.com"
-    origin_id   = "valhub-bucket.s3.us-west-1.amazonaws.com"
+    domain_name = var.valhub_bucket_domain_name
+    origin_id   = var.private_origin_id
 
     origin_path = ""
     s3_origin_config {
@@ -84,7 +84,7 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
     max_ttl                = 31536000
     min_ttl                = 0
     smooth_streaming       = false
-    target_origin_id       = "valhub-bucket.s3.us-west-1.amazonaws.com"
+    target_origin_id       = var.private_origin_id
     viewer_protocol_policy = "redirect-to-https"
   }
   comment     = ""
@@ -104,7 +104,7 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
   }
 
   logging_config {
-    bucket          = "${var.valhub_logs_bucket_name}.s3.amazonaws.com"
+    bucket          = var.valhub_logs_bucket_domain_name
     include_cookies = false
     prefix          = "cloudfront-logs/private-content/"
   }
@@ -112,6 +112,7 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
   http_version    = "http2"
   is_ipv6_enabled = true
 }
+
 
 
 
@@ -135,10 +136,8 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
         "TLSv1.2"
       ]
     }
-    domain_name = "valhub-website.s3-website-us-west-2.amazonaws.com"
-    origin_id   = "S3-WEBSITE-valhub-website"
-
-    origin_path = ""
+    domain_name = var.valhub_website_bucket_domain_name
+    origin_id   = var.website_origin_id
   }
   default_cache_behavior {
     cached_methods = [
@@ -162,7 +161,7 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
     max_ttl                = 86400
     min_ttl                = 0
     smooth_streaming       = false
-    target_origin_id       = "S3-WEBSITE-valhub-website"
+    target_origin_id       = var.website_origin_id
     viewer_protocol_policy = "redirect-to-https"
   }
   comment     = ""
@@ -181,7 +180,8 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
   }
 
   logging_config {
-    bucket          = "${var.valhub_logs_bucket_name}.s3.amazonaws.com"
+    bucket = var.valhub_logs_bucket_domain_name
+
     include_cookies = false
     prefix          = "cloudfront-logs/valhub-website/"
   }

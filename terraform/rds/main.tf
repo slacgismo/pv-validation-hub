@@ -8,6 +8,17 @@ resource "aws_kms_key" "valhub_kms_key" {
   }
 }
 
+resource "aws_kms_key" "valhub_performance_insights_key" {
+  description             = "KMS key for ValHub RDS Performance Insights"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = {
+    Name = "valhub-performance-insights-key"
+  }
+
+}
+
 resource "aws_db_subnet_group" "valhub_rds_subnet_group" {
   name       = "valhub-rds-subnet-group"
   subnet_ids = var.private_subnet_ids
@@ -22,6 +33,10 @@ resource "aws_security_group" "valhub_rds_sg" {
   name        = "valhub-rds-sg"
   description = "Security group for ValHub RDS instance"
   vpc_id      = var.vpc_id
+
+  # TODO: add ingress and egress rules as needed via separate resources`
+  # To avoid these problems, use the current best practice of the aws_vpc_security_group_egress_rule and aws_vpc_security_group_ingress_rule resources with one CIDR block per rule.
+
   tags = {
     Name = "valhub-rds-sg"
   }
@@ -32,7 +47,7 @@ resource "aws_security_group" "valhub_rds_sg" {
 resource "aws_db_instance" "valhub_rds_instance" {
   identifier                          = "valhub-rds-instance"
   allocated_storage                   = 20
-  instance_class                      = "db.t3.micro"
+  instance_class                      = var.db_instance_class
   engine                              = "postgres"
   manage_master_user_password         = true
   username                            = "valhub_admin"
@@ -54,9 +69,10 @@ resource "aws_db_instance" "valhub_rds_instance" {
   deletion_protection                 = true
   skip_final_snapshot                 = true
   performance_insights_enabled        = true
-  performance_insights_kms_key_id     = aws_kms_key.valhub_kms_key.id
+  performance_insights_kms_key_id     = aws_kms_key.valhub_performance_insights_key.id
   db_subnet_group_name                = aws_db_subnet_group.valhub_rds_subnet_group.name
   vpc_security_group_ids              = [aws_security_group.valhub_rds_sg.id]
+
 
 
   tags = {
