@@ -23,10 +23,8 @@ module "asg" {
   public_subnet_ids  = module.vpc.public_subnet_ids
   vpc_id             = module.vpc.vpc_id
   aws_region         = var.aws_region
-  logs_bucket        = module.s3.valhub_logs_bucket_id
+  logs_bucket_id     = module.s3.valhub_logs_bucket_id
 }
-
-
 
 module "cloudfront" {
   source = "./cloudfront"

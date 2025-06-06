@@ -1,8 +1,6 @@
 variable "aws_region" {
   description = "AWS region where the VPC will be created"
   type        = string
-  default     = "us-west-1"
-
 }
 
 variable "azs" {

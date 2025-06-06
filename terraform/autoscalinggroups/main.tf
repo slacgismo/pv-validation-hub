@@ -153,7 +153,6 @@ resource "aws_iam_role" "ecs_service_role" {
   }
 }
 
-# # TODO: Clean up ECS service
 resource "aws_ecs_service" "ecs_worker_service" {
   name                               = "worker-service"
   cluster                            = aws_ecs_cluster.worker_cluster.id
@@ -342,35 +341,35 @@ resource "aws_iam_role" "ecs_api_task_execution_role" {
 resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
   container_definitions = jsonencode([
     {
-      name              = "valhub-worker-task-ec2",
+      name              = "${var.ecs_worker_task_name}",
       image             = aws_ecr_repository.worker_repository.repository_url,
-      cpu               = 4096,
-      memory            = 12288,
-      memoryReservation = 12288,
+      cpu               = var.worker_cpu_units,
+      memory            = var.worker_memory_size,
+      memoryReservation = var.worker_memory_reservation_size,
       portMappings = [
         {
           containerPort = 80,
           hostPort      = 80,
           protocol      = "tcp",
-          name          = "valhub-worker-task-ec2-80-tcp"
+          name          = "${var.ecs_worker_task_name}-80-tcp"
         },
         {
           containerPort = 443,
           hostPort      = 443,
           protocol      = "tcp",
-          name          = "valhub-worker-task-ec2-443-tcp"
+          name          = "${var.ecs_worker_task_name}-443-tcp"
         },
         {
           containerPort = 22,
           hostPort      = 22,
           protocol      = "tcp",
-          name          = "valhub-worker-task-ec2-22-tcp"
+          name          = "${var.ecs_worker_task_name}-22-tcp"
         },
         {
           containerPort = 65535,
           hostPort      = 65535,
           protocol      = "tcp",
-          name          = "valhub-worker-task-ec2-65535-tcp"
+          name          = "${var.ecs_worker_task_name}-65535-tcp"
         }
       ],
       essential   = true,
@@ -390,17 +389,17 @@ resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
       logConfiguration = {
         logDriver = "awslogs",
         options = {
-          awslogs-group         = "/ecs/valhub-worker-task-ec2",
+          awslogs-group         = "/ecs/${var.ecs_worker_task_name}",
           awslogs-create-group  = "true",
           awslogs-region        = var.aws_region,
-          awslogs-stream-prefix = "valhub-worker-task-ec2"
+          awslogs-stream-prefix = "${var.ecs_worker_task_name}"
         }
       },
       systemControls = []
     }
   ])
 
-  family             = "valhub-worker-task-ec2"
+  family             = var.ecs_worker_task_name
   task_role_arn      = aws_iam_role.ecs_task_role.arn
   execution_role_arn = aws_iam_role.ecs_worker_task_execution_role.arn
   network_mode       = "awsvpc"
@@ -416,8 +415,7 @@ resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
   requires_compatibilities = [
     "EC2"
   ]
-  cpu    = "4096"
-  memory = "12288"
+
   tags = {
     Name = "valhub-ecs-worker-task-definition"
   }
@@ -473,10 +471,10 @@ resource "aws_ecs_service" "ecs_api_service" {
 resource "aws_ecs_task_definition" "ecs_api_task_definition" {
   container_definitions = jsonencode([
     {
-      name   = "valhub-api-task",
+      name   = "${var.ecs_api_task_name}",
       image  = aws_ecr_repository.api_repository.repository_url,
-      cpu    = 1024,
-      memory = 2048,
+      cpu    = var.api_cpu_units,
+      memory = var.api_memory_size,
       portMappings = [
         {
           containerPort = 80,
@@ -501,24 +499,24 @@ resource "aws_ecs_task_definition" "ecs_api_task_definition" {
       logConfiguration = {
         logDriver = "awslogs",
         options = {
-          awslogs-group         = "/ecs/valhub-api-task",
+          awslogs-group         = "/ecs/${var.ecs_api_task_name}",
           awslogs-create-group  = "true",
           awslogs-region        = var.aws_region,
-          awslogs-stream-prefix = "valhub-api-task"
+          awslogs-stream-prefix = "${var.ecs_api_task_name}"
         }
       },
       systemControls = []
     }
   ])
-  family             = "valhub-api-task"
+  family             = var.ecs_api_task_name
   task_role_arn      = aws_iam_role.ecs_task_role.arn
   execution_role_arn = aws_iam_role.ecs_worker_task_execution_role.arn
   network_mode       = "awsvpc"
   requires_compatibilities = [
     "FARGATE"
   ]
-  cpu    = "1024"
-  memory = "2048"
+  cpu    = var.api_cpu_units
+  memory = var.api_memory_size
 
   tags = {
     Name = "valhub-ecs-api-task-definition"

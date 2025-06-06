@@ -1,8 +1,20 @@
+variable "aws_profile" {
+  description = "AWS profile to use for authentication"
+  type        = string
+  default     = "default"
+
+}
+
 variable "aws_region" {
   description = "AWS region where the VPC will be created"
   type        = string
   default     = "us-west-1"
+}
 
+variable "global_tags" {
+  description = "Global tags to apply to all resources"
+  type        = map(string)
+  default     = { environment = "development" }
 }
 
 variable "vpc_id" {
@@ -25,12 +37,5 @@ variable "public_subnet_ids" {
   default     = []
 }
 
-variable "global_tags" {
-  description = "Global tags to apply to all resources"
-  type        = map(string)
-  default = {
-    org       = "pvvalhub"
-    billingId = 250026
-  }
-}
+
 
