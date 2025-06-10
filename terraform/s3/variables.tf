@@ -14,3 +14,8 @@ variable "valhub_api_lb_arn" {
   type        = string
 
 }
+
+variable "api_lb_logs_prefix" {
+  description = "S3 bucket prefix for API Load Balancer logs"
+  type        = string
+}

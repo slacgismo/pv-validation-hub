@@ -15,15 +15,17 @@ module "vpc" {
   azs           = local.azs
   log_bucket_id = module.s3.valhub_logs_bucket_id
   account_id    = data.aws_caller_identity.current.account_id
+
 }
 
 
 module "s3" {
   source = "./s3"
 
-  account_id        = data.aws_caller_identity.current.account_id
-  aws_region        = var.aws_region
-  valhub_api_lb_arn = module.vpc.valhub_api_lb_arn
+  account_id         = data.aws_caller_identity.current.account_id
+  aws_region         = var.aws_region
+  valhub_api_lb_arn  = module.vpc.valhub_api_lb_arn
+  api_lb_logs_prefix = module.vpc.api_lb_logs_prefix
 }
 
 # module "asg" {
@@ -44,9 +46,9 @@ module "s3" {
 #   valhub_bucket_domain_name         = module.s3.valhub_bucket_domain_name
 # }
 
-# module "sqs" {
-#   source = "./sqs"
-# }
+module "sqs" {
+  source = "./sqs"
+}
 
 
 # module "rds" {

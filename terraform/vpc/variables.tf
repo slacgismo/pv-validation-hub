@@ -35,3 +35,9 @@ variable "log_bucket_id" {
   description = "S3 bucket ID for VPC flow logs"
   type        = string
 }
+
+variable "api_lb_logs_prefix" {
+  description = "S3 bucket prefix for API Load Balancer logs"
+  type        = string
+  default     = "api-lb-logs"
+}

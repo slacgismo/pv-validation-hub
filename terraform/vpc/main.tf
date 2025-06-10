@@ -236,7 +236,7 @@ resource "aws_lb" "valhub_api_lb" {
   access_logs {
     enabled = true
     bucket  = var.log_bucket_id
-    prefix  = "api-lb-logs"
+    prefix  = var.api_lb_logs_prefix
   }
   idle_timeout                     = 60
   enable_deletion_protection       = false

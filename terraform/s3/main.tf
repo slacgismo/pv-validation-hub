@@ -52,8 +52,9 @@ data "aws_iam_policy_document" "valhub_kms_bucket_key_policy_document" {
       "s3:PutObject",
     ]
 
+    # TODO: update prefix to match your log delivery prefix from module
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.valhub_logs_bucket.id}/api-lb-logs/AWSLogs/${var.account_id}/*",
+      "arn:aws:s3:::${aws_s3_bucket.valhub_logs_bucket.id}/${var.api_lb_logs_prefix}/AWSLogs/${var.account_id}/*",
     ]
 
 
