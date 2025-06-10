@@ -1,3 +1,8 @@
+variable "account_id" {
+  description = "AWS account ID to use for the VPC"
+  type        = string
+}
+
 variable "aws_region" {
   description = "AWS region where the VPC will be created"
   type        = string

@@ -10,10 +10,57 @@ resource "aws_vpc" "main" {
   }
 }
 
+data "aws_iam_policy_document" "cloudwatch_log_policy_document" {
+  version = "2012-10-17"
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${var.aws_region}.amazonaws.com"]
+    }
+    actions = [
+      "kms:*"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "ArnLike"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:aws:logs:${var.aws_region}:${var.account_id}:log-group:*"]
+    }
+  }
+
+
+
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.account_id}:root"]
+    }
+
+    actions = [
+      "kms:*"
+    ]
+
+    resources = [
+      "*"
+    ]
+  }
+
+}
+
+resource "aws_kms_key_policy" "cloudwatch_log_policy" {
+  key_id = aws_kms_key.cloudwatch_log_key.id
+  policy = data.aws_iam_policy_document.cloudwatch_log_policy_document.json
+}
+
 resource "aws_kms_key" "cloudwatch_log_key" {
   description             = "KMS key for encrypting CloudWatch log group"
   enable_key_rotation     = true
   deletion_window_in_days = 7
+
+  policy = data.aws_iam_policy_document.cloudwatch_log_policy_document.json
 
   tags = {
     Name = "valhub-cloudwatch-log-key"
@@ -24,9 +71,11 @@ resource "aws_cloudwatch_log_group" "vpc_flow_log_group" {
   name              = "valhub-vpc-flow-log-group"
   retention_in_days = 7
   kms_key_id        = aws_kms_key.cloudwatch_log_key.arn
+
   tags = {
     Name = "valhub-vpc-flow-log-group"
   }
+
 }
 
 data "aws_iam_policy_document" "vpc_flow_log_assume_role_policy" {
@@ -196,5 +245,7 @@ resource "aws_lb" "valhub_api_lb" {
   tags = {
     Name = "valhub-api-lb-tf"
   }
+
+
 }
 

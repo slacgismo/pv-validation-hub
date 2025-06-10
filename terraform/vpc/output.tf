@@ -21,3 +21,7 @@ output "public_subnet_ids" {
   value       = aws_subnet.public_subnets[*].id
 }
 
+output "valhub_api_lb_arn" {
+  description = "Load Balancer for Valhub API"
+  value       = aws_lb.valhub_api_lb.arn
+}
