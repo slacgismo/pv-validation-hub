@@ -1,4 +1,4 @@
-resource "aws_kms_key" "valhub_kms_key" {
+resource "aws_kms_key" "valhub_rds_kms_key" {
   description             = "KMS key for ValHub RDS encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
@@ -51,7 +51,7 @@ resource "aws_db_instance" "valhub_rds_instance" {
   engine                              = "postgres"
   manage_master_user_password         = true
   username                            = "valhub_admin"
-  master_user_secret_kms_key_id       = aws_kms_key.valhub_kms_key.id
+  master_user_secret_kms_key_id       = aws_kms_key.valhub_rds_kms_key.arn
   backup_window                       = "09:39-10:09"
   backup_retention_period             = 5
   maintenance_window                  = "fri:07:07-fri:07:37"

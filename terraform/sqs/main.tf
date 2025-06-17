@@ -20,6 +20,7 @@ data "aws_iam_policy_document" "submission_queue_policy_document" {
       identifiers = ["sqs.amazonaws.com"]
     }
 
+    # TODO: Narrow down the actions
     actions = [
       "sqs:*"
     ]

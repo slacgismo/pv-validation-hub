@@ -11,6 +11,7 @@ resource "aws_wafv2_web_acl" "valhub_waf_web_acl" {
   name        = "valhub-web-acl"
   description = "WAF ACL for ValHub"
   scope       = "CLOUDFRONT"
+  
 
   default_action {
     allow {}

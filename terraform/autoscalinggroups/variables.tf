@@ -1,3 +1,7 @@
+variable "account_id" {
+  description = "AWS account ID"
+  type        = string
+}
 
 variable "asg_desired_capacity" {
   description = "Desired capacity of the Auto Scaling group"
@@ -90,5 +94,11 @@ variable "public_subnet_ids" {
 variable "vpc_id" {
   description = "VPC ID"
   type        = string
+}
+
+variable "ecs_task_role_name" {
+  description = "Name of the ECS task role"
+  type        = string
+  default     = "valhub-ecs-task-role-testing"
 }
 

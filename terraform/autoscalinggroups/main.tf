@@ -215,10 +215,10 @@ resource "aws_iam_policy" "ecs_task_role_policy" {
 }
 
 resource "aws_iam_role" "ecs_task_role" {
-  name               = "valhub-ecs-task-role"
+  name               = var.ecs_task_role_name
   assume_role_policy = data.aws_iam_policy_document.ecs_task_role_policy_document.json
   tags = {
-    Name = "valhub-ecs-task-role"
+    Name = var.ecs_task_role_name
   }
 }
 
@@ -254,6 +254,12 @@ data "aws_iam_policy_document" "ecs_worker_task_execution_role_policy_document" 
 
   statement {
     effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.account_id}:root"]
+    }
+
     actions = [
       "kms:Decrypt",
       "secretsmanager:GetSecretValue",
@@ -294,23 +300,29 @@ data "aws_iam_policy_document" "ecs_api_task_execution_role_policy_document" {
       type        = "Service"
       identifiers = ["ecs-tasks.amazonaws.com"]
     }
+
     actions = [
       "sts:AssumeRole"
     ]
 
-    # TODO: Specify the resources more precisely
     resources = ["*"]
   }
 
   statement {
     effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.account_id}:root"]
+    }
+
     actions = [
       "kms:Decrypt",
       "secretsmanager:GetSecretValue",
     ]
 
-    # TODO: Specify the resources more precisely
     resources = ["*"]
+
   }
 
 }

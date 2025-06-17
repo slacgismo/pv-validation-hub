@@ -28,15 +28,16 @@ module "s3" {
   api_lb_logs_prefix = module.vpc.api_lb_logs_prefix
 }
 
-# module "asg" {
-#   source = "./autoscalinggroups"
+module "asg" {
+  source = "./autoscalinggroups"
 
-#   private_subnet_ids = module.vpc.private_subnet_ids
-#   public_subnet_ids  = module.vpc.public_subnet_ids
-#   vpc_id             = module.vpc.vpc_id
-#   aws_region         = var.aws_region
-#   logs_bucket_id     = module.s3.valhub_logs_bucket_id
-# }
+  account_id         = data.aws_caller_identity.current.account_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  public_subnet_ids  = module.vpc.public_subnet_ids
+  vpc_id             = module.vpc.vpc_id
+  aws_region         = var.aws_region
+  logs_bucket_id     = module.s3.valhub_logs_bucket_id
+}
 
 # module "cloudfront" {
 #   source = "./cloudfront"
@@ -51,9 +52,9 @@ module "sqs" {
 }
 
 
-# module "rds" {
-#   source = "./rds"
+module "rds" {
+  source = "./rds"
 
-#   vpc_id             = module.vpc.vpc_id
-#   private_subnet_ids = module.vpc.private_subnet_ids
-# }
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+}
