@@ -45,19 +45,20 @@ resource "aws_security_group" "valhub_rds_sg" {
 }
 
 resource "aws_db_instance" "valhub_rds_instance" {
-  identifier                          = "valhub-rds-instance"
-  allocated_storage                   = 20
-  instance_class                      = var.db_instance_class
-  engine                              = "postgres"
-  manage_master_user_password         = true
-  username                            = "valhub_admin"
-  master_user_secret_kms_key_id       = aws_kms_key.valhub_rds_kms_key.arn
-  backup_window                       = "09:39-10:09"
-  backup_retention_period             = 5
-  maintenance_window                  = "fri:07:07-fri:07:37"
-  multi_az                            = false
-  engine_version                      = "14.12"
-  auto_minor_version_upgrade          = true
+  identifier                    = "valhub-rds-instance"
+  allocated_storage             = 20
+  instance_class                = var.db_instance_class
+  engine                        = "postgres"
+  manage_master_user_password   = true
+  username                      = "valhub_admin"
+  master_user_secret_kms_key_id = aws_kms_key.valhub_rds_kms_key.arn
+  backup_window                 = "09:39-10:09"
+  backup_retention_period       = 5
+  maintenance_window            = "fri:07:07-fri:07:37"
+  multi_az                      = false
+  engine_version                = "17.5"
+  auto_minor_version_upgrade    = true
+  # allow_major_version_upgrade         = true # Uncomment if you want to allow major version upgrades
   license_model                       = "postgresql-license"
   publicly_accessible                 = false
   storage_type                        = "gp2"

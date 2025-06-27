@@ -211,6 +211,27 @@ resource "aws_nat_gateway" "nat_gw" {
   depends_on = [aws_internet_gateway.igw]
 }
 
+resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule" {
+  security_group_id = aws_security_group.valhub_api_lb_sg.id
+
+  description = "Allow HTTP traffic from anywhere"
+  from_port   = 80
+  to_port     = 80
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+
+}
+
+resource "aws_vpc_security_group_egress_rule" "valhub_api_egress_rule" {
+  security_group_id = aws_security_group.valhub_api_lb_sg.id
+
+  description = "Allow all outbound traffic"
+  from_port   = 0
+  to_port     = 0
+  ip_protocol = "-1"
+  cidr_ipv4   = "0.0.0.0/0"
+}
+
 resource "aws_security_group" "valhub_api_lb_sg" {
   name        = "valhub-api-lb-sg"
   description = "Security group for Valhub API Load Balancer"
@@ -227,6 +248,7 @@ resource "aws_security_group" "valhub_api_lb_sg" {
 
 resource "aws_lb" "valhub_api_lb" {
   name                       = "valhub-api-lb-tf"
+  vpc_id                     = aws_vpc.main.id
   internal                   = true
   load_balancer_type         = "application"
   subnets                    = aws_subnet.public_subnets[*].id

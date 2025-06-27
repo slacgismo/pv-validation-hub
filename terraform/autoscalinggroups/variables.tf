@@ -34,6 +34,20 @@ variable "ecs_api_task_name" {
 
 }
 
+variable "worker_instance_type" {
+  description = "Instance type for the Auto Scaling group instances"
+  type        = string
+  default     = "t2.micro" # Example instance type, can be changed as needed
+
+}
+
+variable "worker_volume_size" {
+  description = "Size in GB for the root block device"
+  type        = number
+  default     = 30 # Default size in GB
+
+}
+
 variable "worker_cpu_units" {
   description = "CPU units for the Auto Scaling group instances"
   type        = number
