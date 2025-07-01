@@ -248,7 +248,6 @@ resource "aws_security_group" "valhub_api_lb_sg" {
 
 resource "aws_lb" "valhub_api_lb" {
   name                       = "valhub-api-lb-tf"
-  vpc_id                     = aws_vpc.main.id
   internal                   = true
   load_balancer_type         = "application"
   subnets                    = aws_subnet.public_subnets[*].id
@@ -267,7 +266,6 @@ resource "aws_lb" "valhub_api_lb" {
   tags = {
     Name = "valhub-api-lb-tf"
   }
-
 
 }
 

@@ -1,4 +1,13 @@
 terraform {
+
+  backend "s3" {
+    bucket  = "valhub-terraform-storage"
+    key     = "terraform.tfstate"
+    region  = "us-west-1"
+    profile = "nrel-pvinsight"
+
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"

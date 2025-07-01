@@ -34,6 +34,7 @@ data "aws_ami" "worker_ami" {
   }
 }
 
+# TODO: Uncomment when rest of the code is ready
 resource "aws_autoscaling_group" "worker_asg" {
   desired_capacity     = var.asg_desired_capacity
   max_size             = var.asg_max_size
