@@ -10,3 +10,4 @@ distributed
 bokeh
 marimo
 docker
+debugpy

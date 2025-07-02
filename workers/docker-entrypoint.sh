@@ -12,4 +12,4 @@
 #     sleep 5
 # done
 ENV=~/.profile sh
-python src/submission_worker.py
+python -m debugpy --listen 0.0.0.0:5678 src/submission_worker.py
