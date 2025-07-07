@@ -816,7 +816,7 @@ def install_module_dependencies(
 def create_function_args_for_file(
     file_metadata_row: pd.Series,
     system_metadata_row: pd.Series,
-    allowable_kwargs: list[str],
+    function_outputs: list[str],
 ):
 
     submission_file_name: str = cast(str, file_metadata_row["file_name"])
@@ -830,18 +830,24 @@ def create_function_args_for_file(
     ).squeeze()
 
     args: list[str] = []
+    # All columns can be args
+    args = list(merged_row.columns)
+    # Take out any columns that are outputs if they're in the list
+    args = [arg for arg in args if arg not in function_outputs]    
+    # Also remove any unneccessary metadata fields (name, system_id, etc)
+    args = [arg for arg in args if arg not in ['system_id', 'name',
+                                               'file_id', 'file_name']]    
+    # for argument in allowable_kwargs:
+    #     if argument not in merged_row:
+    #         logger.error(f"argument {argument} not found in merged_row")
+    #         # raise RunnerException(
+    #         #     *get_error_by_code(500, runner_error_codes, logger)
+    #         # )
+    #         args.append("")
+    #         continue
+    #     value = merged_row[argument]
 
-    for argument in allowable_kwargs:
-        if argument not in merged_row:
-            logger.error(f"argument {argument} not found in merged_row")
-            # raise RunnerException(
-            #     *get_error_by_code(500, runner_error_codes, logger)
-            # )
-            args.append("")
-            continue
-        value = merged_row[argument]
-
-        args.append(str(value))
+    #     args.append(str(value))
 
     # Submission Args for the function
     function_args = (submission_file_name, *args)
@@ -887,10 +893,14 @@ def prepare_function_args_for_parallel_processing(
     )
 
     function_args_list = None
+    
+    function_outputs: list[str] = config_data.get("outputs", {})
+    
+    logger.info(f"function_outputs: {function_outputs}")
+    
+    #allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
 
-    allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
-
-    logger.info(f"allowable_kwargs: {allowable_kwargs}")
+    #logger.info(f"allowable_kwargs: {allowable_kwargs}")
 
     for file_number, (_, file_metadata_row) in enumerate(
         file_metadata_df.iterrows()
@@ -911,7 +921,7 @@ def prepare_function_args_for_parallel_processing(
         submission_args = create_function_args_for_file(
             file_metadata_row,
             system_metadata_row,
-            allowable_kwargs,
+            function_outputs
         )
 
         logger.info(f"submission_args: {submission_args}")
