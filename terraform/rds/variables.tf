@@ -1,3 +1,4 @@
+# Import
 variable "vpc_id" {
   description = "VPC ID where the RDS instance will be deployed."
   type        = string
@@ -8,8 +9,9 @@ variable "private_subnet_ids" {
   type        = list(string)
 }
 
+# Variable for the RDS module
+
 variable "db_instance_class" {
   description = "value for the RDS instance class, e.g., db.t3.micro"
   type        = string
-  default     = "db.t3.micro"
 }

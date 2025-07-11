@@ -1,12 +1,18 @@
-
-
 resource "aws_vpc" "main" {
-  cidr_block           = var.cidr_block
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-  instance_tenancy     = "default"
+  assign_generated_ipv6_cidr_block     = false
+  cidr_block                           = var.cidr_block
+  enable_dns_hostnames                 = true
+  enable_dns_support                   = true
+  enable_network_address_usage_metrics = false
+  instance_tenancy                     = "default"
+  ipv4_ipam_pool_id                    = null
+  ipv4_netmask_length                  = null
+  ipv6_cidr_block                      = null
+  ipv6_cidr_block_network_border_group = null
+  ipv6_ipam_pool_id                    = null
+  ipv6_netmask_length                  = null
   tags = {
-    Name = "valhub-vpc"
+    Name = var.vpc_name
   }
 }
 
@@ -141,25 +147,45 @@ resource "aws_flow_log" "vpc_flow_log" {
   }
 }
 
-resource "aws_subnet" "public_subnets" {
-  count             = length(var.public_subnet_cidrs)
+
+resource "aws_subnet" "public_subnet_1" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = element(var.public_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
+  cidr_block        = element(var.public_subnet_cidrs, 0)
+  availability_zone = element(var.azs, 0)
 
   tags = {
-    Name = "valhub-public-subnet-${count.index + 1}"
+    Name = "valhub-public-subnet-1"
   }
 }
 
-resource "aws_subnet" "private_subnets" {
-  count             = length(var.private_subnet_cidrs)
+resource "aws_subnet" "public_subnet_2" {
   vpc_id            = aws_vpc.main.id
-  cidr_block        = element(var.private_subnet_cidrs, count.index)
-  availability_zone = element(var.azs, count.index)
+  cidr_block        = element(var.public_subnet_cidrs, 1)
+  availability_zone = element(var.azs, 1)
 
   tags = {
-    Name = "valhub-private-subnet-${count.index + 1}"
+    Name = "valhub-public-subnet-2"
+  }
+}
+
+
+resource "aws_subnet" "private_subnet_1" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = element(var.private_subnet_cidrs, 0)
+  availability_zone = element(var.azs, 0)
+
+  tags = {
+    Name = "valhub-private-subnet-1"
+  }
+}
+
+resource "aws_subnet" "private_subnet_2" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = element(var.private_subnet_cidrs, 1)
+  availability_zone = element(var.azs, 1)
+
+  tags = {
+    Name = "valhub-private-subnet-2"
   }
 }
 
@@ -171,41 +197,72 @@ resource "aws_internet_gateway" "igw" {
   }
 }
 
-resource "aws_route_table" "public_route_table" {
+resource "aws_route_table" "public_route_table_1" {
   vpc_id = aws_vpc.main.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-
   tags = {
-    Name = "valhub-public-route-table"
+    Name = "valhub-public-route-table-1"
   }
 }
 
-resource "aws_route_table_association" "public_subnet_asso" {
-  count          = length(var.public_subnet_cidrs)
-  subnet_id      = element(aws_subnet.public_subnets[*].id, count.index)
-  route_table_id = aws_route_table.public_route_table.id
+resource "aws_route_table" "public_route_table_2" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "valhub-public-route-table-2"
+  }
+}
+
+resource "aws_route_table" "private_route_table_1" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "valhub-private-route-table-1"
+  }
+}
+
+resource "aws_route_table" "private_route_table_2" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "valhub-private-route-table-2"
+  }
+}
+
+resource "aws_route_table_association" "public_subnet_asso_1" {
+  subnet_id      = aws_subnet.public_subnet_1.id
+  route_table_id = aws_route_table.public_route_table_1.id
+}
+
+resource "aws_route_table_association" "public_subnet_asso_2" {
+  subnet_id      = aws_subnet.public_subnet_2.id
+  route_table_id = aws_route_table.public_route_table_2.id
+}
+
+resource "aws_route_table_association" "private_subnet_asso_1" {
+  subnet_id      = aws_subnet.private_subnet_1.id
+  route_table_id = aws_route_table.private_route_table_1.id
+}
+
+resource "aws_route_table_association" "private_subnet_asso_2" {
+  subnet_id      = aws_subnet.private_subnet_2.id
+  route_table_id = aws_route_table.private_route_table_2.id
 }
 
 resource "aws_eip" "nat_eip" {
-  count = length(var.private_subnet_cidrs)
 
   tags = {
-    Name = "valhub-nat-eip-${count.index + 1}"
+    Name = "valhub-nat-eip"
   }
 
 }
 
 resource "aws_nat_gateway" "nat_gw" {
-  count         = length(var.private_subnet_cidrs)
-  allocation_id = aws_eip.nat_eip[count.index].id
-  subnet_id     = element(aws_subnet.public_subnets[*].id, count.index)
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public_subnet_1.id
 
   tags = {
-    Name = "valhub-nat-gw-${count.index + 1}"
+    Name = "valhub-nat-gw"
   }
 
   depends_on = [aws_internet_gateway.igw]
@@ -222,15 +279,15 @@ resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule" {
 
 }
 
-resource "aws_vpc_security_group_egress_rule" "valhub_api_egress_rule" {
-  security_group_id = aws_security_group.valhub_api_lb_sg.id
+# resource "aws_vpc_security_group_egress_rule" "valhub_api_egress_rule" {
+#   security_group_id = aws_security_group.valhub_api_lb_sg.id
 
-  description = "Allow all outbound traffic"
-  from_port   = 0
-  to_port     = 0
-  ip_protocol = "-1"
-  cidr_ipv4   = "0.0.0.0/0"
-}
+#   description = "Allow all outbound traffic"
+#   from_port   = 0
+#   to_port     = 0
+#   ip_protocol = "-1"
+#   cidr_ipv4   = "0.0.0.0/0"
+# }
 
 resource "aws_security_group" "valhub_api_lb_sg" {
   name        = "valhub-api-lb-sg"
@@ -250,7 +307,7 @@ resource "aws_lb" "valhub_api_lb" {
   name                       = "valhub-api-lb-tf"
   internal                   = true
   load_balancer_type         = "application"
-  subnets                    = aws_subnet.public_subnets[*].id
+  subnets                    = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
   security_groups            = [aws_security_group.valhub_api_lb_sg.id]
   drop_invalid_header_fields = true
   ip_address_type            = "ipv4"
