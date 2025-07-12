@@ -53,3 +53,8 @@ import {
   to = module.vpc.aws_route_table.private_route_table_2
   id = "rtb-0266b96168120c822"
 }
+
+# import {
+#   to = module.vpc.aws_nat_gateway.nat_gw
+#   id = "nat-0775611a636134062"
+# }

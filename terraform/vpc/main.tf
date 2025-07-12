@@ -265,7 +265,6 @@ resource "aws_nat_gateway" "nat_gw" {
     Name = "valhub-nat-gw"
   }
 
-  depends_on = [aws_internet_gateway.igw]
 }
 
 resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule" {

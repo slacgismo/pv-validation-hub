@@ -37,9 +37,9 @@ module "s3" {
   source = "./s3"
 
   # Import
-  account_id         = data.aws_caller_identity.current.account_id
-  aws_region         = var.aws_region
-  valhub_api_lb_arn  = module.vpc.valhub_api_lb_arn
+  account_id = data.aws_caller_identity.current.account_id
+  aws_region = var.aws_region
+  # valhub_api_lb_arn  = module.vpc.valhub_api_lb_arn
   api_lb_logs_prefix = module.vpc.api_lb_logs_prefix
 
   # Variables

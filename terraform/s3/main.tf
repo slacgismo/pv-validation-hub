@@ -1,6 +1,5 @@
 resource "aws_s3_bucket" "valhub_bucket" {
   bucket = "valhub-bucket"
-
 }
 
 resource "aws_s3_bucket_versioning" "valhub_bucket_versioning" {
@@ -80,8 +79,8 @@ data "aws_iam_policy_document" "valhub_logs_bucket_policy_document" {
     effect = "Allow"
 
     principals {
-      type        = "Service"
-      identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::797873946194:root"]
     }
 
     actions = [
@@ -140,6 +139,7 @@ resource "aws_s3_bucket_public_access_block" "valhub_bucket_public_access_block"
 
 resource "aws_s3_bucket" "valhub_website" {
   bucket = "valhub-website-bucket"
+
 
 }
 
@@ -234,14 +234,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_logs_encry
     }
   }
 
-  depends_on = [
-    var.valhub_api_lb_arn
-  ]
-
 }
 
 resource "aws_s3_bucket" "valhub_task_data_bucket" {
   bucket = "valhub-task-data-bucket"
+
+
 
 }
 
