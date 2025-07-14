@@ -39,34 +39,34 @@ data "aws_iam_policy_document" "valhub_kms_bucket_key_policy_document" {
     ]
   }
 
-  statement {
-    effect = "Allow"
+  # statement {
+  #   effect = "Allow"
 
-    principals {
-      type        = "Service"
-      identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
-    }
+  #   principals {
+  #     type        = "Service"
+  #     identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
+  #   }
 
-    actions = [
-      "s3:PutObject",
-    ]
+  #   actions = [
+  #     "s3:PutObject",
+  #   ]
 
-    # TODO: update prefix to match your log delivery prefix from module
-    resources = [
-      "arn:aws:s3:::${aws_s3_bucket.valhub_logs_bucket.id}/${var.api_lb_logs_prefix}/AWSLogs/${var.account_id}/*",
-    ]
+  #   # TODO: update prefix to match your log delivery prefix from module
+  #   resources = [
+  #     "arn:aws:s3:::${aws_s3_bucket.valhub_logs_bucket.id}/${var.api_lb_logs_prefix}/AWSLogs/${var.account_id}/*",
+  #   ]
 
 
-  }
-  statement {
-    effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
-    }
-    actions   = ["s3:GetBucketAcl"]
-    resources = ["arn:aws:s3:::valhub-logs-bucket"]
-  }
+  # }
+  # statement {
+  #   effect = "Allow"
+  #   principals {
+  #     type        = "Service"
+  #     identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
+  #   }
+  #   actions   = ["s3:GetBucketAcl"]
+  #   resources = ["arn:aws:s3:::valhub-logs-bucket"]
+  # }
 
 }
 
@@ -79,8 +79,10 @@ data "aws_iam_policy_document" "valhub_logs_bucket_policy_document" {
     effect = "Allow"
 
     principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::797873946194:root"]
+      type = "AWS"
+      # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+      # us-west-2 797873946194
+      identifiers = ["arn:aws:iam::${var.elb_account_id}:root"]
     }
 
     actions = [
@@ -232,6 +234,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_logs_encry
       kms_master_key_id = aws_kms_key.valhub_kms_bucket_key.arn
       sse_algorithm     = "aws:kms"
     }
+    bucket_key_enabled = true
   }
 
 }

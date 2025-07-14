@@ -21,10 +21,10 @@ output "public_subnet_ids" {
   value       = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
 }
 
-# output "valhub_api_lb_arn" {
-#   description = "Load Balancer for Valhub API"
-#   value       = aws_lb.valhub_api_lb.arn
-# }
+output "api_target_group_arn" {
+  description = "ARN of the API target group"
+  value       = aws_lb_target_group.api_target_group.arn
+}
 
 output "api_lb_logs_prefix" {
   description = "S3 bucket prefix for API Load Balancer logs"

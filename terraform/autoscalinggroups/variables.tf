@@ -29,6 +29,11 @@ variable "vpc_id" {
   type        = string
 }
 
+variable "api_target_group_arn" {
+  description = "ARN of the API target group"
+  type        = string
+}
+
 # Variables for the Auto Scaling group module
 variable "asg_desired_capacity" {
   description = "Desired capacity of the Auto Scaling group"

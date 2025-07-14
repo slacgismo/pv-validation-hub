@@ -14,7 +14,7 @@ variable "aws_profile" {
 variable "aws_region" {
   description = "AWS region where the VPC will be created"
   type        = string
-  default     = "us-west-1"
+  default     = "us-west-2"
 }
 
 variable "global_tags" {
@@ -57,6 +57,12 @@ variable "api_lb_logs_prefix" {
 # SQS Module
 
 # S3 Module
+variable "elb_account_id" {
+  description = "AWS account ID for the Elastic Load Balancing service"
+  type        = string
+  # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
+  default = "797873946194" # elb account ID for us-west-2
+}
 
 # RDS Module
 variable "db_instance_class" {

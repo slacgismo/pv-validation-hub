@@ -43,6 +43,7 @@ module "s3" {
   api_lb_logs_prefix = module.vpc.api_lb_logs_prefix
 
   # Variables
+  elb_account_id = var.elb_account_id
 }
 
 module "rds" {
@@ -70,33 +71,34 @@ module "rds" {
 #   website_domain_name = var.website_domain_name
 # }
 
-# module "asg" {
-#   source = "./autoscalinggroups"
+module "asg" {
+  source = "./autoscalinggroups"
 
-#   # Import
-#   account_id         = data.aws_caller_identity.current.account_id
-#   private_subnet_ids = module.vpc.private_subnet_ids
-#   public_subnet_ids  = module.vpc.public_subnet_ids
-#   vpc_id             = module.vpc.vpc_id
-#   aws_region         = var.aws_region
-#   logs_bucket_id     = module.s3.valhub_logs_bucket_id
+  # Import
+  account_id           = data.aws_caller_identity.current.account_id
+  private_subnet_ids   = module.vpc.private_subnet_ids
+  public_subnet_ids    = module.vpc.public_subnet_ids
+  vpc_id               = module.vpc.vpc_id
+  aws_region           = var.aws_region
+  logs_bucket_id       = module.s3.valhub_logs_bucket_id
+  api_target_group_arn = module.vpc.api_target_group_arn
 
-#   # Variables
-#   asg_desired_capacity           = var.asg_desired_capacity
-#   asg_max_size                   = var.asg_max_size
-#   asg_min_size                   = var.asg_min_size
-#   ecs_worker_task_name           = var.ecs_worker_task_name
-#   ecs_api_task_name              = var.ecs_api_task_name
-#   ecs_task_role_name             = var.ecs_task_role_name
-#   worker_instance_type           = var.worker_instance_type
-#   worker_volume_size             = var.worker_volume_size
-#   worker_cpu_units               = var.worker_cpu_units
-#   worker_memory_size             = var.worker_memory_size
-#   worker_memory_reservation_size = var.worker_memory_reservation_size
-#   api_cpu_units                  = var.api_cpu_units
-#   api_memory_size                = var.api_memory_size
-#   api_memory_reservation_size    = var.api_memory_reservation_size
-# }
+  # Variables
+  asg_desired_capacity           = var.asg_desired_capacity
+  asg_max_size                   = var.asg_max_size
+  asg_min_size                   = var.asg_min_size
+  ecs_worker_task_name           = var.ecs_worker_task_name
+  ecs_api_task_name              = var.ecs_api_task_name
+  ecs_task_role_name             = var.ecs_task_role_name
+  worker_instance_type           = var.worker_instance_type
+  worker_volume_size             = var.worker_volume_size
+  worker_cpu_units               = var.worker_cpu_units
+  worker_memory_size             = var.worker_memory_size
+  worker_memory_reservation_size = var.worker_memory_reservation_size
+  api_cpu_units                  = var.api_cpu_units
+  api_memory_size                = var.api_memory_size
+  api_memory_reservation_size    = var.api_memory_reservation_size
+}
 
 
 

@@ -440,17 +440,7 @@ resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
 
 # TODO: Clean up ECS service
 
-resource "aws_lb_target_group" "api_target_group" {
-  name        = "valhub-api-target-group"
-  port        = 80
-  protocol    = "HTTP"
-  vpc_id      = var.vpc_id
-  target_type = "ip"
 
-  tags = {
-    Name = "valhub-api-target-group"
-  }
-}
 
 resource "aws_ecs_service" "ecs_api_service" {
   name    = "ecs-api-service"
@@ -464,7 +454,7 @@ resource "aws_ecs_service" "ecs_api_service" {
   deployment_minimum_healthy_percent = 100
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.api_target_group.arn
+    target_group_arn = var.api_target_group_arn
     container_name   = var.ecs_api_task_name
     container_port   = 80
   }
