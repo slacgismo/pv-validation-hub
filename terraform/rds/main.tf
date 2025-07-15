@@ -80,3 +80,57 @@ resource "aws_db_instance" "valhub_rds_instance" {
     Name = "valhub-rds-instance"
   }
 }
+
+resource "aws_db_proxy" "valhub_rds_proxy" {
+  name                   = "valhub-rds-proxy"
+  engine_family          = "POSTGRESQL"
+  role_arn               = aws_iam_role.valhub_rds_proxy_role.arn
+  vpc_subnet_ids         = var.private_subnet_ids
+  vpc_security_group_ids = [aws_security_group.valhub_rds_sg.id]
+
+  auth {
+    auth_scheme = "SECRETS"
+    description = "Authentication for ValHub RDS Proxy"
+    iam_auth    = "DISABLED"
+    secret_arn  = aws_secretsmanager_secret.valhub_rds_proxy_secret.arn
+  }
+
+  tags = {
+    Name = "valhub-rds-proxy"
+  }
+}
+
+resource "aws_iam_role" "valhub_rds_proxy_role" {
+  name = "valhub-rds-proxy-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "rds.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      },
+    ]
+  })
+
+  tags = {
+    Name = "valhub-rds-proxy-role"
+  }
+}
+
+resource "aws_secretsmanager_secret" "valhub_rds_proxy_secret" {
+  name        = "valhub-rds-proxy-secret"
+  description = "Secret for ValHub RDS Proxy authentication"
+
+  tags = {
+    Name = "valhub-rds-proxy-secret"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "valhub_rds_proxy_secret_version" {
+  secret_id     = aws_secretsmanager_secret.valhub_rds_proxy_secret.id
+  secret_string = jsonencode(var.valhub_rds_proxy_secrets)
+}

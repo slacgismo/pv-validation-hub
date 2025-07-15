@@ -171,6 +171,20 @@ resource "aws_s3_bucket_public_access_block" "valhub_website_public_access_block
 
 }
 
+resource "aws_s3_bucket_acl" "valhub_website_acl" {
+  bucket = aws_s3_bucket.valhub_website.id
+  acl    = "private"
+
+}
+
+resource "aws_s3_bucket_ownership_controls" "valhub_website_ownership_controls" {
+  bucket = aws_s3_bucket.valhub_website.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+
+}
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_website_encryption" {
   bucket = aws_s3_bucket.valhub_website.id

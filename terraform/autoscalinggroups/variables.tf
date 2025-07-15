@@ -104,3 +104,8 @@ variable "ecs_task_role_name" {
   type        = string
 }
 
+variable "valhub_api_django_secret_key" {
+  description = "Django secret key for the Valhub API"
+  type        = map(string)
+  sensitive   = true
+}

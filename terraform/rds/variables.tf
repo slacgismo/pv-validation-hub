@@ -15,3 +15,9 @@ variable "db_instance_class" {
   description = "value for the RDS instance class, e.g., db.t3.micro"
   type        = string
 }
+
+variable "valhub_rds_proxy_secrets" {
+  description = "Secrets for ValHub RDS Proxy authentication"
+  type        = map(string)
+  sensitive   = true
+}

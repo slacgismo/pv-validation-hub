@@ -137,7 +137,9 @@ def get_django_secret_key():
         SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
     elif ENVIRONMENT == "production":
         try:
-            secret = get_secret_from_aws_secrets_manager("DjangoSecretKey")
+            secret = get_secret_from_aws_secrets_manager(
+                "valhub-api-django-secret-key"
+            )
             if secret is None:
                 raise Exception("Secret is None")
 
@@ -283,10 +285,10 @@ def configure_db():
 
         db_name = "postgres"
         db_identifier = db_secrets.get("dbInstanceIdentifier", None)
-        username = db_secrets.get("username", None)
-        password = db_secrets.get("password", None)
-        hostname = db_secrets.get("proxy", None)
-        port = db_secrets.get("port", None)
+        username = db_secrets.get("DB_USERNAME", None)
+        password = db_secrets.get("DB_PASSWORD", None)
+        hostname = db_secrets.get("DB_HOSTNAME", None)
+        port = db_secrets.get("DB_PORT", None)
 
         if None in [db_name, username, password, hostname, port]:
             raise Exception("One or more database secrets are missing")

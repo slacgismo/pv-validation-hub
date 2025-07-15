@@ -54,7 +54,8 @@ module "rds" {
   private_subnet_ids = module.vpc.private_subnet_ids
 
   # Variables
-  db_instance_class = var.db_instance_class
+  db_instance_class        = var.db_instance_class
+  valhub_rds_proxy_secrets = var.valhub_rds_proxy_secrets
 }
 
 # module "cloudfront" {
@@ -98,6 +99,7 @@ module "asg" {
   api_cpu_units                  = var.api_cpu_units
   api_memory_size                = var.api_memory_size
   api_memory_reservation_size    = var.api_memory_reservation_size
+  valhub_api_django_secret_key   = var.valhub_api_django_secret_key
 }
 
 

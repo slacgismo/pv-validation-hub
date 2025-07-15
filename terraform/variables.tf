@@ -71,6 +71,18 @@ variable "db_instance_class" {
   default     = "db.t3.micro"
 }
 
+variable "valhub_rds_proxy_secrets" {
+  description = "Secrets for ValHub RDS Proxy authentication"
+  type        = map(string)
+  sensitive   = true
+  default = {
+    "DB_USERNAME" = "valhub_user"
+    "DB_PASSWORD" = "valhub_password"
+    "DB_HOSTNAME" = "valhub-db-proxy"
+    "DB_PORT"     = "5432"
+  }
+}
+
 # CloudFront Module
 variable "website_origin_id" {
   description = "Origin ID for the S3 bucket used as the website origin"
@@ -179,4 +191,13 @@ variable "api_memory_reservation_size" {
   default     = 2048 # 1 GB = 1024 MiB
 }
 
+variable "valhub_api_django_secret_key" {
+  description = "Django secret key for the Valhub API"
+  type        = map(string)
+  sensitive   = true
+  default = {
+    "DJANGO_SECRET_KEY" = "secret-key-placeholder" # Replace with actual secret key
+
+  }
+}
 

@@ -41,13 +41,47 @@ resource "aws_autoscaling_group" "worker_asg" {
   min_size             = var.asg_min_size
   vpc_zone_identifier  = var.private_subnet_ids
   launch_configuration = aws_launch_configuration.worker_lc.id
-  # availability_zones   = var.private_subnet_ids
-
+  # protect_from_scale_in = true
   tag {
     key                 = "Name"
     value               = "valhub-worker-asg"
     propagate_at_launch = true
   }
+}
+
+# resource "aws_ecs_capacity_provider" "worker_capacity_provider" {
+#   name = "valhub-worker-capacity-provider"
+
+#   auto_scaling_group_provider {
+#     auto_scaling_group_arn         = aws_autoscaling_group.worker_asg.arn
+#     managed_termination_protection = "ENABLED"
+
+#     managed_scaling {
+#       status                    = "ENABLED"
+#       target_capacity           = 100
+#       minimum_scaling_step_size = 1
+#       maximum_scaling_step_size = 1
+#     }
+#   }
+
+#   tags = {
+#     Name = "valhub-worker-capacity-provider"
+#   }
+# }
+
+resource "aws_ecs_cluster_capacity_providers" "worker_cluster_capacity_providers" {
+  cluster_name = aws_ecs_cluster.worker_cluster.name
+
+  capacity_providers = [
+    "FARGATE"
+  ]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+    base              = 0
+  }
+
 }
 
 resource "aws_launch_configuration" "worker_lc" {
@@ -109,7 +143,7 @@ resource "aws_kms_key" "ecr_kms_key" {
 resource "aws_ecr_repository" "api_repository" {
   name = "valhub-api"
 
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -127,7 +161,7 @@ resource "aws_ecr_repository" "api_repository" {
 
 resource "aws_ecr_repository" "worker_repository" {
   name                 = "valhub-worker"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -168,6 +202,7 @@ resource "aws_ecs_service" "ecs_worker_service" {
   tags = {
     Name = "valhub-ecs-worker-service"
   }
+
 }
 
 # TODO: Clean up ECS task definition\
@@ -471,7 +506,6 @@ resource "aws_ecs_service" "ecs_api_service" {
     Name = "valhub-ecs-api-service"
   }
 
-  depends_on = [var.vpc_id]
 }
 
 
@@ -529,4 +563,14 @@ resource "aws_ecs_task_definition" "ecs_api_task_definition" {
   tags = {
     Name = "valhub-ecs-api-task-definition"
   }
+}
+
+resource "aws_secretsmanager_secret" "valhub_api_django_secret_key" {
+  name        = "valhub-api-django-secret-key"
+  description = "Secret for Valhub API Django"
+}
+
+resource "aws_secretsmanager_secret_version" "valhub_api_django_secret_key" {
+  secret_id     = aws_secretsmanager_secret.valhub_api_django_secret_key.id
+  secret_string = jsonencode(var.valhub_api_django_secret_key)
 }
