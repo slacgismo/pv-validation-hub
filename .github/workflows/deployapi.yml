@@ -15,8 +15,8 @@ env:
     ADU: ${{ secrets.ADU }}
     ADP: ${{ secrets.ADP }}
     ADE: ${{ secrets.ADE }}
-    AK: ${{ secrets.API_AK }}
-    SAK: ${{ secrets.API_SAK }}
+    AK: ${{ secrets.AWS_ACCESS_KEY }}
+    SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     PEM: ${{ secrets.PEM }}
 
 jobs:
