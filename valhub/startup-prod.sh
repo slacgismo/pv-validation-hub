@@ -16,10 +16,6 @@ python3 manage.py makemigrations
 echo "Running migrations..."
 python3 manage.py migrate
 
-# Run valhub_initial_data
-echo "Loading initial data..."
-python3 manage.py loaddata initial_data.json
-
 # Run valhub_collectstatic
 echo "Collecting static files..."
 python3 manage.py collectstatic --noinput
@@ -34,7 +30,4 @@ echo "Creating superuser..."
 
 # Starting supervisord
 echo "Starting supervisord..."
-supervisord -c /root/valhub/supervisord.conf -n
-
-# # Keep the container running
-# tail -f /dev/null
+supervisord -c /root/valhub/supervisord.prod.conf -n
