@@ -273,7 +273,9 @@ def configure_db():
             }
         }
     elif ENVIRONMENT == "production":
-        db_secrets = get_secret_from_aws_secrets_manager("pvinsight-db")
+        db_secrets = get_secret_from_aws_secrets_manager(
+            "valhub-rds-proxy-secret"
+        )
 
         if db_secrets is None:
             raise Exception("Database secrets are None")
