@@ -19,6 +19,9 @@ jobs:
             - name: Checkout Repository
               uses: actions/checkout@v4
 
+            - name: Update submodules
+              run: git submodule update --init --recursive
+
             - name: Install Node
               uses: actions/setup-node@v4
               with:
@@ -35,14 +38,14 @@ jobs:
 
             - name: install dependencies and build
               run: |
-                  cd frontend
-                  npm install
+                  cd pv-validation-hub-client
+                  npm ci
                   npm run build
 
             - name: Move Build to tmp
               run: |
                   mkdir -p /tmp/workspace/build
-                  mv -v frontend/build/* /tmp/workspace/build
+                  mv -v out/* /tmp/workspace/build
 
             - name: Temporarily save Build to artifacts
               uses: actions/upload-artifact@v4
