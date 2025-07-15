@@ -45,7 +45,7 @@ jobs:
             - name: Move Build to tmp
               run: |
                   mkdir -p /tmp/workspace/build
-                  mv -v ./out/* /tmp/workspace/build
+                  mv -v pv-validation-hub-client/out/* /tmp/workspace/build
 
             - name: Temporarily save Build to artifacts
               uses: actions/upload-artifact@v4
