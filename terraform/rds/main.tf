@@ -75,9 +75,37 @@ resource "aws_db_instance" "valhub_rds_instance" {
   vpc_security_group_ids              = [aws_security_group.valhub_rds_sg.id]
 
 
-
   tags = {
     Name = "valhub-rds-instance"
+  }
+}
+
+resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
+  db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
+  connection_pool_config {
+    max_connections_percent      = 100
+    max_idle_connections_percent = 50
+    connection_borrow_timeout    = 120
+    session_pinning_filters      = ["EXCLUDE_VARIABLE_SETS"]
+  }
+
+
+}
+
+resource "aws_db_proxy_target" "valhub_rds_proxy_target" {
+  db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
+  target_group_name      = aws_db_proxy_default_target_group.valhub_rds_proxy_default_target_group.name
+  db_instance_identifier = aws_db_instance.valhub_rds_instance.identifier
+}
+
+resource "aws_db_proxy_endpoint" "valhub_rds_proxy_endpoint" {
+  db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
+  db_proxy_endpoint_name = "valhub-rds-proxy-endpoint"
+  vpc_subnet_ids         = var.private_subnet_ids
+  vpc_security_group_ids = [aws_security_group.valhub_rds_sg.id]
+
+  tags = {
+    Name = "valhub-rds-proxy-endpoint"
   }
 }
 
