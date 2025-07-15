@@ -18,6 +18,7 @@ data "aws_ami" "worker_ami" {
   most_recent = true
   owners      = ["amazon"]
 
+
   filter {
     name   = "name"
     values = ["amzn2-ami-ecs-hvm-*-x86_64-ebs"]
@@ -36,12 +37,18 @@ data "aws_ami" "worker_ami" {
 
 # TODO: Uncomment when rest of the code is ready
 resource "aws_autoscaling_group" "worker_asg" {
-  desired_capacity     = var.asg_desired_capacity
-  max_size             = var.asg_max_size
-  min_size             = var.asg_min_size
-  vpc_zone_identifier  = var.private_subnet_ids
-  launch_configuration = aws_launch_configuration.worker_lc.id
-  # protect_from_scale_in = true
+  name                = "valhub-worker-asg"
+  desired_capacity    = var.asg_desired_capacity
+  max_size            = var.asg_max_size
+  min_size            = var.asg_min_size
+  vpc_zone_identifier = var.private_subnet_ids
+  # launch_configuration = aws_launch_configuration.worker_lc.id
+
+  launch_template {
+    id      = aws_launch_template.worker_lt.id
+    version = "$Latest"
+  }
+
   tag {
     key                 = "Name"
     value               = "valhub-worker-asg"
@@ -69,29 +76,90 @@ resource "aws_autoscaling_group" "worker_asg" {
 #   }
 # }
 
-resource "aws_ecs_cluster_capacity_providers" "worker_cluster_capacity_providers" {
-  cluster_name = aws_ecs_cluster.worker_cluster.name
+# resource "aws_ecs_cluster_capacity_providers" "worker_cluster_capacity_providers" {
+#   cluster_name = aws_ecs_cluster.worker_cluster.name
 
-  capacity_providers = [
-    "FARGATE"
-  ]
+#   capacity_providers = [
+#     "FARGATE"
+#   ]
 
-  default_capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight            = 1
-    base              = 0
+#   default_capacity_provider_strategy {
+#     capacity_provider = "FARGATE"
+#     weight            = 1
+#     base              = 0
+#   }
+
+# }
+
+# resource "aws_launch_configuration" "worker_lc" {
+#   name_prefix   = "valhub-worker-lc-"
+#   image_id      = data.aws_ami.worker_ami.id
+#   instance_type = var.worker_instance_type
+
+#   root_block_device {
+#     volume_size = var.worker_volume_size
+#     encrypted   = true
+#   }
+
+#   metadata_options {
+#     http_tokens = "required"
+#   }
+
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+
+# }
+
+data "aws_iam_policy_document" "ecs_instance_assume_role_policy" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com", "ecs.amazonaws.com"]
+    }
+
+    actions = [
+      "sts:AssumeRole"
+    ]
   }
-
 }
 
-resource "aws_launch_configuration" "worker_lc" {
-  name_prefix   = "valhub-worker-lc-"
+resource "aws_iam_role_policy_attachment" "ecs_instance_role_policy_attachment" {
+  role       = aws_iam_role.ecs_instance_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
+}
+
+resource "aws_iam_role" "ecs_instance_role" {
+  name = "valhub-ecs-instance-role"
+
+  assume_role_policy = data.aws_iam_policy_document.ecs_instance_assume_role_policy.json
+}
+
+resource "aws_iam_instance_profile" "ecs_instance_profile" {
+  name = "valhub-ecs-instance-profile"
+
+  role = aws_iam_role.ecs_instance_role.id
+}
+
+resource "aws_launch_template" "worker_lt" {
+  name_prefix   = "valhub-worker-lt-"
   image_id      = data.aws_ami.worker_ami.id
   instance_type = var.worker_instance_type
 
-  root_block_device {
-    volume_size = var.worker_volume_size
-    encrypted   = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.ecs_instance_profile.arn
+  }
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+
+    ebs {
+      volume_size = var.worker_volume_size
+      encrypted   = true
+
+    }
   }
 
   metadata_options {
@@ -102,7 +170,20 @@ resource "aws_launch_configuration" "worker_lc" {
     create_before_destroy = true
   }
 
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    ecs_cluster_name = aws_ecs_cluster.worker_cluster.name
+  }))
+
+
 }
+
+# data "template_file" "worker_user_data" {
+#   template = file("${path.module}/user_data.sh")
+
+#   vars = {
+#     ecs_cluster_name = aws_ecs_cluster.worker_cluster.name
+#   }
+# }
 
 resource "aws_ecs_cluster" "worker_cluster" {
   name = "valhub-worker-cluster"

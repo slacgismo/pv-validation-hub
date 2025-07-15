@@ -348,3 +348,27 @@ resource "aws_lb_listener" "api_listener" {
   }
 }
 
+resource "aws_security_group" "ecs_worker_sg" {
+  name        = "valhub-ecs-worker-sg"
+  description = "Security group for Valhub ECS Worker"
+  vpc_id      = aws_vpc.main.id
+
+
+
+  tags = {
+    Name = "valhub-ecs-worker-sg"
+  }
+}
+
+resource "aws_vpc_endpoint" "ecs_worker_endpoint" {
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.ecs"
+  vpc_endpoint_type  = "Interface"
+  security_group_ids = [aws_security_group.ecs_worker_sg.id]
+  subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+
+  tags = {
+    Name = "valhub-ecs-worker-endpoint"
+  }
+
+}
