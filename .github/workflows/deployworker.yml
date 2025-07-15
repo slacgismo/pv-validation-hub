@@ -15,6 +15,7 @@ env:
     DOCKER_HOST_VOLUME_RESULTS_DIR: ${{ vars.DOCKER_HOST_VOLUME_RESULTS_DIR }}
     AK: ${{ secrets.AWS_ACCESS_KEY }}
     SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    AST: ${{ secrets.AWS_SESSION_TOKEN }}
 
 jobs:
     deploy_worker:
@@ -30,6 +31,7 @@ jobs:
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                  aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
                   aws-region: ${{ env.AWS_REGION }}
 
             - name: Login to Amazon ECR
