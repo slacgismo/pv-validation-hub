@@ -46,6 +46,7 @@ ENV DJANGO_SUPERUSER_USERNAME=${admin_username}
 ENV DJANGO_SUPERUSER_PASSWORD=${admin_password}
 ENV DJANGO_SUPERUSER_EMAIL=${admin_email}
 ENV DJANGO_SECRET_KEY=${djangosk}
+ENV ENVIRONMENT=production
 ENV PORT 8005
 
 # Install required system dependencies including Nginx
