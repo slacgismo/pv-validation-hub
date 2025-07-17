@@ -30,3 +30,9 @@ output "api_lb_logs_prefix" {
   description = "S3 bucket prefix for API Load Balancer logs"
   value       = var.api_lb_logs_prefix
 }
+
+output "ecs_worker_sg_id" {
+  description = "Security group ID for ECS Worker"
+  value       = aws_security_group.ecs_worker_sg.id
+
+}

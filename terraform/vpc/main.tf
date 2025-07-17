@@ -267,6 +267,7 @@ resource "aws_nat_gateway" "nat_gw" {
 
 }
 
+
 resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule" {
   security_group_id = aws_security_group.valhub_api_lb_sg.id
 
@@ -348,6 +349,28 @@ resource "aws_lb_listener" "api_listener" {
   }
 }
 
+resource "aws_vpc_security_group_ingress_rule" "ecs_worker_ingress_rule_http" {
+  security_group_id = aws_security_group.ecs_worker_sg.id
+
+  description = "Allow HTTP traffic from anywhere"
+  from_port   = 80
+  to_port     = 80
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ecs_worker_ingress_rule_https" {
+  security_group_id = aws_security_group.ecs_worker_sg.id
+
+  description = "Allow HTTPS traffic from anywhere"
+  from_port   = 443
+  to_port     = 443
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+
+}
+
 resource "aws_security_group" "ecs_worker_sg" {
   name        = "valhub-ecs-worker-sg"
   description = "Security group for Valhub ECS Worker"
@@ -360,15 +383,15 @@ resource "aws_security_group" "ecs_worker_sg" {
   }
 }
 
-resource "aws_vpc_endpoint" "ecs_worker_endpoint" {
-  vpc_id             = aws_vpc.main.id
-  service_name       = "com.amazonaws.${var.aws_region}.ecs"
-  vpc_endpoint_type  = "Interface"
-  security_group_ids = [aws_security_group.ecs_worker_sg.id]
-  subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
+# resource "aws_vpc_endpoint" "ecs_worker_endpoint" {
+#   vpc_id             = aws_vpc.main.id
+#   service_name       = "com.amazonaws.${var.aws_region}.ecs"
+#   vpc_endpoint_type  = "Interface"
+#   security_group_ids = [aws_security_group.ecs_worker_sg.id]
+#   subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
 
-  tags = {
-    Name = "valhub-ecs-worker-endpoint"
-  }
+#   tags = {
+#     Name = "valhub-ecs-worker-endpoint"
+#   }
 
-}
+# }

@@ -83,6 +83,7 @@ module "asg" {
   aws_region           = var.aws_region
   logs_bucket_id       = module.s3.valhub_logs_bucket_id
   api_target_group_arn = module.vpc.api_target_group_arn
+  ecs_worker_sg_id     = module.vpc.ecs_worker_sg_id
 
   # Variables
   asg_desired_capacity           = var.asg_desired_capacity

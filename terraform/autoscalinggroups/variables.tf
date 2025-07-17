@@ -34,6 +34,12 @@ variable "api_target_group_arn" {
   type        = string
 }
 
+variable "ecs_worker_sg_id" {
+  description = "Security group ID for ECS Worker"
+  type        = string
+
+}
+
 # Variables for the Auto Scaling group module
 variable "asg_desired_capacity" {
   description = "Desired capacity of the Auto Scaling group"

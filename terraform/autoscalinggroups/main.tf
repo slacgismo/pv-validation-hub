@@ -42,7 +42,6 @@ resource "aws_autoscaling_group" "worker_asg" {
   max_size            = var.asg_max_size
   min_size            = var.asg_min_size
   vpc_zone_identifier = var.private_subnet_ids
-  # launch_configuration = aws_launch_configuration.worker_lc.id
 
   launch_template {
     id      = aws_launch_template.worker_lt.id
@@ -54,27 +53,32 @@ resource "aws_autoscaling_group" "worker_asg" {
     value               = "valhub-worker-asg"
     propagate_at_launch = true
   }
+
 }
 
-# resource "aws_ecs_capacity_provider" "worker_capacity_provider" {
-#   name = "valhub-worker-capacity-provider"
+resource "aws_ecs_capacity_provider" "worker_capacity_provider" {
+  name = "valhub-worker-capacity-provider"
 
-#   auto_scaling_group_provider {
-#     auto_scaling_group_arn         = aws_autoscaling_group.worker_asg.arn
-#     managed_termination_protection = "ENABLED"
+  auto_scaling_group_provider {
 
-#     managed_scaling {
-#       status                    = "ENABLED"
-#       target_capacity           = 100
-#       minimum_scaling_step_size = 1
-#       maximum_scaling_step_size = 1
-#     }
-#   }
+    auto_scaling_group_arn = aws_autoscaling_group.worker_asg.arn
+    # managed_termination_protection = "ENABLED"
+    managed_draining               = "ENABLED"
+    managed_termination_protection = "DISABLED"
 
-#   tags = {
-#     Name = "valhub-worker-capacity-provider"
-#   }
-# }
+    managed_scaling {
+      status                    = "ENABLED"
+      target_capacity           = 100
+      minimum_scaling_step_size = 1
+      maximum_scaling_step_size = 10000
+    }
+
+  }
+
+  tags = {
+    Name = "valhub-worker-capacity-provider"
+  }
+}
 
 # resource "aws_ecs_cluster_capacity_providers" "worker_cluster_capacity_providers" {
 #   cluster_name = aws_ecs_cluster.worker_cluster.name
@@ -91,25 +95,6 @@ resource "aws_autoscaling_group" "worker_asg" {
 
 # }
 
-# resource "aws_launch_configuration" "worker_lc" {
-#   name_prefix   = "valhub-worker-lc-"
-#   image_id      = data.aws_ami.worker_ami.id
-#   instance_type = var.worker_instance_type
-
-#   root_block_device {
-#     volume_size = var.worker_volume_size
-#     encrypted   = true
-#   }
-
-#   metadata_options {
-#     http_tokens = "required"
-#   }
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-
-# }
 
 data "aws_iam_policy_document" "ecs_instance_assume_role_policy" {
   statement {
@@ -143,6 +128,8 @@ resource "aws_iam_instance_profile" "ecs_instance_profile" {
   role = aws_iam_role.ecs_instance_role.id
 }
 
+
+
 resource "aws_launch_template" "worker_lt" {
   name_prefix   = "valhub-worker-lt-"
   image_id      = data.aws_ami.worker_ami.id
@@ -168,6 +155,12 @@ resource "aws_launch_template" "worker_lt" {
 
   lifecycle {
     create_before_destroy = true
+  }
+
+
+  network_interfaces {
+    security_groups = [var.ecs_worker_sg_id]
+    # subnet_id                   = var.private_subnet_ids[0] # Use the first private subnet
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {

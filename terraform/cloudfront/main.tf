@@ -11,7 +11,7 @@ resource "aws_wafv2_web_acl" "valhub_waf_web_acl" {
   name        = "valhub-web-acl"
   description = "WAF ACL for ValHub"
   scope       = "CLOUDFRONT"
-  
+
 
   default_action {
     allow {}
@@ -118,6 +118,7 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
 
 
 resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" {
+
   aliases = [
     "pv-validation-hub.org"
   ]
