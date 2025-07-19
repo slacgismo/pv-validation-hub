@@ -132,10 +132,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_bucket_enc
 resource "aws_s3_bucket_public_access_block" "valhub_bucket_public_access_block" {
   bucket = aws_s3_bucket.valhub_bucket.id
 
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  ignore_public_acls      = false
+  block_public_policy     = false
+  restrict_public_buckets = false
 
 }
 
@@ -164,18 +164,15 @@ resource "aws_s3_bucket_logging" "valhub_website_logging" {
 resource "aws_s3_bucket_public_access_block" "valhub_website_public_access_block" {
   bucket = aws_s3_bucket.valhub_website.id
 
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  ignore_public_acls      = false
+  block_public_policy     = false
+  restrict_public_buckets = false
 
 }
 
-resource "aws_s3_bucket_acl" "valhub_website_acl" {
-  bucket = aws_s3_bucket.valhub_website.id
-  acl    = "private"
 
-}
+
 
 resource "aws_s3_bucket_ownership_controls" "valhub_website_ownership_controls" {
   bucket = aws_s3_bucket.valhub_website.id
@@ -184,6 +181,14 @@ resource "aws_s3_bucket_ownership_controls" "valhub_website_ownership_controls" 
     object_ownership = "BucketOwnerPreferred"
   }
 
+}
+
+resource "aws_s3_bucket_ownership_controls" "valhub_logs_ownership_controls" {
+  bucket = aws_s3_bucket.valhub_logs_bucket.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "valhub_website_encryption" {

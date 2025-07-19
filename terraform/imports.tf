@@ -73,3 +73,8 @@
 #   to = module.vpc.aws_vpc_security_group_ingress_rule.ecs_worker_ingress_rule_https
 #   id = "sgr-0528ce0440b7b1f3b"
 # }
+
+# import {
+#   to = module.cloudfront.aws_cloudfront_distribution.valhub_website_cloudfront_distribution
+#   id = "EC1R0BHIHN1QV"
+# }

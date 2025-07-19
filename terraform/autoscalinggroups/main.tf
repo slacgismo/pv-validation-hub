@@ -116,6 +116,15 @@ resource "aws_iam_role_policy_attachment" "ecs_instance_role_policy_attachment" 
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy_attachment" {
+  role       = aws_iam_role.ecs_worker_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+resource "aws_iam_role_policy_attachment" "ecs_task_role_policy_attachment" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 resource "aws_iam_role" "ecs_instance_role" {
   name = "valhub-ecs-instance-role"
 
@@ -270,6 +279,7 @@ resource "aws_ecs_service" "ecs_worker_service" {
   network_configuration {
     assign_public_ip = false
     subnets          = var.private_subnet_ids
+    security_groups  = [var.ecs_worker_sg_id]
   }
   scheduling_strategy = "REPLICA"
 
