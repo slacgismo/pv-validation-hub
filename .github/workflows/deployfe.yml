@@ -8,6 +8,7 @@ on:
 env:
     AWS_REGION: ${{ vars.AWS_REGION }}
     AWS_S3_WEBSITE_BUCKET: ${{ vars.AWS_S3_WEBSITE_BUCKET }}
+    AWS_GITHUB_OIDC_ROLE: ${{ vars.AWS_GITHUB_OIDC_ROLE }}
 
 jobs:
     build_fe:
@@ -61,7 +62,7 @@ jobs:
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                  role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE }}
+                  role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE }}
                   aws-region: ${{ env.AWS_REGION }}
                   role-session-name: ${{ github.workflow }}-${{ github.run_id }}
 
