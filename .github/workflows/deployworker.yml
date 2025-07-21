@@ -13,7 +13,7 @@ env:
     WORKER_TASK_DEFINITION_NAME: ${{ vars.WORKER_TASK_DEFINITION_NAME }}
     DOCKER_HOST_VOLUME_DATA_DIR: ${{ vars.DOCKER_HOST_VOLUME_DATA_DIR }}
     DOCKER_HOST_VOLUME_RESULTS_DIR: ${{ vars.DOCKER_HOST_VOLUME_RESULTS_DIR }}
-    AWS_GITHUB_OIDC_ROLE: ${{ vars.AWS_GITHUB_OIDC_ROLE }}
+    AWS_GITHUB_OIDC_ROLE_ARN: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
 
     AK: ${{ secrets.AWS_ACCESS_KEY }}
     SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -31,7 +31,7 @@ jobs:
             - name: Configure AWS credentials
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                  role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE }}
+                  role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_ARN }}
                   aws-region: ${{ env.AWS_REGION }}
                   role-session-name: ${{ github.workflow }}-${{ github.run_id }}
 
