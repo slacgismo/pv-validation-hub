@@ -10,6 +10,10 @@ env:
     AWS_S3_WEBSITE_BUCKET: ${{ vars.AWS_S3_WEBSITE_BUCKET }}
     AWS_GITHUB_OIDC_ROLE_ARN: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
 
+permissions:
+    contents: read
+    id-token: write
+
 jobs:
     build_fe:
         name: Build and Test

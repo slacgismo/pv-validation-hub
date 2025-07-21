@@ -19,6 +19,10 @@ env:
     SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     AST: ${{ secrets.AWS_SESSION_TOKEN }}
 
+permissions:
+    contents: read
+    id-token: write
+
 jobs:
     deploy_worker:
         name: Deploy Worker
