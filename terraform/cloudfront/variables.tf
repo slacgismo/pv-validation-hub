@@ -26,7 +26,16 @@ variable "private_origin_id" {
   type        = string
 }
 
-variable "website_domain_name" {
+variable "domain_name" {
   description = "Domain name for the CloudFront distribution"
+  type        = string
+}
+
+variable "website_name" {
+  description = "Name of the website for CloudFront distribution"
+  type        = string
+}
+variable "private_content_name" {
+  description = "Name of the private content for CloudFront distribution"
   type        = string
 }

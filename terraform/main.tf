@@ -61,15 +61,22 @@ module "rds" {
 module "cloudfront" {
   source = "./cloudfront"
 
+  providers = {
+    aws.us-east = aws.us-east
+
+  }
+
   # Import
   valhub_logs_bucket_domain_name    = module.s3.valhub_logs_bucket_domain_name
   valhub_website_bucket_domain_name = module.s3.valhub_website_bucket_domain_name
   valhub_bucket_domain_name         = module.s3.valhub_bucket_domain_name
 
   # Variables
-  private_origin_id   = var.private_origin_id
-  website_origin_id   = var.website_origin_id
-  website_domain_name = var.website_domain_name
+  private_origin_id    = var.private_origin_id
+  website_origin_id    = var.website_origin_id
+  domain_name          = var.domain_name
+  website_name         = var.website_name
+  private_content_name = var.private_content_name
 }
 
 module "asg" {

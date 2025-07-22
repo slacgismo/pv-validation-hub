@@ -9,8 +9,9 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+      source                = "hashicorp/aws"
+      version               = "~> 5.0"
+      configuration_aliases = [aws.us-east]
     }
   }
 }
@@ -22,4 +23,14 @@ provider "aws" {
   default_tags {
     tags = var.global_tags
   }
+}
+
+provider "aws" {
+  alias   = "us-east"
+  profile = var.aws_profile
+  region  = "us-east-1"
+  default_tags {
+    tags = var.global_tags
+  }
+
 }

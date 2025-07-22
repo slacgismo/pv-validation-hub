@@ -1,11 +1,27 @@
-# resource "aws_acm_certificate" "valhub_acm_certificate" {
-#   domain_name       = var.website_domain_name
-#   validation_method = "DNS"
-#   tags = {
-#     Name = "valhub-certificate"
-#   }
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      version               = "~> 5.0"
+      configuration_aliases = [aws.us-east]
+    }
+  }
+}
 
-# }
+
+resource "aws_acm_certificate" "valhub_acm_certificate" {
+
+  provider = aws.us-east
+
+  domain_name       = "*.${var.domain_name}"
+  validation_method = "DNS"
+
+
+  tags = {
+    Name = "valhub-certificate"
+  }
+
+}
 
 # resource "aws_wafv2_web_acl" "valhub_waf_web_acl" {
 #   name        = "valhub-web-acl"
@@ -48,80 +64,82 @@
 
 # }
 
-# resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distribution" {
+resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distribution" {
 
+  provider = aws.us-east
 
+  aliases = [
+    "${var.private_content_name}.${var.domain_name}"
+  ]
+  # web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
+  origin {
+    domain_name = var.valhub_bucket_domain_name
+    origin_id   = var.private_origin_id
 
-#   aliases = [
-#     "private-content.pv-validation-hub.org"
-#   ]
-#   web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
-#   origin {
-#     domain_name = var.valhub_bucket_domain_name
-#     origin_id   = var.private_origin_id
+    origin_path = ""
+    s3_origin_config {
+      origin_access_identity = ""
+    }
+  }
+  default_cache_behavior {
+    cached_methods = [
+      "HEAD",
+      "GET"
+    ]
+    allowed_methods = [
+      "HEAD",
+      "GET"
+    ]
+    compress    = true
+    default_ttl = 86400
+    forwarded_values {
+      cookies {
+        forward = "none"
+      }
+      query_string = false
+    }
+    max_ttl                = 31536000
+    min_ttl                = 0
+    smooth_streaming       = false
+    target_origin_id       = var.private_origin_id
+    viewer_protocol_policy = "redirect-to-https"
+  }
+  comment     = ""
+  price_class = "PriceClass_All"
+  enabled     = true
 
-#     origin_path = ""
-#     s3_origin_config {
-#       origin_access_identity = ""
-#     }
-#   }
-#   default_cache_behavior {
-#     cached_methods = [
-#       "HEAD",
-#       "GET"
-#     ]
-#     allowed_methods = [
-#       "HEAD",
-#       "GET"
-#     ]
-#     compress    = true
-#     default_ttl = 86400
-#     forwarded_values {
-#       cookies {
-#         forward = "none"
-#       }
-#       query_string = false
-#     }
-#     max_ttl                = 31536000
-#     min_ttl                = 0
-#     smooth_streaming       = false
-#     target_origin_id       = var.private_origin_id
-#     viewer_protocol_policy = "redirect-to-https"
-#   }
-#   comment     = ""
-#   price_class = "PriceClass_All"
-#   enabled     = true
+  viewer_certificate {
+    acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
+    cloudfront_default_certificate = false
+    minimum_protocol_version       = "TLSv1.2_2021"
+    ssl_support_method             = "sni-only"
+  }
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
 
-#   viewer_certificate {
-#     acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
-#     cloudfront_default_certificate = false
-#     minimum_protocol_version       = "TLSv1.2_2021"
-#     ssl_support_method             = "sni-only"
-#   }
-#   restrictions {
-#     geo_restriction {
-#       restriction_type = "none"
-#     }
-#   }
+  logging_config {
+    bucket          = var.valhub_logs_bucket_domain_name
+    include_cookies = false
+    prefix          = "cloudfront-logs/private-content/"
+  }
 
-#   logging_config {
-#     bucket          = var.valhub_logs_bucket_domain_name
-#     include_cookies = false
-#     prefix          = "cloudfront-logs/private-content/"
-#   }
-
-#   http_version    = "http2"
-#   is_ipv6_enabled = true
-# }
+  http_version    = "http2"
+  is_ipv6_enabled = true
+}
 
 
 
 
 resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" {
 
-  # aliases = [
-  #   "pv-validation-hub.org"
-  # ]
+  provider = aws.us-east
+
+  aliases = [
+    "${var.website_name}.${var.domain_name}"
+  ]
 
   # web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
 
@@ -177,10 +195,10 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
   price_class = "PriceClass_All"
   enabled     = true
   viewer_certificate {
-    # acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
-    cloudfront_default_certificate = true
-    minimum_protocol_version       = "TLSv1"
-    # ssl_support_method             = "sni-only"
+    acm_certificate_arn            = "arn:aws:acm:us-east-1:693299947844:certificate/b536582b-3f28-4f84-ae8c-3d13ec693512"
+    cloudfront_default_certificate = false
+    minimum_protocol_version       = "TLSv1.2_2021"
+    ssl_support_method             = "sni-only"
   }
   restrictions {
     geo_restriction {
