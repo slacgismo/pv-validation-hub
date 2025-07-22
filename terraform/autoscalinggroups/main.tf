@@ -48,6 +48,8 @@ resource "aws_autoscaling_group" "worker_asg" {
     version = "$Latest"
   }
 
+
+
   tag {
     key                 = "Name"
     value               = "valhub-worker-asg"
@@ -277,15 +279,15 @@ resource "aws_ecs_service" "ecs_worker_service" {
     field = "instanceId"
   }
   network_configuration {
-    assign_public_ip = false
-    subnets          = var.private_subnet_ids
-    security_groups  = [var.ecs_worker_sg_id]
+    subnets         = var.private_subnet_ids
+    security_groups = [var.ecs_worker_sg_id]
   }
   scheduling_strategy = "REPLICA"
 
   tags = {
     Name = "valhub-ecs-worker-service"
   }
+
 
 }
 
@@ -475,6 +477,7 @@ resource "aws_iam_role_policy_attachment" "ecs_api_task_execution_role_policy_at
 
 
 resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
+
   container_definitions = jsonencode([
     {
       name              = "${var.ecs_worker_task_name}",
@@ -539,6 +542,7 @@ resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
   task_role_arn      = aws_iam_role.ecs_task_role.arn
   execution_role_arn = aws_iam_role.ecs_worker_task_execution_role.arn
   network_mode       = "awsvpc"
+
 
   volume {
     name      = "docker_in_docker"
@@ -657,4 +661,24 @@ resource "aws_secretsmanager_secret" "valhub_api_django_secret_key" {
 resource "aws_secretsmanager_secret_version" "valhub_api_django_secret_key" {
   secret_id     = aws_secretsmanager_secret.valhub_api_django_secret_key.id
   secret_string = jsonencode(var.valhub_api_django_secret_key)
+}
+
+resource "aws_cloudwatch_log_group" "ecs_worker_log_group" {
+  name              = "/ecs/${var.ecs_worker_task_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name = "valhub-ecs-worker-log-group"
+  }
+
+}
+
+resource "aws_cloudwatch_log_group" "ecs_api_log_group" {
+  name              = "/ecs/${var.ecs_api_task_name}"
+  retention_in_days = 7
+
+  tags = {
+    Name = "valhub-ecs-api-log-group"
+  }
+
 }
