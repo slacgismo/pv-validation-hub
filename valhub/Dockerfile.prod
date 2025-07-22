@@ -16,13 +16,13 @@ RUN mkdir -p .aws
 RUN mkdir -p .pem
 COPY .pem /root/.pem
 
-WORKDIR /root/.aws
+# WORKDIR /root/.aws
 
-RUN awk -v ak="${ak}" -v sak="${sak}" -v ast="${ast}" \
-    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak "\naws_session_token = " ast > "/root/.aws/credentials"}'
+# RUN awk -v ak="${ak}" -v sak="${sak}" -v ast="${ast}" \
+#     'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak "\naws_session_token = " ast > "/root/.aws/credentials"}'
 
-RUN awk -v region=${region} \
-    'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
+# RUN awk -v region=${region} \
+#     'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
 WORKDIR /root/.pem
 

@@ -23,13 +23,13 @@ WORKDIR /home
 ENV DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR}
 ENV DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR}
 
-WORKDIR /root/.aws
+# WORKDIR /root/.aws
 
-RUN awk -v ak="${ak}" -v sak="${sak}" \
-    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "/root/.aws/credentials"}'
+# RUN awk -v ak="${ak}" -v sak="${sak}" \
+#     'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "/root/.aws/credentials"}'
 
-RUN awk -v region=${region} \
-    'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
+# RUN awk -v region=${region} \
+#     'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
 
 

@@ -77,9 +77,9 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
     origin_id   = var.private_origin_id
 
     origin_path = ""
-    s3_origin_config {
-      origin_access_identity = ""
-    }
+    # s3_origin_config {
+    #   origin_access_identity = ""
+    # }
   }
   default_cache_behavior {
     cached_methods = [
