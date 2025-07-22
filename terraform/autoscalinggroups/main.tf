@@ -299,7 +299,7 @@ data "aws_iam_policy_document" "ecs_task_role_policy_document" {
 
     principals {
       type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com"]
+      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com", "sqs.amazonaws.com"]
     }
     actions = [
       "sts:AssumeRole"
@@ -312,7 +312,8 @@ data "aws_iam_policy_document" "ecs_task_role_permissions_policy_document" {
     effect = "Allow"
 
     actions = [
-      "secretsmanager:GetSecretValue"
+      "secretsmanager:*",
+      "sqs:*"
     ]
 
     resources = ["*"]

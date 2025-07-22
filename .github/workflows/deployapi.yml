@@ -16,9 +16,6 @@ env:
     ADU: ${{ secrets.ADU }}
     ADP: ${{ secrets.ADP }}
     ADE: ${{ secrets.ADE }}
-    AK: ${{ secrets.AWS_ACCESS_KEY }}
-    SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    AST: ${{ secrets.AWS_SESSION_TOKEN }}
     PEM: ${{ secrets.PEM }}
 
 permissions:
@@ -39,6 +36,7 @@ jobs:
               with:
                   role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_ARN }}
                   aws-region: ${{ env.AWS_REGION }}
+                  role-session-name: github_actions_deploy_api
 
             - name: Login to Amazon ECR
               id: login-ecr
@@ -60,9 +58,6 @@ jobs:
                   --build-arg admin_password=${{ env.ADP }} \
                   --build-arg admin_email=${{ env.ADE }} \
                   --build-arg region=${{ env.AWS_REGION }} \
-                  --build-arg ak=${{ env.AK }} \
-                  --build-arg sak=${{ env.SAK }} \
-                  --build-arg ast=${{ env.AST }} \
                    -f Dockerfile.prod .
                   docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
                   echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV

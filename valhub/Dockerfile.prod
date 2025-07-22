@@ -6,23 +6,12 @@ WORKDIR /root
 RUN apt-get update && apt-get install -y gawk
 
 ARG region=us-west-2
-ARG ak
-ARG sak
-ARG ast
-ARG PEM
+
 # Copy AWS and PEM configuration if needed
 # Manually add the files to copy if not included in the host system
 RUN mkdir -p .aws
 RUN mkdir -p .pem
 COPY .pem /root/.pem
-
-# WORKDIR /root/.aws
-
-# RUN awk -v ak="${ak}" -v sak="${sak}" -v ast="${ast}" \
-#     'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak "\naws_session_token = " ast > "/root/.aws/credentials"}'
-
-# RUN awk -v region=${region} \
-#     'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
 WORKDIR /root/.pem
 

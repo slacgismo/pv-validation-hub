@@ -68,6 +68,7 @@ jobs:
               with:
                   role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_ARN }}
                   aws-region: ${{ env.AWS_REGION }}
+                  role-session-name: github_actions_deploy_fe
 
             - name: Retrieve saved Build
               uses: actions/download-artifact@v4

@@ -15,10 +15,6 @@ env:
     DOCKER_HOST_VOLUME_RESULTS_DIR: ${{ vars.DOCKER_HOST_VOLUME_RESULTS_DIR }}
     AWS_GITHUB_OIDC_ROLE_ARN: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
 
-    AK: ${{ secrets.AWS_ACCESS_KEY }}
-    SAK: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    AST: ${{ secrets.AWS_SESSION_TOKEN }}
-
 permissions:
     contents: read
     id-token: write
@@ -37,6 +33,7 @@ jobs:
               with:
                   role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_ARN }}
                   aws-region: ${{ env.AWS_REGION }}
+                  role-session-name: github_actions_deploy_worker
 
             - name: Login to Amazon ECR
               id: login-ecr
@@ -52,8 +49,6 @@ jobs:
                   cd workers
                   docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
                   --build-arg region=${{ env.AWS_REGION }} \
-                  --build-arg ak=${{ env.AK }} \
-                  --build-arg sak=${{ env.SAK }} \
                   --build-arg DOCKER_HOST_VOLUME_DATA_DIR=${{ env.DOCKER_HOST_VOLUME_DATA_DIR }} \
                   --build-arg DOCKER_HOST_VOLUME_RESULTS_DIR=${{ env.DOCKER_HOST_VOLUME_RESULTS_DIR }} \
                    -f Dockerfile.prod .
