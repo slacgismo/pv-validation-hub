@@ -46,7 +46,7 @@ WORKER_ERROR_PREFIX = "wr"
 RUNNER_ERROR_PREFIX = "op"
 SUBMISSION_ERROR_PREFIX = "sb"
 
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
+S3_BUCKET_NAME = "valhub-bucket"
 
 SUBMITTING = "submitting"
 SUBMITTED = "submitted"
@@ -67,7 +67,9 @@ def is_local():
 
 IS_LOCAL = is_local()
 
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+API_BASE_URL = (
+    "api:8005" if IS_LOCAL else "api-pv-validation-hub.stratus.nrel.gov"
+)
 
 
 T = TypeVar("T")
@@ -743,7 +745,7 @@ def login_to_API(
 
 def get_login_secrets_from_aws() -> tuple[str, str]:
 
-    secret_name = "pv-validation-hub-worker-credentials"
+    secret_name = "valhub-worker-credentials"
     region_name = "us-west-2"
 
     # Create a Secrets Manager client
