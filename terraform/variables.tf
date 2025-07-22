@@ -213,3 +213,14 @@ variable "valhub_api_django_secret_key" {
   }
 }
 
+variable "valhub_worker_credentials" {
+  description = "Login credentials for PV Validation Hub workers"
+  type        = map(string)
+  sensitive   = true
+  default = {
+    "username" = "worker_user"
+    "password" = "worker_password"
+  }
+
+}
+

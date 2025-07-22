@@ -40,7 +40,7 @@ logger = setup_logging(__name__)
 
 
 IS_LOCAL = is_local()
-S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "pv-validation-hub-bucket")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "valhub-bucket")
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -84,9 +84,7 @@ def extract_analysis_data(  # noqa: C901
 ) -> pd.DataFrame:
 
     # download evaluation scripts and requirements.txt etc.
-    files = list_s3_bucket(
-        f"pv-validation-hub-bucket/evaluation_scripts/{analysis_id}/"
-    )
+    files = list_s3_bucket(f"valhub-bucket/evaluation_scripts/{analysis_id}/")
     # check if required files exist
     if len(files) == 0:
         raise FileNotFoundError(
@@ -183,10 +181,10 @@ def extract_analysis_data(  # noqa: C901
 
     files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
 
-    files_list = list_s3_bucket(f"pv-validation-hub-bucket/data_files/files/")
+    files_list = list_s3_bucket(f"valhub-bucket/data_files/files/")
     files = [file.split("/")[-1] for file in files_list]
     references_list = list_s3_bucket(
-        f"pv-validation-hub-bucket/data_files/references/{analysis_id}/"
+        f"valhub-bucket/data_files/references/{analysis_id}/"
     )
     references_files = [
         references.split("/")[-1] for references in references_list
@@ -576,8 +574,15 @@ def main():
         f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
+    if queue is None:
+        logger.error(
+            f'Could not retrieve or create SQS queue "valhub_submission_queue.fifo"'
+        )
+        raise WorkerException(
+            *get_error_by_code(1, worker_error_codes, logger)
+        )
     logger.info(f'Retrieved queue "valhub_submission_queue.fifo"')
-    logger.info(f"SQS queue URL: {queue.url}")
+    # logger.info(f"SQS queue URL: {queue.url}")
 
     is_finished = False
 

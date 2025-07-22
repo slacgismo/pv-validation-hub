@@ -112,6 +112,8 @@ module "asg" {
   api_memory_size                = var.api_memory_size
   api_memory_reservation_size    = var.api_memory_reservation_size
   valhub_api_django_secret_key   = var.valhub_api_django_secret_key
+  valhub_worker_credentials      = var.valhub_worker_credentials
+
 }
 
 

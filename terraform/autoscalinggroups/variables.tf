@@ -115,3 +115,10 @@ variable "valhub_api_django_secret_key" {
   type        = map(string)
   sensitive   = true
 }
+
+variable "valhub_worker_credentials" {
+  description = "Login credentials for PV Validation Hub workers"
+  type        = map(string)
+  sensitive   = true
+
+}

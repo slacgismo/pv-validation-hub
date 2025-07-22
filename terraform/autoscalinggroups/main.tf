@@ -299,7 +299,7 @@ data "aws_iam_policy_document" "ecs_task_role_policy_document" {
 
     principals {
       type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com"]
+      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com"]
     }
     actions = [
       "sts:AssumeRole"
@@ -307,6 +307,33 @@ data "aws_iam_policy_document" "ecs_task_role_policy_document" {
   }
 }
 
+data "aws_iam_policy_document" "ecs_task_role_permissions_policy_document" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue"
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy_attachment" "ecs_task_role_policy_attachment" {
+  name       = "valhub-ecs-task-role-policy-attachment"
+  roles      = [aws_iam_role.ecs_task_role.name]
+  policy_arn = aws_iam_policy.ecs_task_role_policy.arn
+}
+
+resource "aws_iam_policy" "ecs_task_role_policy" {
+  name        = "valhub-ecs-task-role-policy"
+  description = "Policy for ECS task role to allow access to Secrets Manager and S3"
+  policy      = data.aws_iam_policy_document.ecs_task_role_permissions_policy_document.json
+
+  tags = {
+    Name = "valhub-ecs-task-role-policy"
+  }
+}
 
 resource "aws_iam_role" "ecs_task_role" {
   name               = var.ecs_task_role_name
@@ -661,6 +688,17 @@ resource "aws_secretsmanager_secret" "valhub_api_django_secret_key" {
 resource "aws_secretsmanager_secret_version" "valhub_api_django_secret_key" {
   secret_id     = aws_secretsmanager_secret.valhub_api_django_secret_key.id
   secret_string = jsonencode(var.valhub_api_django_secret_key)
+}
+
+resource "aws_secretsmanager_secret" "valhub_worker_credentials" {
+  name        = "valhub-worker-credentials"
+  description = "Secret for Valhub Worker credentials"
+
+}
+
+resource "aws_secretsmanager_secret_version" "valhub_worker_credentials" {
+  secret_id     = aws_secretsmanager_secret.valhub_worker_credentials.id
+  secret_string = jsonencode(var.valhub_worker_credentials)
 }
 
 resource "aws_cloudwatch_log_group" "ecs_worker_log_group" {
