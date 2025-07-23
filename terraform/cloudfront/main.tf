@@ -130,7 +130,15 @@ resource "aws_cloudfront_distribution" "valhub_private_content_cloudfront_distri
   is_ipv6_enabled = true
 }
 
+resource "aws_cloudfront_origin_access_control" "valhub_website_origin_access_control" {
+  provider = aws.us-east
 
+  name                              = "valhub-website-origin-access-control"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+  origin_access_control_origin_type = "s3"
+
+}
 
 
 resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" {
@@ -141,30 +149,19 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
     "${var.website_name}.${var.domain_name}"
   ]
 
-  # web_acl_id = aws_wafv2_web_acl.valhub_waf_web_acl.id
+  default_root_object = "index.html"
 
-  # origin {
-  #   custom_origin_config {
-  #     http_port                = 80
-  #     https_port               = 443
-  #     origin_keepalive_timeout = 5
-  #     origin_protocol_policy   = "http-only"
-  #     origin_read_timeout      = 30
-  #     origin_ssl_protocols = [
-  #       "TLSv1",
-  #       "TLSv1.1",
-  #       "TLSv1.2"
-  #     ]
-  #   }
-  #   domain_name = var.valhub_website_bucket_domain_name
-  #   origin_id   = var.website_origin_id
-  # }
+
 
   origin {
-    connection_attempts = 3
-    connection_timeout  = 10
-    domain_name         = var.valhub_website_bucket_domain_name
-    origin_id           = var.website_origin_id
+    connection_attempts      = 3
+    connection_timeout       = 10
+    domain_name              = var.valhub_website_bucket_domain_name
+    origin_id                = var.website_origin_id
+    origin_access_control_id = aws_cloudfront_origin_access_control.valhub_website_origin_access_control.id
+
+
+
   }
   default_cache_behavior {
     cached_methods = [
@@ -195,10 +192,11 @@ resource "aws_cloudfront_distribution" "valhub_website_cloudfront_distribution" 
   price_class = "PriceClass_All"
   enabled     = true
   viewer_certificate {
-    acm_certificate_arn            = "arn:aws:acm:us-east-1:693299947844:certificate/b536582b-3f28-4f84-ae8c-3d13ec693512"
+    acm_certificate_arn            = aws_acm_certificate.valhub_acm_certificate.arn
     cloudfront_default_certificate = false
     minimum_protocol_version       = "TLSv1.2_2021"
     ssl_support_method             = "sni-only"
+
   }
   restrictions {
     geo_restriction {

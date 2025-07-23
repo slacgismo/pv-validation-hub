@@ -56,15 +56,6 @@ variable "asg_min_size" {
   type        = number
 }
 
-variable "ecs_worker_task_name" {
-  description = "Name of the ECS worker task"
-  type        = string
-}
-
-variable "ecs_api_task_name" {
-  description = "Name of the ECS API task"
-  type        = string
-}
 
 variable "worker_instance_type" {
   description = "Instance type for the Auto Scaling group instances"
@@ -105,10 +96,6 @@ variable "api_memory_reservation_size" {
   type        = number
 }
 
-variable "ecs_task_role_name" {
-  description = "Name of the ECS task role"
-  type        = string
-}
 
 variable "valhub_api_django_secret_key" {
   description = "Django secret key for the Valhub API"

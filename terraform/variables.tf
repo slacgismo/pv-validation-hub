@@ -133,24 +133,6 @@ variable "asg_min_size" {
   default     = 0
 }
 
-variable "ecs_worker_task_name" {
-  description = "Name of the ECS worker task"
-  type        = string
-  default     = "valhub-worker-task"
-}
-
-variable "ecs_api_task_name" {
-  description = "Name of the ECS API task"
-  type        = string
-  default     = "valhub-api-task"
-
-}
-
-variable "ecs_task_role_name" {
-  description = "Name of the ECS task role"
-  type        = string
-  default     = "valhub-ecs-task-role"
-}
 
 variable "worker_instance_type" {
   description = "Instance type for the Auto Scaling group instances"

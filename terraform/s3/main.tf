@@ -39,34 +39,23 @@ data "aws_iam_policy_document" "valhub_kms_bucket_key_policy_document" {
     ]
   }
 
-  # statement {
-  #   effect = "Allow"
+  # Required for CloudFront to access the KMS key
+  statement {
+    effect = "Allow"
 
-  #   principals {
-  #     type        = "Service"
-  #     identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
-  #   }
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
 
-  #   actions = [
-  #     "s3:PutObject",
-  #   ]
+    actions = [
+      "kms:*"
+    ]
 
-  #   # TODO: update prefix to match your log delivery prefix from module
-  #   resources = [
-  #     "arn:aws:s3:::${aws_s3_bucket.valhub_logs_bucket.id}/${var.api_lb_logs_prefix}/AWSLogs/${var.account_id}/*",
-  #   ]
-
-
-  # }
-  # statement {
-  #   effect = "Allow"
-  #   principals {
-  #     type        = "Service"
-  #     identifiers = ["logdelivery.elasticloadbalancing.amazonaws.com"]
-  #   }
-  #   actions   = ["s3:GetBucketAcl"]
-  #   resources = ["arn:aws:s3:::valhub-logs-bucket"]
-  # }
+    resources = [
+      "*"
+    ]
+  }
 
 }
 
@@ -104,7 +93,13 @@ resource "aws_kms_key_policy" "valhub_kms_bucket_key_policy" {
   policy = data.aws_iam_policy_document.valhub_kms_bucket_key_policy_document.json
 }
 
+resource "aws_kms_alias" "valhub_kms_bucket_key_alias" {
+  name          = "alias/valhub-kms-bucket-key"
+  target_key_id = aws_kms_key.valhub_kms_bucket_key.id
+}
+
 resource "aws_kms_key" "valhub_kms_bucket_key" {
+
   description             = "KMS key for encrypting S3 buckets"
   enable_key_rotation     = true
   deletion_window_in_days = 7
@@ -141,8 +136,6 @@ resource "aws_s3_bucket_public_access_block" "valhub_bucket_public_access_block"
 
 resource "aws_s3_bucket" "valhub_website" {
   bucket = "valhub-website-bucket"
-
-
 }
 
 resource "aws_s3_bucket_versioning" "valhub_website_versioning" {

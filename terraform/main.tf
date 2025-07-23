@@ -100,9 +100,6 @@ module "asg" {
   asg_desired_capacity           = var.asg_desired_capacity
   asg_max_size                   = var.asg_max_size
   asg_min_size                   = var.asg_min_size
-  ecs_worker_task_name           = var.ecs_worker_task_name
-  ecs_api_task_name              = var.ecs_api_task_name
-  ecs_task_role_name             = var.ecs_task_role_name
   worker_instance_type           = var.worker_instance_type
   worker_volume_size             = var.worker_volume_size
   worker_cpu_units               = var.worker_cpu_units
