@@ -15,10 +15,11 @@ module "vpc" {
   source = "./vpc"
 
   # Import
-  account_id    = data.aws_caller_identity.current.account_id
-  aws_region    = var.aws_region
-  azs           = local.azs
-  log_bucket_id = module.s3.valhub_logs_bucket_id
+  account_id                 = data.aws_caller_identity.current.account_id
+  aws_region                 = var.aws_region
+  azs                        = local.azs
+  log_bucket_id              = module.s3.valhub_logs_bucket_id
+  valhub_acm_certificate_arn = module.cloudfront.valhub_acm_certificate_arn
 
   # Variables
   vpc_name             = var.vpc_name
@@ -87,14 +88,15 @@ module "asg" {
   source = "./autoscalinggroups"
 
   # Import
-  account_id           = data.aws_caller_identity.current.account_id
-  private_subnet_ids   = module.vpc.private_subnet_ids
-  public_subnet_ids    = module.vpc.public_subnet_ids
-  vpc_id               = module.vpc.vpc_id
-  aws_region           = var.aws_region
-  logs_bucket_id       = module.s3.valhub_logs_bucket_id
-  api_target_group_arn = module.vpc.api_target_group_arn
-  ecs_worker_sg_id     = module.vpc.ecs_worker_sg_id
+  account_id                 = data.aws_caller_identity.current.account_id
+  private_subnet_ids         = module.vpc.private_subnet_ids
+  public_subnet_ids          = module.vpc.public_subnet_ids
+  vpc_id                     = module.vpc.vpc_id
+  aws_region                 = var.aws_region
+  logs_bucket_id             = module.s3.valhub_logs_bucket_id
+  api_target_group_http_arn  = module.vpc.api_target_group_http_arn
+  api_target_group_https_arn = module.vpc.api_target_group_https_arn
+  ecs_worker_sg_id           = module.vpc.ecs_worker_sg_id
 
   # Variables
   asg_desired_capacity           = var.asg_desired_capacity

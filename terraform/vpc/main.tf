@@ -280,7 +280,7 @@ resource "aws_nat_gateway" "nat_gw" {
 }
 
 
-resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule" {
+resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule_http" {
   security_group_id = aws_security_group.valhub_api_lb_sg.id
 
   description = "Allow HTTP traffic from anywhere"
@@ -291,23 +291,31 @@ resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule" {
 
 }
 
-# resource "aws_vpc_security_group_egress_rule" "valhub_api_egress_rule" {
-#   security_group_id = aws_security_group.valhub_api_lb_sg.id
+resource "aws_vpc_security_group_ingress_rule" "valhub_api_ingress_rule_https" {
+  security_group_id = aws_security_group.valhub_api_lb_sg.id
 
-#   description = "Allow all outbound traffic"
-#   from_port   = 0
-#   to_port     = 0
-#   ip_protocol = "-1"
-#   cidr_ipv4   = "0.0.0.0/0"
-# }
+  description = "Allow HTTPS traffic to anywhere"
+  from_port   = 443
+  to_port     = 443
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "valhub_api_egress_rule" {
+  security_group_id = aws_security_group.valhub_api_lb_sg.id
+
+  description = "Allow all outbound traffic"
+  from_port   = -1
+  to_port     = -1
+  ip_protocol = "-1"
+  cidr_ipv4   = "0.0.0.0/0"
+
+}
 
 resource "aws_security_group" "valhub_api_lb_sg" {
   name        = "valhub-api-lb-sg"
   description = "Security group for Valhub API Load Balancer"
   vpc_id      = aws_vpc.main.id
-
-  # TODO: add ingress and egress rules as needed via separate resources`
-  # To avoid these problems, use the current best practice of the aws_vpc_security_group_egress_rule and aws_vpc_security_group_ingress_rule resources with one CIDR block per rule.
 
   tags = {
     Name = "valhub-api-lb-sg"
@@ -338,8 +346,8 @@ resource "aws_lb" "valhub_api_lb" {
 
 }
 
-resource "aws_lb_target_group" "api_target_group" {
-  name        = "valhub-api-target-group"
+resource "aws_lb_target_group" "api_target_group_http" {
+  name        = "valhub-api-target-group-http"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -350,16 +358,47 @@ resource "aws_lb_target_group" "api_target_group" {
   }
 }
 
-resource "aws_lb_listener" "api_listener" {
-  load_balancer_arn = aws_lb.valhub_api_lb.arn
+
+
+resource "aws_lb_target_group" "api_target_group_https" {
+  name        = "valhub-api-target-group-https"
+  port        = 443
+  protocol    = "HTTPS"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  tags = {
+    Name = "valhub-api-target-group"
+  }
+}
+
+resource "aws_lb_listener" "api_listener_http" {
+  load_balancer_arn = aws_lb.valhub_api_lb.id
   port              = 80
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api_target_group.arn
+    target_group_arn = aws_lb_target_group.api_target_group_http.id
   }
 }
+
+
+resource "aws_lb_listener" "api_listener_https" {
+  load_balancer_arn = aws_lb.valhub_api_lb.id
+  port              = 443
+  protocol          = "HTTPS"
+
+  ssl_policy      = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
+  certificate_arn = "arn:aws:acm:us-west-2:693299947844:certificate/24ab9cb5-ea15-420c-97dd-6fcf3f384c0a"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api_target_group_https.id
+  }
+
+}
+
 
 resource "aws_vpc_security_group_ingress_rule" "ecs_worker_ingress_rule_http" {
   security_group_id = aws_security_group.ecs_worker_sg.id
@@ -395,18 +434,6 @@ resource "aws_security_group" "ecs_worker_sg" {
   }
 }
 
-# resource "aws_vpc_endpoint" "ecs_worker_endpoint" {
-#   vpc_id             = aws_vpc.main.id
-#   service_name       = "com.amazonaws.${var.aws_region}.ecs"
-#   vpc_endpoint_type  = "Interface"
-#   security_group_ids = [aws_security_group.ecs_worker_sg.id]
-#   subnet_ids         = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]
-
-#   tags = {
-#     Name = "valhub-ecs-worker-endpoint"
-#   }
-
-# }
 
 
 

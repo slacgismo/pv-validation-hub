@@ -29,8 +29,13 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "api_target_group_arn" {
+variable "api_target_group_http_arn" {
   description = "ARN of the API target group"
+  type        = string
+}
+
+variable "api_target_group_https_arn" {
+  description = "ARN of the API target group for HTTPS"
   type        = string
 }
 

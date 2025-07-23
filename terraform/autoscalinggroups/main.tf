@@ -323,7 +323,7 @@ data "aws_iam_policy_document" "ecs_api_task_assume_role_policy_document" {
 
     principals {
       type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com", "sqs.amazonaws.com"]
+      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com", "sqs.amazonaws.com", "rds.amazonaws.com", "cloudwatch.amazonaws.com", "logs.amazonaws.com", "kms.amazonaws.com"]
     }
     actions = [
       "sts:AssumeRole"
@@ -337,7 +337,12 @@ data "aws_iam_policy_document" "ecs_api_task_role_permissions_policy_document" {
 
     actions = [
       "secretsmanager:*",
-      "sqs:*"
+      "sqs:*",
+      "rds:*",
+      "s3:*",
+      "cloudwatch:*",
+      "logs:*",
+      "kms:*"
     ]
 
     resources = ["*"]
@@ -506,10 +511,15 @@ resource "aws_ecs_service" "ecs_api_service" {
 
   force_new_deployment = true
 
+  # load_balancer {
+  #   target_group_arn = var.api_target_group_http_arn
+  #   container_name   = local.ecs_api_task_name
+  #   container_port   = 80
+  # }
   load_balancer {
-    target_group_arn = var.api_target_group_arn
+    target_group_arn = var.api_target_group_https_arn
     container_name   = local.ecs_api_task_name
-    container_port   = 80
+    container_port   = 443
   }
 
   network_configuration {
@@ -517,6 +527,7 @@ resource "aws_ecs_service" "ecs_api_service" {
 
     subnets = var.public_subnet_ids
   }
+
   health_check_grace_period_seconds = 120
   scheduling_strategy               = "REPLICA"
 

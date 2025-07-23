@@ -151,7 +151,7 @@ def get_django_secret_key():
             SECRET_KEY = secret["DJANGO_SECRET_KEY"]
 
         except Exception as e:
-            raise Exception("Error retrieving Django secret key")
+            raise e
     else:
         raise Exception("Environment not set")
     return SECRET_KEY
