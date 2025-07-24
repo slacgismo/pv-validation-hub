@@ -274,7 +274,7 @@ def configure_db():
         }
     elif ENVIRONMENT == "production":
         db_secrets = get_secret_from_aws_secrets_manager(
-            "valhub-rds-proxy-secret"
+            "valhub-rds-proxy-credentials"
         )
 
         if db_secrets is None:
