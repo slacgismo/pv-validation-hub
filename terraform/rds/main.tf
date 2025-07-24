@@ -95,34 +95,34 @@ resource "aws_db_instance" "valhub_rds_instance" {
 }
 
 
-resource "aws_db_proxy_target" "valhub_rds_proxy_target" {
-  db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
-  target_group_name      = aws_db_proxy_default_target_group.valhub_rds_proxy_default_target_group.name
-  db_instance_identifier = aws_db_instance.valhub_rds_instance.identifier
-}
+# resource "aws_db_proxy_target" "valhub_rds_proxy_target" {
+#   db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
+#   target_group_name      = aws_db_proxy_default_target_group.valhub_rds_proxy_default_target_group.name
+#   db_instance_identifier = aws_db_instance.valhub_rds_instance.identifier
+# }
 
-resource "aws_db_proxy_endpoint" "valhub_rds_proxy_endpoint" {
-  db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
-  db_proxy_endpoint_name = "valhub-rds-proxy-endpoint"
-  vpc_subnet_ids         = var.private_subnet_ids
-  vpc_security_group_ids = [aws_security_group.valhub_rds_sg.id]
+# resource "aws_db_proxy_endpoint" "valhub_rds_proxy_endpoint" {
+#   db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
+#   db_proxy_endpoint_name = "valhub-rds-proxy-endpoint"
+#   vpc_subnet_ids         = var.private_subnet_ids
+#   vpc_security_group_ids = [aws_security_group.valhub_rds_sg.id]
 
-  tags = {
-    Name = "valhub-rds-proxy-endpoint"
-  }
-}
+#   tags = {
+#     Name = "valhub-rds-proxy-endpoint"
+#   }
+# }
 
-resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
-  db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
+# resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
+#   db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
 
-  connection_pool_config {
-    max_connections_percent      = 100
-    max_idle_connections_percent = 50
-    connection_borrow_timeout    = 120
-    session_pinning_filters      = ["EXCLUDE_VARIABLE_SETS"]
-  }
+#   connection_pool_config {
+#     max_connections_percent      = 100
+#     max_idle_connections_percent = 50
+#     connection_borrow_timeout    = 120
+#     session_pinning_filters      = ["EXCLUDE_VARIABLE_SETS"]
+#   }
 
-}
+# }
 
 resource "aws_db_proxy" "valhub_rds_proxy" {
   name                   = "valhub-rds-proxy"
@@ -144,21 +144,57 @@ resource "aws_db_proxy" "valhub_rds_proxy" {
   }
 }
 
+data "aws_iam_policy_document" "valhub_rds_proxy_policy_permissions_document" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "rds:*",
+      "secretsmanager:*",
+      "kms:*",
+    ]
+    resources = [
+      "*"
+    ]
+  }
+
+}
+
+resource "aws_iam_policy" "valhub_rds_proxy_policy" {
+  name        = "valhub-rds-proxy-policy"
+  description = "Policy for ValHub RDS Proxy to access secrets and connect to the database"
+
+  policy = data.aws_iam_policy_document.valhub_rds_proxy_policy_permissions_document.json
+
+  tags = {
+    Name = "valhub-rds-proxy-policy"
+  }
+
+}
+
+resource "aws_iam_policy_attachment" "valhub_rds_proxy_policy_attachment" {
+  name       = "valhub-rds-proxy-policy-attachment"
+  roles      = [aws_iam_role.valhub_rds_proxy_role.name]
+  policy_arn = aws_iam_policy.valhub_rds_proxy_policy.arn
+
+
+}
+
+data "aws_iam_policy_document" "valhub_rds_proxy_assume_role_policy_document" {
+
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["rds.amazonaws.com"]
+    }
+  }
+
+}
+
 resource "aws_iam_role" "valhub_rds_proxy_role" {
   name = "valhub-rds-proxy-role"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "rds.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      },
-    ]
-  })
+  assume_role_policy = data.aws_iam_policy_document.valhub_rds_proxy_assume_role_policy_document.json
 
   tags = {
     Name = "valhub-rds-proxy-role"
