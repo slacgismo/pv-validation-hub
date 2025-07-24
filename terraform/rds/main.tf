@@ -59,19 +59,19 @@ resource "aws_security_group" "valhub_rds_sg" {
 }
 
 resource "aws_db_instance" "valhub_rds_instance" {
-  identifier                    = "valhub-rds-instance"
-  allocated_storage             = 20
-  instance_class                = var.db_instance_class
-  engine                        = "postgres"
-  manage_master_user_password   = true
-  username                      = "valhub_admin"
-  master_user_secret_kms_key_id = aws_kms_key.valhub_rds_kms_key.arn
-  backup_window                 = "09:39-10:09"
-  backup_retention_period       = 5
-  maintenance_window            = "fri:07:07-fri:07:37"
-  multi_az                      = false
-  engine_version                = "17.5"
-  auto_minor_version_upgrade    = true
+  identifier        = "valhub-rds-instance"
+  allocated_storage = 20
+  instance_class    = var.db_instance_class
+  engine            = "postgres"
+  username          = var.valhub_rds_proxy_secrets["username"]
+  password          = var.valhub_rds_proxy_secrets["password"]
+  # master_user_secret_kms_key_id = aws_kms_key.valhub_rds_kms_key.arn
+  backup_window              = "09:39-10:09"
+  backup_retention_period    = 5
+  maintenance_window         = "fri:07:07-fri:07:37"
+  multi_az                   = false
+  engine_version             = "17.5"
+  auto_minor_version_upgrade = true
   # allow_major_version_upgrade         = true # Uncomment if you want to allow major version upgrades
   license_model                       = "postgresql-license"
   publicly_accessible                 = false
@@ -81,7 +81,7 @@ resource "aws_db_instance" "valhub_rds_instance" {
   copy_tags_to_snapshot               = false
   monitoring_interval                 = 0
   iam_database_authentication_enabled = true
-  deletion_protection                 = true
+  deletion_protection                 = false
   skip_final_snapshot                 = true
   performance_insights_enabled        = true
   performance_insights_kms_key_id     = aws_kms_key.valhub_performance_insights_key.arn
@@ -95,11 +95,11 @@ resource "aws_db_instance" "valhub_rds_instance" {
 }
 
 
-# resource "aws_db_proxy_target" "valhub_rds_proxy_target" {
-#   db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
-#   target_group_name      = aws_db_proxy_default_target_group.valhub_rds_proxy_default_target_group.name
-#   db_instance_identifier = aws_db_instance.valhub_rds_instance.identifier
-# }
+resource "aws_db_proxy_target" "valhub_rds_proxy_target" {
+  db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
+  target_group_name      = aws_db_proxy_default_target_group.valhub_rds_proxy_default_target_group.name
+  db_instance_identifier = aws_db_instance.valhub_rds_instance.identifier
+}
 
 # resource "aws_db_proxy_endpoint" "valhub_rds_proxy_endpoint" {
 #   db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
@@ -112,17 +112,15 @@ resource "aws_db_instance" "valhub_rds_instance" {
 #   }
 # }
 
-# resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
-#   db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
+resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
+  db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
 
-#   connection_pool_config {
-#     max_connections_percent      = 100
-#     max_idle_connections_percent = 50
-#     connection_borrow_timeout    = 120
-#     session_pinning_filters      = ["EXCLUDE_VARIABLE_SETS"]
-#   }
+  connection_pool_config {
+    max_connections_percent   = 100
+    connection_borrow_timeout = 120
+  }
 
-# }
+}
 
 resource "aws_db_proxy" "valhub_rds_proxy" {
   name                   = "valhub-rds-proxy"
@@ -132,11 +130,10 @@ resource "aws_db_proxy" "valhub_rds_proxy" {
   vpc_security_group_ids = [aws_security_group.valhub_rds_sg.id]
 
   auth {
-    auth_scheme               = "SECRETS"
-    client_password_auth_type = "POSTGRES_SCRAM_SHA_256"
-    description               = "Authentication for ValHub RDS Proxy"
-    iam_auth                  = "DISABLED"
-    secret_arn                = aws_secretsmanager_secret.valhub_rds_proxy_secret.arn
+    auth_scheme = "SECRETS"
+    description = "Authentication for ValHub RDS Proxy"
+    iam_auth    = "DISABLED"
+    secret_arn  = aws_secretsmanager_secret.valhub_rds_proxy_secret.arn
   }
 
   tags = {
@@ -185,7 +182,7 @@ data "aws_iam_policy_document" "valhub_rds_proxy_assume_role_policy_document" {
     actions = ["sts:AssumeRole"]
     principals {
       type        = "Service"
-      identifiers = ["rds.amazonaws.com"]
+      identifiers = ["rds.amazonaws.com", "secretsmanager.amazonaws.com", "kms.amazonaws.com"]
     }
   }
 
