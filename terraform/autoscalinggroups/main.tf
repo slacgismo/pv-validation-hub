@@ -37,6 +37,7 @@ resource "aws_autoscaling_group" "worker_asg" {
     version = "$Latest"
   }
 
+
   tag {
     key                 = "Name"
     value               = "valhub-worker-asg"
@@ -496,6 +497,43 @@ resource "aws_ecs_task_definition" "ecs_worker_task_definition" {
 
 # TODO: Clean up ECS service
 
+resource "aws_vpc_security_group_ingress_rule" "ecs_api_http" {
+  security_group_id = aws_security_group.ecs_api_sg.id
+
+  description = "Allow HTTP traffic from anywhere"
+  from_port   = 80
+  to_port     = 80
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ecs_api_https" {
+  security_group_id = aws_security_group.ecs_api_sg.id
+
+  description = "Allow HTTPS traffic from anywhere"
+  from_port   = 443
+  to_port     = 443
+  ip_protocol = "tcp"
+  cidr_ipv4   = "0.0.0.0/0"
+
+}
+
+resource "aws_vpc_security_group_egress_rule" "ecs_api_egress" {
+  security_group_id = aws_security_group.ecs_api_sg.id
+
+  description = "Allow all outbound traffic"
+  from_port   = -1
+  to_port     = -1
+  ip_protocol = "-1"
+  cidr_ipv4   = "0.0.0.0/0"
+}
+
+resource "aws_security_group" "ecs_api_sg" {
+  name        = "valhub-ecs-api-sg"
+  description = "Security group for ECS API service"
+  vpc_id      = var.vpc_id
+
+}
 
 
 resource "aws_ecs_service" "ecs_api_service" {
@@ -511,11 +549,11 @@ resource "aws_ecs_service" "ecs_api_service" {
 
   force_new_deployment = true
 
-  # load_balancer {
-  #   target_group_arn = var.api_target_group_http_arn
-  #   container_name   = local.ecs_api_task_name
-  #   container_port   = 80
-  # }
+  load_balancer {
+    target_group_arn = var.api_target_group_http_arn
+    container_name   = local.ecs_api_task_name
+    container_port   = 80
+  }
   load_balancer {
     target_group_arn = var.api_target_group_https_arn
     container_name   = local.ecs_api_task_name
@@ -525,7 +563,8 @@ resource "aws_ecs_service" "ecs_api_service" {
   network_configuration {
     assign_public_ip = true # TODO: turn on for production
 
-    subnets = var.public_subnet_ids
+    subnets         = var.public_subnet_ids
+    security_groups = [aws_security_group.ecs_api_sg.id]
   }
 
   health_check_grace_period_seconds = 120

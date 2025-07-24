@@ -286,11 +286,11 @@ def configure_db():
         logger.debug("Retrieved secrets")
 
         db_name = "postgres"
-        db_identifier = db_secrets.get("dbInstanceIdentifier", None)
-        username = db_secrets.get("DB_USERNAME", None)
-        password = db_secrets.get("DB_PASSWORD", None)
-        hostname = db_secrets.get("DB_HOSTNAME", None)
-        port = db_secrets.get("DB_PORT", None)
+        # db_identifier = db_secrets.get("dbInstanceIdentifier", None)
+        username = db_secrets.get("username", None)
+        password = db_secrets.get("password", None)
+        hostname = "valhub-rds-proxy-endpoint.endpoint.proxy-cz0mg00uet8h.us-west-2.rds.amazonaws.com"
+        port = "5432"
 
         if None in [db_name, username, password, hostname, port]:
             raise Exception("One or more database secrets are missing")

@@ -29,13 +29,27 @@ resource "aws_db_subnet_group" "valhub_rds_subnet_group" {
 
 }
 
+resource "aws_vpc_security_group_ingress_rule" "valhub_rds_ingress_rule" {
+  security_group_id = aws_security_group.valhub_rds_sg.id
+  ip_protocol       = "tcp"
+  from_port         = 5432
+  to_port           = 5432
+  cidr_ipv4         = "0.0.0.0/0"
+
+}
+
+resource "aws_vpc_security_group_egress_rule" "valhub_rds_egress_rule" {
+  security_group_id = aws_security_group.valhub_rds_sg.id
+  from_port         = -1
+  to_port           = -1
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
 resource "aws_security_group" "valhub_rds_sg" {
   name        = "valhub-rds-sg"
   description = "Security group for ValHub RDS instance"
   vpc_id      = var.vpc_id
-
-  # TODO: add ingress and egress rules as needed via separate resources`
-  # To avoid these problems, use the current best practice of the aws_vpc_security_group_egress_rule and aws_vpc_security_group_ingress_rule resources with one CIDR block per rule.
 
   tags = {
     Name = "valhub-rds-sg"
@@ -80,17 +94,6 @@ resource "aws_db_instance" "valhub_rds_instance" {
   }
 }
 
-resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
-  db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
-  connection_pool_config {
-    max_connections_percent      = 100
-    max_idle_connections_percent = 50
-    connection_borrow_timeout    = 120
-    session_pinning_filters      = ["EXCLUDE_VARIABLE_SETS"]
-  }
-
-
-}
 
 resource "aws_db_proxy_target" "valhub_rds_proxy_target" {
   db_proxy_name          = aws_db_proxy.valhub_rds_proxy.name
@@ -109,6 +112,18 @@ resource "aws_db_proxy_endpoint" "valhub_rds_proxy_endpoint" {
   }
 }
 
+resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_group" {
+  db_proxy_name = aws_db_proxy.valhub_rds_proxy.name
+
+  connection_pool_config {
+    max_connections_percent      = 100
+    max_idle_connections_percent = 50
+    connection_borrow_timeout    = 120
+    session_pinning_filters      = ["EXCLUDE_VARIABLE_SETS"]
+  }
+
+}
+
 resource "aws_db_proxy" "valhub_rds_proxy" {
   name                   = "valhub-rds-proxy"
   engine_family          = "POSTGRESQL"
@@ -117,10 +132,11 @@ resource "aws_db_proxy" "valhub_rds_proxy" {
   vpc_security_group_ids = [aws_security_group.valhub_rds_sg.id]
 
   auth {
-    auth_scheme = "SECRETS"
-    description = "Authentication for ValHub RDS Proxy"
-    iam_auth    = "DISABLED"
-    secret_arn  = aws_secretsmanager_secret.valhub_rds_proxy_secret.arn
+    auth_scheme               = "SECRETS"
+    client_password_auth_type = "POSTGRES_SCRAM_SHA_256"
+    description               = "Authentication for ValHub RDS Proxy"
+    iam_auth                  = "DISABLED"
+    secret_arn                = aws_secretsmanager_secret.valhub_rds_proxy_secret.arn
   }
 
   tags = {
@@ -150,11 +166,11 @@ resource "aws_iam_role" "valhub_rds_proxy_role" {
 }
 
 resource "aws_secretsmanager_secret" "valhub_rds_proxy_secret" {
-  name        = "valhub-rds-proxy-secret"
-  description = "Secret for ValHub RDS Proxy authentication"
+  name        = "valhub-rds-proxy-credentials"
+  description = "Credentials for ValHub RDS Proxy authentication"
 
   tags = {
-    Name = "valhub-rds-proxy-secret"
+    Name = "valhub-rds-proxy-credentials"
   }
 }
 
