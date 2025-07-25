@@ -81,7 +81,7 @@ resource "aws_db_instance" "valhub_rds_instance" {
   copy_tags_to_snapshot               = false
   monitoring_interval                 = 0
   iam_database_authentication_enabled = true
-  deletion_protection                 = false
+  deletion_protection                 = true
   skip_final_snapshot                 = true
   performance_insights_enabled        = true
   performance_insights_kms_key_id     = aws_kms_key.valhub_performance_insights_key.arn
@@ -118,6 +118,9 @@ resource "aws_db_proxy_default_target_group" "valhub_rds_proxy_default_target_gr
   connection_pool_config {
     max_connections_percent   = 100
     connection_borrow_timeout = 120
+    session_pinning_filters = [
+      "EXCLUDE_VARIABLE_SETS"
+    ]
   }
 
 }

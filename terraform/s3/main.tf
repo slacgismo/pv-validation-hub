@@ -1,3 +1,6 @@
+data "aws_elb_service_account" "main" {
+}
+
 resource "aws_s3_bucket" "valhub_bucket" {
   bucket = "valhub-bucket"
 }
@@ -71,15 +74,16 @@ data "aws_iam_policy_document" "valhub_logs_bucket_policy_document" {
       type = "AWS"
       # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html
       # us-west-2 797873946194
-      identifiers = ["arn:aws:iam::${var.elb_account_id}:root"]
+      identifiers = [data.aws_elb_service_account.main.arn]
     }
 
     actions = [
       "s3:PutObject",
+      # "s3:*"
     ]
 
     resources = [
-      "arn:aws:s3:::${aws_s3_bucket.valhub_logs_bucket.id}/api-lb-logs/AWSLogs/${var.account_id}/*",
+      "${aws_s3_bucket.valhub_logs_bucket.arn}/api-lb-logs/AWSLogs/${var.account_id}/*",
     ]
 
 

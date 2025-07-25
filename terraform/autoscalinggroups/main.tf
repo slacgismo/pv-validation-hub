@@ -554,11 +554,11 @@ resource "aws_ecs_service" "ecs_api_service" {
     container_name   = local.ecs_api_task_name
     container_port   = 80
   }
-  load_balancer {
-    target_group_arn = var.api_target_group_https_arn
-    container_name   = local.ecs_api_task_name
-    container_port   = 443
-  }
+  # load_balancer {
+  #   target_group_arn = var.api_target_group_https_arn
+  #   container_name   = local.ecs_api_task_name
+  #   container_port   = 443
+  # }
 
   network_configuration {
     assign_public_ip = true # TODO: turn on for production
@@ -574,6 +574,7 @@ resource "aws_ecs_service" "ecs_api_service" {
     Name = "valhub-ecs-api-service"
   }
 
+  # depends_on = [aws_lb_target_group_attachment.api_target_group_attachment_http.arn, aws_lb_target_group_attachment.api_target_group_attachment_https.arn]
 }
 
 
@@ -673,3 +674,15 @@ resource "aws_cloudwatch_log_group" "ecs_api_log_group" {
   }
 
 }
+
+# resource "aws_lb_target_group_attachment" "api_target_group_attachment_http" {
+#   target_group_arn = var.api_target_group_http_arn
+#   target_id        = aws_ecs_service.ecs_api_service.id
+#   port             = 80
+# }
+
+# resource "aws_lb_target_group_attachment" "api_target_group_attachment_https" {
+#   target_group_arn = var.api_target_group_https_arn
+#   target_id        = aws_ecs_service.ecs_api_service.id
+#   port             = 443
+# }

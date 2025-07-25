@@ -695,7 +695,9 @@ def move_file_to_directory(
 IS_LOCAL = is_local()
 
 API_BASE_URL = (
-    "http://api:8005" if IS_LOCAL else "https://api.pv-validation-hub.org"
+    "http://api:8005"
+    if IS_LOCAL
+    else "https://api-pv-validation-hub.stratus.nrel.gov"
 )
 
 S3_BASE_URL = "http://s3:5000/get_object/" if IS_LOCAL else "s3://"

@@ -72,7 +72,11 @@ IS_LOCAL = is_local()
 
 S3_BUCKET_NAME = "pv-validation-hub-bucket"
 
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+API_BASE_URL = (
+    "api:8005"
+    if IS_LOCAL
+    else "https://api-pv-validation-hub.stratus.nrel.gov"
+)
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 

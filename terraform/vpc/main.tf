@@ -325,21 +325,22 @@ resource "aws_security_group" "valhub_api_lb_sg" {
 
 resource "aws_lb" "valhub_api_lb" {
   name                       = "valhub-api-lb-tf"
-  internal                   = true
+  internal                   = false
   load_balancer_type         = "application"
   subnets                    = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
   security_groups            = [aws_security_group.valhub_api_lb_sg.id]
   drop_invalid_header_fields = true
   ip_address_type            = "ipv4"
   access_logs {
-    enabled = true
+    enabled = false
     bucket  = var.log_bucket_id
     prefix  = var.api_lb_logs_prefix
   }
-  idle_timeout                     = 60
-  enable_deletion_protection       = false
+  idle_timeout                     = 60 * 15
+  enable_deletion_protection       = true
   enable_http2                     = true
   enable_cross_zone_load_balancing = true
+
   tags = {
     Name = "valhub-api-lb-tf"
   }
@@ -356,7 +357,11 @@ resource "aws_lb_target_group" "api_target_group_http" {
   tags = {
     Name = "valhub-api-target-group"
   }
+
+  depends_on = [aws_lb.valhub_api_lb]
 }
+
+
 
 
 
@@ -370,7 +375,11 @@ resource "aws_lb_target_group" "api_target_group_https" {
   tags = {
     Name = "valhub-api-target-group"
   }
+
+  depends_on = [aws_lb.valhub_api_lb]
 }
+
+
 
 resource "aws_lb_listener" "api_listener_http" {
   load_balancer_arn = aws_lb.valhub_api_lb.id
@@ -379,7 +388,11 @@ resource "aws_lb_listener" "api_listener_http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api_target_group_http.id
+    target_group_arn = aws_lb_target_group.api_target_group_http.arn
+  }
+
+  tags = {
+    Name = "valhub-api-listener-http"
   }
 }
 
@@ -394,7 +407,11 @@ resource "aws_lb_listener" "api_listener_https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api_target_group_https.id
+    target_group_arn = aws_lb_target_group.api_target_group_https.arn
+  }
+
+  tags = {
+    Name = "valhub-api-listener-https"
   }
 
 }

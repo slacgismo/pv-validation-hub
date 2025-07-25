@@ -173,9 +173,9 @@ DEBUG = False
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://pv-validation-hub.org",
-    "https://api.pv-validation-hub.org",
-    "https://db.pv-validation-hub.org",
+    "https://pv-validation-hub.stratus.nrel.gov",
+    "https://api-pv-validation-hub.stratus.nrel.gov",
+    # "https://db-pv-validation-hub.stratus.nrel.gov",
 ]
 
 MEDIA_URL = "/media/"
