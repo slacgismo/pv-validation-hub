@@ -234,7 +234,7 @@ resource "aws_ecs_service" "ecs_worker_service" {
   name                               = "worker-service"
   cluster                            = aws_ecs_cluster.worker_cluster.id
   desired_count                      = 1
-  task_definition                    = aws_ecs_task_definition.ecs_worker_task_definition.arn
+  task_definition                    = "${aws_ecs_task_definition.ecs_worker_task_definition.family}:${aws_ecs_task_definition.ecs_worker_task_definition.revision}"
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
 
@@ -257,6 +257,11 @@ resource "aws_ecs_service" "ecs_worker_service" {
 
   lifecycle {
     create_before_destroy = false
+  }
+
+  # Force service update when task definition changes
+  triggers = {
+    task_definition_arn = aws_ecs_task_definition.ecs_worker_task_definition.arn
   }
 
   tags = {
@@ -543,7 +548,7 @@ resource "aws_ecs_service" "ecs_api_service" {
   desired_count                      = 1
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
-  task_definition                    = aws_ecs_task_definition.ecs_api_task_definition.arn
+  task_definition                    = "${aws_ecs_task_definition.ecs_api_task_definition.family}:${aws_ecs_task_definition.ecs_api_task_definition.revision}"
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
 
@@ -569,6 +574,11 @@ resource "aws_ecs_service" "ecs_api_service" {
 
   health_check_grace_period_seconds = 120
   scheduling_strategy               = "REPLICA"
+
+  # Force service update when task definition changes
+  triggers = {
+    task_definition_arn = aws_ecs_task_definition.ecs_api_task_definition.arn
+  }
 
   tags = {
     Name = "valhub-ecs-api-service"

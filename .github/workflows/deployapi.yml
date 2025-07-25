@@ -83,3 +83,4 @@ jobs:
                   service: ${{ env.ECS_API_SERVICE }}
                   cluster: ${{ env.ECS_API_CLUSTER }}
                   wait-for-service-stability: true
+                  force-new-deployment: true
