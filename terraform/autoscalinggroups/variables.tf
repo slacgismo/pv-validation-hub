@@ -34,10 +34,10 @@ variable "api_target_group_http_arn" {
   type        = string
 }
 
-variable "api_target_group_https_arn" {
-  description = "ARN of the API target group for HTTPS"
-  type        = string
-}
+# variable "api_target_group_https_arn" {
+#   description = "ARN of the API target group for HTTPS"
+#   type        = string
+# }
 
 variable "ecs_worker_sg_id" {
   description = "Security group ID for ECS Worker"

@@ -234,9 +234,10 @@ resource "aws_ecs_service" "ecs_worker_service" {
   name                               = "worker-service"
   cluster                            = aws_ecs_cluster.worker_cluster.id
   desired_count                      = 1
-  task_definition                    = "${aws_ecs_task_definition.ecs_worker_task_definition.family}:${aws_ecs_task_definition.ecs_worker_task_definition.revision}"
+  task_definition                    = aws_ecs_task_definition.ecs_worker_task_definition.arn
   deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 100
+  deployment_minimum_healthy_percent = 50
+
 
   force_new_deployment = true
 
@@ -548,9 +549,9 @@ resource "aws_ecs_service" "ecs_api_service" {
   desired_count                      = 1
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
-  task_definition                    = "${aws_ecs_task_definition.ecs_api_task_definition.family}:${aws_ecs_task_definition.ecs_api_task_definition.revision}"
+  task_definition                    = aws_ecs_task_definition.ecs_api_task_definition.arn
   deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 100
+  deployment_minimum_healthy_percent = 50
 
   force_new_deployment = true
 
@@ -583,8 +584,6 @@ resource "aws_ecs_service" "ecs_api_service" {
   tags = {
     Name = "valhub-ecs-api-service"
   }
-
-  # depends_on = [aws_lb_target_group_attachment.api_target_group_attachment_http.arn, aws_lb_target_group_attachment.api_target_group_attachment_https.arn]
 }
 
 
@@ -684,15 +683,3 @@ resource "aws_cloudwatch_log_group" "ecs_api_log_group" {
   }
 
 }
-
-# resource "aws_lb_target_group_attachment" "api_target_group_attachment_http" {
-#   target_group_arn = var.api_target_group_http_arn
-#   target_id        = aws_ecs_service.ecs_api_service.id
-#   port             = 80
-# }
-
-# resource "aws_lb_target_group_attachment" "api_target_group_attachment_https" {
-#   target_group_arn = var.api_target_group_https_arn
-#   target_id        = aws_ecs_service.ecs_api_service.id
-#   port             = 443
-# }

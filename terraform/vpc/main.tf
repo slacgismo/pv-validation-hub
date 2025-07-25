@@ -353,6 +353,16 @@ resource "aws_lb_target_group" "api_target_group_http" {
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
+  health_check {
+    path                = "/healthy"
+    protocol            = "HTTP"
+    port                = "traffic-port" # Use the target group's port
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    interval            = 30
+    matcher             = "200"
+  }
 
   tags = {
     Name = "valhub-api-target-group"
@@ -365,19 +375,19 @@ resource "aws_lb_target_group" "api_target_group_http" {
 
 
 
-resource "aws_lb_target_group" "api_target_group_https" {
-  name        = "valhub-api-target-group-https"
-  port        = 443
-  protocol    = "HTTPS"
-  vpc_id      = aws_vpc.main.id
-  target_type = "ip"
+# resource "aws_lb_target_group" "api_target_group_https" {
+#   name        = "valhub-api-target-group-https"
+#   port        = 443
+#   protocol    = "HTTPS"
+#   vpc_id      = aws_vpc.main.id
+#   target_type = "ip"
 
-  tags = {
-    Name = "valhub-api-target-group"
-  }
+#   tags = {
+#     Name = "valhub-api-target-group"
+#   }
 
-  depends_on = [aws_lb.valhub_api_lb]
-}
+#   depends_on = [aws_lb.valhub_api_lb]
+# }
 
 
 
@@ -387,8 +397,12 @@ resource "aws_lb_listener" "api_listener_http" {
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.api_target_group_http.arn
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 
   tags = {
@@ -407,7 +421,7 @@ resource "aws_lb_listener" "api_listener_https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api_target_group_https.arn
+    target_group_arn = aws_lb_target_group.api_target_group_http.arn
   }
 
   tags = {
@@ -450,7 +464,6 @@ resource "aws_security_group" "ecs_worker_sg" {
     Name = "valhub-ecs-worker-sg"
   }
 }
-
 
 
 

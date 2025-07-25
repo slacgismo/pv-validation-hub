@@ -26,10 +26,10 @@ output "api_target_group_http_arn" {
   value       = aws_lb_target_group.api_target_group_http.arn
 }
 
-output "api_target_group_https_arn" {
-  description = "ARN of the API target group for HTTPS"
-  value       = aws_lb_target_group.api_target_group_https.arn
-}
+# output "api_target_group_https_arn" {
+#   description = "ARN of the API target group for HTTPS"
+#   value       = aws_lb_target_group.api_target_group_https.arn
+# }
 
 output "api_lb_logs_prefix" {
   description = "S3 bucket prefix for API Load Balancer logs"
