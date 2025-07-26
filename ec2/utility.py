@@ -285,6 +285,7 @@ def upload_to_s3_bucket(
     local_path: str,
     upload_path: str,
     is_local: bool,
+    aws_profile_name: str = "default",  # Default AWS profile name,
 ):
     """
     Upload file to S3 bucket and return object URL
@@ -320,7 +321,8 @@ def upload_to_s3_bucket(
                 )
     else:
         """Upload file to S3 bucket and return object URL"""
-        s3: S3Client = boto3.client("s3")  # type: ignore
+        session = boto3.Session(profile_name=aws_profile_name)
+        s3: S3Client = session.client("s3")  # type: ignore
 
         try:
             logger.info(
@@ -347,7 +349,10 @@ def upload_to_s3_bucket(
 
 
 def list_s3_bucket(
-    is_s3_emulation: bool, s3_bucket_name: str, s3_dir: str
+    is_s3_emulation: bool,
+    s3_bucket_name: str,
+    s3_dir: str,
+    aws_profile_name: str = "default",
 ) -> list[str]:
     logger.info(f"list s3 bucket {s3_dir}")
     if s3_dir.startswith("/"):
@@ -366,7 +371,8 @@ def list_s3_bucket(
         for entry in ret["Contents"]:
             all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
     else:
-        s3: S3Client = boto3.client("s3")  # type: ignore
+        session = boto3.Session(profile_name=aws_profile_name)
+        s3: S3Client = session.client("s3")  # type: ignore
         paginator = s3.get_paginator("list_objects_v2")
         pages = paginator.paginate(Bucket=s3_bucket_name, Prefix=s3_dir)
         for page in pages:
@@ -390,6 +396,7 @@ def pull_from_s3(
     s3_file_path: str,
     local_file_path: str,
     logger: logging.Logger,
+    aws_profile_name: str = "default",  # Default AWS profile name
 ) -> str:
     logger.info(f"pull file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
@@ -418,7 +425,8 @@ def pull_from_s3(
         with open(target_file_path, "wb") as f:
             f.write(r.content)
     else:
-        s3: S3Client = boto3.client("s3")  # type: ignore
+        session = boto3.Session(profile_name=aws_profile_name)
+        s3: S3Client = session.client("s3")  # type: ignore
         try:
             logger.info(
                 f"Downloading {s3_file_path} from {S3_BUCKET_NAME} to {target_file_path}"
@@ -434,10 +442,10 @@ def pull_from_s3(
     return target_file_path
 
 
-def check_aws_credentials():
+def check_aws_credentials(profile_name: str = "default"):
     try:
         # Create a session using the default profile
-        session = boto3.Session()
+        session = boto3.Session(profile_name=profile_name)
         # Get the credentials
         credentials = session.get_credentials()
         # Check if credentials are available

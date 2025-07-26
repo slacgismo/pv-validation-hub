@@ -76,6 +76,7 @@ class InsertAnalysis:
         s3_url: str,
         is_local: bool,
         use_cloud_files: bool = False,
+        aws_profile_name: str = "default",  # Default AWS profile name
     ):
         self.task_dir = task_dir
         self.config_file_path = os.path.join(task_dir, "config.json")
@@ -83,6 +84,7 @@ class InsertAnalysis:
         self.analysis_version: str = "1.0"
         self.config = config
         self.is_local = is_local
+        self.aws_profile_name = aws_profile_name
 
         self.api_url = api_url
         self.s3_url = s3_url
@@ -160,6 +162,7 @@ class InsertAnalysis:
                 is_s3_emulation=False,
                 s3_bucket_name=self.s3_task_bucket_name,
                 s3_dir="files/",
+                aws_profile_name=self.aws_profile_name,
             )
         ]
 
@@ -169,6 +172,7 @@ class InsertAnalysis:
                 is_s3_emulation=False,
                 s3_bucket_name=self.s3_task_bucket_name,
                 s3_dir=f"references/{self.config['s3_bucket_folder_name']}/",
+                aws_profile_name=self.aws_profile_name,
             )
         ]
 
@@ -193,7 +197,8 @@ class InsertAnalysis:
         files_to_exclude: list[str] = []
 
         for file in file_metadata_files:
-            s3_client: S3Client = boto3.client("s3")  # type: ignore
+            session = boto3.Session(profile_name=self.aws_profile_name)
+            s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_data_folder:
                 local_file_hash = get_file_hash(
                     os.path.join(self.file_data_folder_path, file)
@@ -222,6 +227,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
+                    aws_profile_name=self.aws_profile_name,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -236,7 +242,8 @@ class InsertAnalysis:
         files_to_exclude = []
 
         for file in file_metadata_files:
-            s3_client = boto3.client("s3")  # type: ignore
+            session = boto3.Session(profile_name=self.aws_profile_name)
+            s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_reference_folder:
                 local_file_hash = get_file_hash(
                     os.path.join(self.validation_data_folder_path, file)
@@ -267,6 +274,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
+                    aws_profile_name=self.aws_profile_name,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -278,7 +286,7 @@ class InsertAnalysis:
         if not use_cloud_files:
             return
 
-        check_aws_credentials()
+        check_aws_credentials(profile_name=self.aws_profile_name)
 
         # Pull metadata files from the cloud
 
@@ -297,6 +305,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
+                    aws_profile_name=self.aws_profile_name,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -603,6 +612,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
+                self.aws_profile_name,
             )
 
     def uploadValidationData(self):
@@ -625,6 +635,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
+                self.aws_profile_name,
             )
 
     def createEvaluationScripts(self):
@@ -655,6 +666,7 @@ class InsertAnalysis:
                     local_path,
                     upload_path,
                     self.is_local,
+                    self.aws_profile_name,
                 )
 
     def updateSystemMetadataIDs(self):
@@ -1244,12 +1256,13 @@ if __name__ == "__main__":
             task_dir=task_dir,
             evaluation_scripts_folder_path=evaluation_scripts_folder_path,
             front_end_assets_folder_path=front_end_assets_folder_path,
-            s3_bucket_name="pv-validation-hub-bucket",
-            s3_task_bucket_name="pv-validation-hub-task-data-bucket",
+            s3_bucket_name="valhub-bucket",
+            s3_task_bucket_name="valhub-task-data-bucket",
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
             use_cloud_files=use_cloud_files,
+            aws_profile_name="default",
         )
 
         if limit > 0:
