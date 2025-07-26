@@ -21,15 +21,15 @@ output "public_subnet_ids" {
   value       = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id]
 }
 
-output "api_target_group_http_arn" {
-  description = "ARN of the API target group"
-  value       = aws_lb_target_group.api_target_group_http.arn
-}
-
-# output "api_target_group_https_arn" {
-#   description = "ARN of the API target group for HTTPS"
-#   value       = aws_lb_target_group.api_target_group_https.arn
+# output "api_target_group_http_arn" {
+#   description = "ARN of the API target group"
+#   value       = aws_lb_target_group.api_target_group_http.arn
 # }
+
+output "api_target_group_arn" {
+  description = "ARN of the API target group"
+  value       = aws_lb_target_group.api_target_group.arn
+}
 
 output "api_lb_logs_prefix" {
   description = "S3 bucket prefix for API Load Balancer logs"

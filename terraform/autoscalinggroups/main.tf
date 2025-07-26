@@ -556,7 +556,7 @@ resource "aws_ecs_service" "ecs_api_service" {
   force_new_deployment = true
 
   load_balancer {
-    target_group_arn = var.api_target_group_http_arn
+    target_group_arn = var.api_target_group_arn
     container_name   = local.ecs_api_task_name
     container_port   = 80
   }

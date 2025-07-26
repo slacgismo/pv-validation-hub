@@ -347,21 +347,24 @@ resource "aws_lb" "valhub_api_lb" {
 
 }
 
-resource "aws_lb_target_group" "api_target_group_http" {
-  name        = "valhub-api-target-group-http"
+resource "aws_lb_target_group" "api_target_group" {
+  name        = "valhub-api-target-group"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
   health_check {
-    path                = "/healthy"
+    path                = "/healthy/"
     protocol            = "HTTP"
-    port                = "traffic-port" # Use the target group's port
+    port                = "80"
     healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 3
-    interval            = 30
-    matcher             = "200"
+    unhealthy_threshold = 5
+
+    # TODO: Fix the health check to use HTTPS
+    # The health check is currently set to HTTP, but it should be HTTPS
+    # The health check is redirected to HTTPS and will return a 301 status code
+    # Added matcher to accept 2xx and 3xx responses for a healthy check
+    matcher = "200-399" # Accept 2xx and 3xx responses
   }
 
   tags = {
@@ -372,22 +375,6 @@ resource "aws_lb_target_group" "api_target_group_http" {
 }
 
 
-
-
-
-# resource "aws_lb_target_group" "api_target_group_https" {
-#   name        = "valhub-api-target-group-https"
-#   port        = 443
-#   protocol    = "HTTPS"
-#   vpc_id      = aws_vpc.main.id
-#   target_type = "ip"
-
-#   tags = {
-#     Name = "valhub-api-target-group"
-#   }
-
-#   depends_on = [aws_lb.valhub_api_lb]
-# }
 
 
 
@@ -421,7 +408,7 @@ resource "aws_lb_listener" "api_listener_https" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.api_target_group_http.arn
+    target_group_arn = aws_lb_target_group.api_target_group.arn
   }
 
   tags = {
