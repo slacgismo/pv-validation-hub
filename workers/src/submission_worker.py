@@ -200,10 +200,17 @@ def extract_analysis_data(  # noqa: C901
     logger.info(f"files for analysis: {files_for_analysis}")
     logger.info(f"files: {files}")
 
-    if not all(file in files for file in files_for_analysis):
-        raise FileNotFoundError(
-            10, f"Data files not found for analysis {analysis_id}"
-        )
+    # if not all(file in files for file in files_for_analysis):
+    #     raise FileNotFoundError(
+    #         10, f"Data files not found for analysis {analysis_id}"
+    #     )
+
+    for analysis_file in files_for_analysis:
+        if analysis_file not in files:
+            raise FileNotFoundError(
+                10,
+                f"Data file {analysis_file} not found for analysis {analysis_id}",
+            )
 
     for file in files_for_analysis:
 

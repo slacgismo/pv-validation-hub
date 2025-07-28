@@ -865,6 +865,10 @@ class InsertAnalysis:
         else:
             df_new["subissue"] = df_new["subissue"].fillna("N/A")  # type: ignore
 
+        if "file_hash" not in df_new.columns:
+            df_new["file_hash"] = "N/A"
+        else:
+            df_new["file_hash"] = df_new["file_hash"].fillna("N/A")  # type: ignore
         # hash the files
 
         for file_name in df_new["file_name"]:
@@ -1262,7 +1266,7 @@ if __name__ == "__main__":
             s3_url=s3_url,
             is_local=is_local,
             use_cloud_files=use_cloud_files,
-            aws_profile_name="default",
+            aws_profile_name="nrel-pvinsight",
         )
 
         if limit > 0:
