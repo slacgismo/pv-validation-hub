@@ -46,6 +46,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Create your views here.
+S3_BUCKET_NAME = "valhub-bucket"
 
 
 def is_local():
@@ -143,7 +144,6 @@ def analysis_submission(request: Request, analysis_id: str):
         logger.info(f"submission_id = {submission_id}")
         logger.info(f"submission_path = {submission_path}")
         # print("submission_path: {}".format(submission_path))
-        bucket_name = "pv-validation-hub-bucket"
         upload_path = os.path.join(
             "submission_files",
             f"submission_user_{user.uuid}",
@@ -152,7 +152,7 @@ def analysis_submission(request: Request, analysis_id: str):
         )
 
         object_url = upload_to_s3_bucket(
-            bucket_name, submission_path, upload_path
+            S3_BUCKET_NAME, submission_path, upload_path
         )
         if object_url is None:
             response_data = {"error": "Cannot upload file to S3 bucket"}
@@ -518,7 +518,6 @@ def get_submission_results(request: Request, submission_id: str):
     logging.info(f"start")
 
     user_id = submission.created_by.uuid
-    bucket_name = "pv-validation-hub-bucket"
     results_directory = f"submission_files/submission_user_{user_id}/submission_{submission_id}/results/"
     cf_results_path = (
         f"submission_user_{user_id}/submission_{submission_id}/results/"
@@ -532,7 +531,8 @@ def get_submission_results(request: Request, submission_id: str):
             storage_endpoint_url = "http://s3:5000/"
             static_endpoint_url = "http://127.0.0.1:5001/"
             directory_url = urljoin(
-                storage_endpoint_url, f"{bucket_name}/{results_directory}/list"
+                storage_endpoint_url,
+                f"{S3_BUCKET_NAME}/{results_directory}/list",
             )
             response = requests.get(directory_url)
             if response.status_code != 200:

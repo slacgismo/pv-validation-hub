@@ -477,10 +477,8 @@ def list_s3_bucket(s3_dir: str):
     else:
         # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
-        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
-        )
+        s3_dir = s3_dir.replace("${S3_BUCKET_NAME}/", "")
+        logger.info(f"dir after removing ${S3_BUCKET_NAME}/ returns {s3_dir}")
 
         s3: S3Client = boto3.client("s3")  # type: ignore
         paginator = s3.get_paginator("list_objects_v2")
@@ -606,9 +604,9 @@ def pull_from_s3(
 
         # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
-        s3_file_path = s3_file_path.replace("pv-validation-hub-bucket/", "")
+        s3_file_path = s3_file_path.replace("${S3_BUCKET_NAME}/", "")
         logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_file_path}"
+            f"dir after removing ${S3_BUCKET_NAME}/ returns {s3_file_path}"
         )
 
         try:

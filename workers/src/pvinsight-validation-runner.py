@@ -70,7 +70,7 @@ logger = setup_logging(__name__)
 
 IS_LOCAL = is_local()
 
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
+S3_BUCKET_NAME = "valhub-bucket"
 
 API_BASE_URL = (
     "api:8005"
