@@ -236,7 +236,7 @@ resource "aws_ecs_service" "ecs_worker_service" {
   desired_count                      = 1
   task_definition                    = aws_ecs_task_definition.ecs_worker_task_definition.arn
   deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 50
+  deployment_minimum_healthy_percent = 0
 
 
   force_new_deployment = true
@@ -256,9 +256,6 @@ resource "aws_ecs_service" "ecs_worker_service" {
     rollback = true
   }
 
-  lifecycle {
-    create_before_destroy = false
-  }
 
   # Force service update when task definition changes
   triggers = {
@@ -278,7 +275,7 @@ data "aws_iam_policy_document" "ecs_worker_task_assume_role_policy_document" {
 
     principals {
       type        = "Service"
-      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com", "sqs.amazonaws.com"]
+      identifiers = ["ecs-tasks.amazonaws.com", "secretsmanager.amazonaws.com", "sqs.amazonaws.com", "s3.amazonaws.com", "kms.amazonaws.com"]
     }
     actions = [
       "sts:AssumeRole"
@@ -293,7 +290,8 @@ data "aws_iam_policy_document" "ecs_worker_task_role_permissions_policy_document
     actions = [
       "secretsmanager:*",
       "sqs:*",
-      "kms:*"
+      "kms:*",
+      "s3:*"
     ]
 
     resources = ["*"]
