@@ -292,7 +292,8 @@ data "aws_iam_policy_document" "ecs_worker_task_role_permissions_policy_document
 
     actions = [
       "secretsmanager:*",
-      "sqs:*"
+      "sqs:*",
+      "kms:*"
     ]
 
     resources = ["*"]

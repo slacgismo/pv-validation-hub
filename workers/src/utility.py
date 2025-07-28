@@ -778,8 +778,8 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
 def with_credentials(logger: logging.Logger | None = None):
 
     if IS_LOCAL:
-        username = os.environ.get("admin_username", None)
-        password = os.environ.get("admin_password", None)
+        username = os.environ.get("worker_username", None)
+        password = os.environ.get("worker_password", None)
     else:
         username, password = get_login_secrets_from_aws()
 
