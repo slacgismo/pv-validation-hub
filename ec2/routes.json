@@ -5,14 +5,7 @@
         "api": "http://api:8005"
     },
     "prod": {
-        "s3": "s3://pv-validation-hub-bucket",
-        "api": "https://api.pv-validation-hub.org"
-    },
-    "config_file_path": "./time-shift-validation-hub/config.json",
-    "file_data_folder_path": "./time-shift-validation-hub/data/file_data",
-    "sys_metadata_file_path": "./time-shift-validation-hub/data/system_metadata.csv",
-    "file_metadata_file_path": "./time-shift-validation-hub/data/file_metadata.csv",
-    "evaluation_scripts_folder_path": "./evaluation_scripts",
-    "validation_data_folder_path": "./time-shift-validation-hub/data/validation_data",
-    "private_report_template_file_path": "./time-shift-validation-hub/template.py"
+        "s3": "s3://valhub-bucket",
+        "api": "https://api-pv-validation-hub.stratus.nrel.gov"
+    }
 }

@@ -11,6 +11,7 @@ VOLUME /root/valhub
 
 COPY . .
 
+RUN chmod +x /root/valhub/startup.sh
 
 # Set Django admin username, password, and other environment variables
 ENV PORT=8005
@@ -21,10 +22,6 @@ RUN apt-get install -y libpq-dev python3-psycopg2
 RUN apt-get --assume-yes install mariadb-client supervisor postgresql-client 
 RUN apt-get --assume-yes install python3-dev default-libmysqlclient-dev build-essential pkg-config
 RUN python3 -m pip install --upgrade pip
-WORKDIR /root/valhub
 RUN python3 -m pip install -r requirements.txt
 
-# RUN cd ./valhub
-# RUN python3 manage.py makemigrations
-# RUN python3 manage.py collectstatic --noinput
-CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.conf"]
+CMD ["/bin/bash", "/root/valhub/startup.sh"]

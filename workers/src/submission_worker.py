@@ -1,14 +1,10 @@
 from importlib import import_module
-from logging import exception
 from typing import Any, Callable, Optional
-from mypy_boto3_s3 import S3Client
 from mypy_boto3_sqs import SQSClient, SQSServiceResource
 import requests
 import sys
 import os
 import tempfile
-import logging.config
-import logging.handlers
 import shutil
 import boto3
 import botocore.exceptions
@@ -20,6 +16,9 @@ import threading
 import pandas as pd
 from logger import setup_logging
 from utility import (
+    FAILED,
+    FINISHED,
+    RUNNING,
     WORKER_ERROR_PREFIX,
     RunnerException,
     SubmissionException,
@@ -27,46 +26,21 @@ from utility import (
     copy_file_to_directory,
     get_error_by_code,
     get_error_codes_dict,
+    list_s3_bucket,
     pull_from_s3,
+    push_to_s3,
     request_to_API_w_credentials,
     timing,
     is_local,
+    update_submission_status,
 )
 
 
-setup_logging()
+logger = setup_logging(__name__)
 
-logger = logging.getLogger(__name__)
 
 IS_LOCAL = is_local()
-
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
-
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
-
-SUBMITTING = "submitting"
-SUBMITTED = "submitted"
-RUNNING = "running"
-FAILED = "failed"
-FINISHED = "finished"
-
-
-def update_submission_status(submission_id: int, new_status: str):
-    # route needs to be a string stored in a variable, cannot parse in deployed environment
-    api_route = f"submissions/change_submission_status/{submission_id}"
-
-    try:
-        data = request_to_API_w_credentials(
-            "PUT", api_route, data={"status": new_status}
-        )
-        return data
-    except Exception as e:
-        logger.error(f"Error updating submission status to {new_status}")
-        logger.exception(e)
-        error_code = 5
-        raise WorkerException(
-            *get_error_by_code(error_code, worker_error_codes, logger),
-        )
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "valhub-bucket")
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -74,99 +48,6 @@ LOG_FILE_DIR = os.path.abspath(os.path.join(FILE_DIR, "..", "logs"))
 CURRENT_EVALUATION_DIR = os.path.abspath(
     os.path.join(FILE_DIR, "..", "current_evaluation")
 )
-
-
-def push_to_s3(local_file_path, s3_file_path, analysis_id, submission_id):
-    logger.info(f"push file {local_file_path} to s3")
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-
-    if IS_LOCAL:
-        s3_file_full_path = (
-            f"http://s3:5000/put_object/{S3_BUCKET_NAME}/" + s3_file_path
-        )
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    if IS_LOCAL:
-        with open(local_file_path, "rb") as f:
-            file_content = f.read()
-            logger.info(
-                f"Sending emulator PUT request to {s3_file_full_path} with file content (100 chars): {file_content[:100]}"
-            )
-            r = requests.put(s3_file_full_path, data=file_content)
-            logger.info(f"Received S3 emulator response: {r.status_code}")
-            if not r.ok:
-                logger.error(f"S3 emulator error: {r.content}")
-                error_code = 1
-                raise WorkerException(
-                    *get_error_by_code(error_code, worker_error_codes, logger),
-                )
-            return {"status": "success"}
-    else:
-        s3: S3Client = boto3.client("s3")  # type: ignore
-        try:
-            extra_args = {}
-            if s3_file_path.endswith(".html"):
-                extra_args = {"ContentType": "text/html"}
-            ExtraArgs = extra_args if extra_args else None
-            s3.upload_file(
-                local_file_path,
-                S3_BUCKET_NAME,
-                s3_file_path,
-                ExtraArgs=ExtraArgs,
-            )
-        except botocore.exceptions.ClientError as e:
-            logger.error(f"Error: {e}")
-            logger.info(f"update submission status to {FAILED}")
-            update_submission_status(submission_id, FAILED)
-            error_code = 1
-            raise WorkerException(
-                *get_error_by_code(error_code, worker_error_codes, logger)
-            )
-
-
-def list_s3_bucket(s3_dir: str):
-    logger.info(f"list s3 bucket {s3_dir}")
-    if s3_dir.startswith("/"):
-        s3_dir = s3_dir[1:]
-
-    if IS_LOCAL:
-        s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
-        # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
-    else:
-        s3_dir_full_path = "s3://" + s3_dir
-
-    all_files: list[str] = []
-    if IS_LOCAL:
-        r = requests.get(s3_dir_full_path)
-        ret = r.json()
-        for entry in ret["Contents"]:
-            all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
-    else:
-        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
-        # if so, remove it
-        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
-        )
-
-        s3: S3Client = boto3.client("s3")  # type: ignore
-        paginator = s3.get_paginator("list_objects_v2")
-        pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
-        for page in pages:
-            if page["KeyCount"] > 0:
-                if "Contents" in page:
-                    for entry in page["Contents"]:
-                        if "Key" in entry:
-                            all_files.append(entry["Key"])
-
-        # remove the first entry if it is the same as s3_dir
-        if len(all_files) > 0 and all_files[0] == s3_dir:
-            all_files.pop(0)
-
-    logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
-    return all_files
 
 
 def update_submission_result(submission_id: int, result_json: dict[str, Any]):
@@ -203,9 +84,7 @@ def extract_analysis_data(  # noqa: C901
 ) -> pd.DataFrame:
 
     # download evaluation scripts and requirements.txt etc.
-    files = list_s3_bucket(
-        f"pv-validation-hub-bucket/evaluation_scripts/{analysis_id}/"
-    )
+    files = list_s3_bucket(f"valhub-bucket/evaluation_scripts/{analysis_id}/")
     # check if required files exist
     if len(files) == 0:
         raise FileNotFoundError(
@@ -266,7 +145,7 @@ def extract_analysis_data(  # noqa: C901
     # the master table for files associated with different tests (az-tilt,
     # time shifts, degradation, etc.). Contains file name, associated file
     # information (sampling frequency, specific test, timezone, etc) as well
-    # as ground truth information to test against in the validation_dictionary
+    # as reference information to test against in the validation_dictionary
     # field
     # For each unique file id, make a GET request to the Django API to get the corresponding file metadata
     file_metadata_list: list[dict[str, Any]] = []
@@ -278,7 +157,7 @@ def extract_analysis_data(  # noqa: C901
             data = request_to_API_w_credentials("GET", fmd_url)
             file_metadata_list.append(data)
 
-        except exception as e:
+        except Exception as e:
             error_code = 7
             logger.error(
                 f"File metadata for file id {file_id} not found in Django API"
@@ -302,55 +181,56 @@ def extract_analysis_data(  # noqa: C901
 
     files_for_analysis: list[str] = file_metadata_df["file_name"].tolist()
 
-    analyticals = list_s3_bucket(
-        f"pv-validation-hub-bucket/data_files/analytical/"
+    files_list = list_s3_bucket(f"valhub-bucket/data_files/files/")
+    files = [file.split("/")[-1] for file in files_list]
+    references_list = list_s3_bucket(
+        f"valhub-bucket/data_files/references/{analysis_id}/"
     )
-    analytical_files = [
-        analytical.split("/")[-1] for analytical in analyticals
-    ]
-    ground_truths = list_s3_bucket(
-        f"pv-validation-hub-bucket/data_files/ground_truth/{analysis_id}/"
-    )
-    ground_truth_files = [
-        ground_truth.split("/")[-1] for ground_truth in ground_truths
+    references_files = [
+        references.split("/")[-1] for references in references_list
     ]
 
-    # if not all(file in ground_truth_files for file in files_for_analysis):
+    for analysis_file in files_for_analysis:
+        if analysis_file not in references_files:
+            raise FileNotFoundError(
+                9,
+                f"Reference data file {analysis_file} not found for analysis {analysis_id}",
+            )
+
+    logger.info(f"files for analysis: {files_for_analysis}")
+    logger.info(f"files: {files}")
+
+    # if not all(file in files for file in files_for_analysis):
     #     raise FileNotFoundError(
-    #         9, f"Ground truth data files not found for analysis {analysis_id}"
+    #         10, f"Data files not found for analysis {analysis_id}"
     #     )
 
     for analysis_file in files_for_analysis:
-        if analysis_file not in ground_truth_files:
+        if analysis_file not in files:
             raise FileNotFoundError(
-                9,
-                f"Ground truth data file {analysis_file} not found for analysis {analysis_id}",
+                10,
+                f"Data file {analysis_file} not found for analysis {analysis_id}",
             )
-
-    if not all(file in analytical_files for file in files_for_analysis):
-        raise FileNotFoundError(
-            10, f"Analytical data files not found for analysis {analysis_id}"
-        )
 
     for file in files_for_analysis:
 
-        analytical = analyticals[analytical_files.index(file)]
+        data_file = files_list[files.index(file)]
 
         tmp_path = pull_from_s3(
-            IS_LOCAL, S3_BUCKET_NAME, analytical, BASE_TEMP_DIR, logger
+            IS_LOCAL, S3_BUCKET_NAME, data_file, BASE_TEMP_DIR, logger
         )
         logger.info(f"move analysis file {tmp_path} to {file_data_dir}")
         shutil.move(
             tmp_path, os.path.join(file_data_dir, tmp_path.split("/")[-1])
         )
 
-        ground_truth = ground_truths[ground_truth_files.index(file)]
+        references = references_list[references_files.index(file)]
 
         tmp_path = pull_from_s3(
-            IS_LOCAL, S3_BUCKET_NAME, ground_truth, BASE_TEMP_DIR, logger
+            IS_LOCAL, S3_BUCKET_NAME, references, BASE_TEMP_DIR, logger
         )
         logger.info(
-            f'move ground truth file "{tmp_path}" to "{validation_data_dir}"'
+            f'move reference file "{tmp_path}" to "{validation_data_dir}"'
         )
         shutil.move(
             tmp_path,
@@ -394,10 +274,25 @@ def load_analysis(
         os.path.join(current_evaluation_dir, "pvinsight-validation-runner.py"),
     )
 
+    shutil.copy(
+        os.path.join("/root/worker/src", "metric_operations.py"),
+        os.path.join(current_evaluation_dir, "metric_operations.py"),
+    )
+
     # Copy the error codes file into the current evaluation directory
     shutil.copy(
         os.path.join("/root/worker/src", "errorcodes.json"),
         os.path.join(current_evaluation_dir, "errorcodes.json"),
+    )
+
+    shutil.copy(
+        os.path.join("/root/worker/src", "utility.py"),
+        os.path.join(current_evaluation_dir, "utility.py"),
+    )
+
+    shutil.copy(
+        os.path.join("/root/worker/src", "logger.py"),
+        os.path.join(current_evaluation_dir, "logger.py"),
     )
 
     docker_dir = os.path.join(current_evaluation_dir, "docker")
@@ -495,7 +390,7 @@ def process_submission_message(
         CURRENT_EVALUATION_DIR,
         "results",
     )
-    for dir_path, dir_names, file_names in os.walk(res_files_path):
+    for dir_path, _, file_names in os.walk(res_files_path):
         for file_name in file_names:
             full_file_name = os.path.join(dir_path, file_name)
             relative_file_name = full_file_name[len(f"{res_files_path}/") :]
@@ -508,16 +403,14 @@ def process_submission_message(
             logger.info(
                 f'upload result file "{full_file_name}" to s3 path "{s3_full_path}"'
             )
-            push_to_s3(
-                full_file_name, s3_full_path, analysis_id, submission_id
-            )
+            push_to_s3(full_file_name, s3_full_path, submission_id)
 
     # # remove the current evaluation dir
     # logger.info(f"remove directory {current_evaluation_dir}")
     # shutil.rmtree(current_evaluation_dir)
 
 
-def get_or_create_sqs_queue(queue_name):
+def get_or_create_sqs_queue(queue_name: str):
     """
     Returns:
         Returns the SQS Queue object
@@ -544,6 +437,7 @@ def get_or_create_sqs_queue(queue_name):
         queue_name = "valhub_submission_queue.fifo"
     # Check if the queue exists. If no, then create one
     logger.info(f"Getting queue by name: {queue_name}")
+    queue = None
 
     try:
         queue = sqs.get_queue_by_name(
@@ -555,9 +449,18 @@ def get_or_create_sqs_queue(queue_name):
             != "AWS.SimpleQueueService.NonExistentQueue"
         ):
             logger.exception("Cannot get queue: {}".format(queue_name))
-        queue = sqs.create_queue(
-            QueueName=queue_name, Attributes={"FifoQueue": "true"}
-        )
+            logger.info(f"Creating queue: {queue_name}")
+            queue = sqs.create_queue(
+                QueueName=queue_name, Attributes={"FifoQueue": "true"}
+            )
+    except botocore.exceptions.EndpointConnectionError as e:
+        logger.error("Cannot connect to SQS")
+        logger.exception(e)
+        raise e
+    except Exception as e:
+        logger.error("Cannot get queue")
+        logger.exception(e)
+        raise e
 
     logger.info(f"Queue retrieved")
     return queue
@@ -678,20 +581,24 @@ def main():
         f'Starting submission worker to process messages from "valhub_submission_queue.fifo"'
     )
     queue = get_or_create_sqs_queue("valhub_submission_queue.fifo")
+    if queue is None:
+        logger.error(
+            f'Could not retrieve or create SQS queue "valhub_submission_queue.fifo"'
+        )
+        raise WorkerException(
+            *get_error_by_code(1, worker_error_codes, logger)
+        )
     logger.info(f'Retrieved queue "valhub_submission_queue.fifo"')
-    logger.info(f"SQS queue URL: {queue.url}")
+    # logger.info(f"SQS queue URL: {queue.url}")
 
     is_finished = False
 
     logger.info("Listening for messages...")
     # infinite loop to listen and process messages
     while not is_finished:
-        print("Polling for messages...")
         messages = queue.receive_messages(
             MaxNumberOfMessages=1, VisibilityTimeout=43200
         )
-        print(f"Received {len(messages)} messages")
-
         for message in messages:
             logger.info(f"Received message: {message.body}")
 
@@ -838,19 +745,16 @@ def upload_logs_to_s3(user_id, analysis_id, submission_id):
     push_to_s3(
         log_file,
         f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log",
-        analysis_id,
         submission_id,
     )
     push_to_s3(
         error_log_file,
         f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.error.log",
-        analysis_id,
         submission_id,
     )
     push_to_s3(
         json_log_file,
         f"submission_files/submission_user_{user_id}/submission_{submission_id}/logs/submission.log.jsonl",
-        analysis_id,
         submission_id,
     )
 

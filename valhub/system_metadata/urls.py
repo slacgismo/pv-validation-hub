@@ -6,7 +6,10 @@ from .views import (
 )
 
 urlpatterns = [
-    path("systemmetadata/", SystemMetadataList.as_view()),
+    path(
+        "systemmetadata/",
+        SystemMetadataList.as_view(),
+    ),
     path("systemmetadata/<int:pk>/", SystemMetadataDetail.as_view()),
     path("systemmetadata/bulk_create/", bulk_systemmetadata_create),
 ]

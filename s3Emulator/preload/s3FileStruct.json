@@ -1,8 +1,8 @@
 {
-    "pv-validation-hub-bucket":{
+    "pv-validation-hub-bucket": {
         "data_files": {
-            "analytical": "/",
-            "ground_truth": "/"
+            "files": "/",
+            "references": "/"
         },
         "evaluation_scripts": {
             "example-1": "/",

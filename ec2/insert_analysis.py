@@ -4,240 +4,326 @@ including system metadata and file metadata.
 """
 
 import json
-from logging import Logger
-from typing import Any, cast
-import numpy as np
+from typing import Any, TypedDict
+import boto3
+from mypy_boto3_s3 import S3Client
 import pandas as pd
 import os
 import shutil
-import requests
-import boto3
-import sys
-import requests
+import argparse
 
 from utility import (
-    request_to_API_w_credentials as request_to_API_w_auth,
+    are_hashes_the_same,
+    get_s3_file_hash,
+    combine_hashes,
+    get_data_from_api_to_df,
+    get_file_hash,
+    get_hash_for_list_of_files,
+    hasAllColumns,
+    list_s3_bucket,
+    post_data_to_api_to_df,
+    pull_from_s3,
+    request_to_API_w_credentials,
+    upload_to_s3_bucket,
     with_credentials,
+    check_aws_credentials,
 )
 
-
-def request_to_API_w_credentials(
-    api_url: str,
-    method: str,
-    endpoint: str,
-    data: dict[str, Any] | None = None,
-    headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
-    **kwargs,
-) -> dict[str, Any]:
-    request_wrapper = with_credentials(api_url)(request_to_API_w_auth)
-
-    endpoint = f"{api_url}/{endpoint}"
-    return request_wrapper(method, endpoint, data, headers, logger, **kwargs)
+import logging
 
 
-# Fetch data from the remote API
-def get_data_from_api_to_df(api_url: str, endpoint: str) -> pd.DataFrame:
-
-    data = request_to_API_w_credentials(api_url, "GET", endpoint=endpoint)
-
-    # Check if the data is a dictionary of scalar values
-    if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
-        # If it is, wrap the values in lists
-        data = {k: [v] for k, v in data.items()}
-    return pd.DataFrame(data)
-
-
-def post_data_to_api_to_df(
-    api_url: str, endpoint: str, data: dict[str, Any]
-) -> pd.DataFrame:
-
-    data = request_to_API_w_credentials(
-        api_url, "POST", endpoint=endpoint, data=data
-    )
-
-    # Check if the data is a dictionary of scalar values
-    if isinstance(data, dict) and all(np.isscalar(v) for v in data.values()):
-        # If it is, wrap the values in lists
-        data = {k: [v] for k, v in data.items()}
-    return pd.DataFrame(data)
-
-
-def hasAllColumns(df, cols: list):
-    """
-    Check if the dataframe has the required columns for overlap
-    checking.
-    """
-    return all(col in df.columns for col in cols)
-
-
-def upload_to_s3_bucket(
-    s3_url: str,
-    bucket_name: str,
-    local_path: str,
-    upload_path: str,
-    is_local: bool,
-):
-    """
-    Upload file to S3 bucket and return object URL
-
-    Parameters
-    ----------
-    bucket_name: String. Name of the S3 bucket.
-    local_path: String. Local path to the file we want to upload.
-    upload_path: String. Path in the S3 bucket where we want to upload the file.
-
-    Returns
-    -------
-    String: URL of the object in the S3 bucket.
-    """
-
-    if is_local:
-        upload_path = os.path.join(bucket_name, upload_path)
-        s3_file_full_path = f"{s3_url}/put_object/{upload_path}"
-        with open(local_path, "rb") as f:
-            file_content = f.read()
-
-            print(s3_file_full_path, file_content[:100])
-            # exit()
-            r = requests.put(s3_file_full_path, data=file_content)
-            if r.status_code != 204:
-                print(
-                    f"error put file {upload_path} to s3, status code {r.status_code} {r.content}",
-                    file=sys.stderr,
-                )
-                return None
-            else:
-                return s3_file_full_path.replace(
-                    f"{s3_url}/put_object/", f"{s3_url}/get_object/"
-                )
-    else:
-        """Upload file to S3 bucket and return object URL"""
-        s3 = boto3.client("s3")
-
-        try:
-            print(f"uploading {local_path} to {bucket_name}/{upload_path}")
-            s3.upload_file(local_path, bucket_name, upload_path)
-            print(f"uploaded {local_path} to {bucket_name}/{upload_path}")
-        except Exception as e:
-            print(
-                f"error uploading {local_path} to {bucket_name}/{upload_path}"
-            )
-            raise e
-
-        bucket_location = boto3.client("s3").get_bucket_location(
-            Bucket=bucket_name
+class SimpleFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__(
+            fmt="%(levelname)s - %(asctime)s - %(name)s - %(message)s",
+            datefmt="%Y-%m-%dT%H:%M:%S%z",
         )
-        object_url = "https://{}.s3.{}.amazonaws.com/{}".format(
-            bucket_name, bucket_location["LocationConstraint"], upload_path
-        )
-        print(
-            f"uploaded {local_path} to {bucket_name}/{upload_path} returns {object_url}"
-        )
-        return object_url
 
 
-def list_s3_bucket(
-    is_s3_emulation: bool, s3_bucket_name: str, s3_dir: str
-) -> list[str]:
-    print(f"list s3 bucket {s3_dir}")
-    if s3_dir.startswith("/"):
-        s3_dir = s3_dir[1:]
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = SimpleFormatter()
+console = logging.StreamHandler()
+console.setFormatter(formatter)
+logger.addHandler(console)
 
-    if is_s3_emulation:
-        s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
-        # s3_dir_full_path = 'http://localhost:5000/list_bucket/' + s3_dir
-    else:
-        s3_dir_full_path = "s3://" + s3_dir
 
-    all_files: list[str] = []
-    if is_s3_emulation:
-        r = requests.get(s3_dir_full_path)
-        ret = r.json()
-        for entry in ret["Contents"]:
-            all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
-    else:
-        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
-        # if so, remove it
-        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        print(f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}")
-
-        s3 = boto3.client("s3")
-        paginator = s3.get_paginator("list_objects_v2")
-        pages = paginator.paginate(Bucket=s3_bucket_name, Prefix=s3_dir)
-        for page in pages:
-            if page["KeyCount"] > 0:
-                if "Contents" in page:
-                    for entry in page["Contents"]:
-                        if "Key" in entry:
-                            all_files.append(entry["Key"])
-
-        # remove the first entry if it is the same as s3_dir
-        if len(all_files) > 0 and all_files[0] == s3_dir:
-            all_files.pop(0)
-
-    print(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
-    return all_files
+class TaskConfig(TypedDict):
+    category_name: str
+    s3_bucket_folder_name: str
+    function_name: str
+    comparison_type: str
+    display_metrics: dict[str, str]
+    performance_metrics: list[str]
+    metrics_operations: dict[str, list[str]]
+    allowable_kwargs: list[str]
+    references_compare: list[str]
+    public_results_table: str
+    private_results_columns: list[str]
 
 
 class InsertAnalysis:
 
     def __init__(
         self,
-        config_file_path: str,
-        file_data_folder_path: str,
-        validation_data_folder_path: str,
+        task_dir: str,
         evaluation_scripts_folder_path: str,
-        sys_metadata_file_path: str,
-        file_metadata_file_path: str,
-        private_report_template_file_path: str,
-        # validation_tests_file_path: str,
+        front_end_assets_folder_path: str,
         s3_bucket_name: str,
+        s3_task_bucket_name: str,
         api_url: str,
         s3_url: str,
         is_local: bool,
+        use_cloud_files: bool = False,
+        aws_profile_name: str = "default",  # Default AWS profile name
     ):
-
-        config: dict[str, Any] = json.load(open(config_file_path, "r"))
+        self.task_dir = task_dir
+        self.config_file_path = os.path.join(task_dir, "config.json")
+        config: TaskConfig = json.load(open(self.config_file_path, "r"))
+        self.analysis_version: str = "1.0"
         self.config = config
         self.is_local = is_local
+        self.aws_profile_name = aws_profile_name
 
         self.api_url = api_url
         self.s3_url = s3_url
 
         # Fetching the data
         db_sys_metadata_df = get_data_from_api_to_df(
-            self.api_url, "system_metadata/systemmetadata"
+            self.api_url, "system_metadata/systemmetadata/", logger
         )
         db_file_metadata_df = get_data_from_api_to_df(
-            self.api_url, "file_metadata/filemetadata"
+            self.api_url, "file_metadata/filemetadata/", logger
         )
 
         self.db_sys_metadata_df = db_sys_metadata_df
         self.db_file_metadata_df = db_file_metadata_df
-        self.config_file_path = config_file_path
-        self.private_report_template_file_path = (
-            private_report_template_file_path
+        self.private_report_template_file_path = os.path.join(
+            task_dir, "template.py"
         )
-        self.file_data_folder_path = file_data_folder_path
+
+        self.data_folder_path = os.path.join(self.task_dir, "data")
+        self.file_data_folder_path = os.path.join(
+            self.data_folder_path, "files"
+        )
         self.evaluation_scripts_folder_path = evaluation_scripts_folder_path
         # self.validation_tests_file_path = validation_tests_file_path
-        self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(
-            sys_metadata_file_path
+        self.file_metadata_file_path = os.path.join(
+            self.data_folder_path, "file_metadata.csv"
         )
-        self.new_file_metadata_df: pd.DataFrame = pd.read_csv(
-            file_metadata_file_path
+
+        self.sys_metadata_file_path = os.path.join(
+            self.data_folder_path, "system_metadata.csv"
         )
 
         self.analysis_id = None
-        self.system_id_mapping = dict()
-        self.file_id_mapping = dict()
+        self.system_id_mapping: dict[int, int] = dict()
+        self.file_id_mapping: dict[int, int] = dict()
         self.s3_bucket_name = s3_bucket_name
-        self.validation_data_folder_path = validation_data_folder_path
+        self.s3_task_bucket_name = s3_task_bucket_name
+        self.validation_data_folder_path = os.path.join(
+            self.data_folder_path, "references"
+        )
 
-        self.hasAllValidNewAnalysisData()
+        self.markdown_files_folder_path = os.path.join(self.task_dir, "assets")
+        self.front_end_assets_folder_path = front_end_assets_folder_path
+        self.data_files_hash = ""
+        self.references_files_hash = ""
+        self.combined_hash = ""
+        self.db_hash = ""
 
-    def hasAllValidNewAnalysisData(self):
+        if use_cloud_files:
+            self.pullFilesFromCloud(use_cloud_files)
+        else:
+            self.new_sys_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
+                self.sys_metadata_file_path
+            )
+            self.new_file_metadata_df: pd.DataFrame = pd.read_csv(  # type: ignore
+                self.file_metadata_file_path
+            )
+            if not hasAllColumns(self.new_file_metadata_df, ["file_id"]):
+                # If the file_id column does not exist, create it
+                logger.info(
+                    "file_id column does not exist in the file metadata dataframe. Creating it."
+                )
+                self.new_file_metadata_df.insert(
+                    0, "file_id", range(0, len(self.new_file_metadata_df))
+                )
+
+    def pullDataFilesFromAWSS3(self, file_metadata_files: list[str]):
+        """
+        Pull the files from the S3 bucket.
+        """
+        # Pull all the data files from the S3 bucket
+        list_of_data_files = [
+            file.split("/")[-1]
+            for file in list_s3_bucket(
+                is_s3_emulation=False,
+                s3_bucket_name=self.s3_task_bucket_name,
+                s3_dir="files/",
+                aws_profile_name=self.aws_profile_name,
+            )
+        ]
+
+        list_of_reference_files = [
+            file.split("/")[-1]
+            for file in list_s3_bucket(
+                is_s3_emulation=False,
+                s3_bucket_name=self.s3_task_bucket_name,
+                s3_dir=f"references/{self.config['s3_bucket_folder_name']}/",
+                aws_profile_name=self.aws_profile_name,
+            )
+        ]
+
+        logger.info(f"List of data files from S3: {list_of_data_files}")
+
+        # Check if all data files exist in the s3 bucket
+        for file in file_metadata_files:
+            if file not in list_of_data_files:
+                raise ValueError(
+                    f"File {file} does not exist in the S3 bucket."
+                )
+        # Check if all reference files exist in the s3 bucket
+        for file in file_metadata_files:
+            if file not in list_of_reference_files:
+                raise ValueError(
+                    f"File {file} does not exist in the S3 bucket."
+                )
+
+        # does file exist in the data folder?
+
+        files_in_data_folder = os.listdir(self.file_data_folder_path)
+        files_to_exclude: list[str] = []
+
+        for file in file_metadata_files:
+            session = boto3.Session(profile_name=self.aws_profile_name)
+            s3_client: S3Client = session.client("s3")  # type: ignore
+            if file in files_in_data_folder:
+                local_file_hash = get_file_hash(
+                    os.path.join(self.file_data_folder_path, file)
+                )
+                s3_file_hash = get_s3_file_hash(
+                    s3_client=s3_client,
+                    bucket_name=self.s3_task_bucket_name,
+                    file_key=f"files/{file}",
+                )
+                if are_hashes_the_same(local_file_hash, s3_file_hash):
+                    files_to_exclude.append(file)
+
+        file_data_to_pull = [
+            file
+            for file in file_metadata_files
+            if file not in files_to_exclude
+        ]
+
+        for file in file_data_to_pull:
+            download_path = self.file_data_folder_path
+            s3_file_path = f"files/{file}"
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                    aws_profile_name=self.aws_profile_name,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
+        # does file exist in the validation data folder?
+        files_in_reference_folder = os.listdir(
+            self.validation_data_folder_path
+        )
+        files_to_exclude = []
+
+        for file in file_metadata_files:
+            session = boto3.Session(profile_name=self.aws_profile_name)
+            s3_client: S3Client = session.client("s3")  # type: ignore
+            if file in files_in_reference_folder:
+                local_file_hash = get_file_hash(
+                    os.path.join(self.validation_data_folder_path, file)
+                )
+                s3_file_hash = get_s3_file_hash(
+                    s3_client=s3_client,
+                    bucket_name=self.s3_task_bucket_name,
+                    file_key=f"references/{self.config['s3_bucket_folder_name']}/{file}",
+                )
+                if are_hashes_the_same(local_file_hash, s3_file_hash):
+                    files_to_exclude.append(file)
+
+        reference_files_to_pull = [
+            file
+            for file in file_metadata_files
+            if file not in files_to_exclude
+        ]
+
+        for file in reference_files_to_pull:
+            download_path = self.validation_data_folder_path
+            s3_file_path = (
+                f"references/{self.config['s3_bucket_folder_name']}/{file}"
+            )
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                    aws_profile_name=self.aws_profile_name,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
+    def pullFilesFromCloud(self, use_cloud_files: bool = False):
+        if not use_cloud_files:
+            return
+
+        check_aws_credentials(profile_name=self.aws_profile_name)
+
+        # Pull metadata files from the cloud
+
+        files = ["file_metadata.csv", "system_metadata.csv"]
+
+        for file in files:
+            download_path = self.data_folder_path
+            s3_file_path = (
+                f"metadata/{self.config['s3_bucket_folder_name']}/{file}"
+            )
+
+            try:
+                file_path = pull_from_s3(
+                    IS_LOCAL=False,
+                    S3_BUCKET_NAME=self.s3_task_bucket_name,
+                    s3_file_path=s3_file_path,
+                    local_file_path=download_path,
+                    logger=logger,
+                    aws_profile_name=self.aws_profile_name,
+                )
+                logger.info(f"File {file} pulled from S3 to {file_path}")
+            except Exception as e:
+                logger.error(f"Error pulling file {file} from S3: {e}")
+                logger.exception(e)
+                raise e
+
+        self.new_file_metadata_df = pd.read_csv(  # type: ignore
+            self.file_metadata_file_path
+        )
+        self.new_sys_metadata_df = pd.read_csv(  # type: ignore
+            self.sys_metadata_file_path
+        )
+        self.pullDataFilesFromAWSS3(
+            self.new_file_metadata_df["file_name"].to_list()  # type: ignore
+        )
+
+    def hasAllValidNewAnalysisData(self, use_cloud_files: bool = False):
         """
         Check if we have all the required data to create a new analysis.
 
@@ -245,25 +331,41 @@ class InsertAnalysis:
         -------
         bool: True if we have all the required data, False otherwise.
         """
-        file_metadata_files = self.new_file_metadata_df["file_name"]
+
+        is_valid: bool = True
+
+        file_metadata_files: pd.Series[str] = self.new_file_metadata_df[
+            "file_name"
+        ]
 
         # are there any duplicates?
-        if file_metadata_files.duplicated().any():
-            raise ValueError(
-                "There are duplicate file names in the file metadata."
-            )
+        for filename in file_metadata_files:
+            # count how many times the filename appears in the list
+            count = file_metadata_files[
+                file_metadata_files == filename
+            ].count()
+            if count > 1:
+                is_valid = False
+                raise ValueError(
+                    f"Duplicate file name {filename} in the file metadata."
+                )
 
-        sys_metadata_files = self.new_sys_metadata_df["name"]
+        sys_metadata_files: pd.Series[str] = self.new_sys_metadata_df["name"]
 
         # are there any duplicates?
-        if sys_metadata_files.duplicated().any():
-            raise ValueError(
-                "There are duplicate system names in the system metadata."
-            )
+        for filename in sys_metadata_files:
+            # count how many times the filename appears in the list
+            count = sys_metadata_files[sys_metadata_files == filename].count()
+            if count > 1:
+                is_valid = False
+                raise ValueError(
+                    f"Duplicate system name {filename} in the system metadata."
+                )
 
         file_data_files = os.listdir(self.file_data_folder_path)
 
         if not all(file in file_data_files for file in file_metadata_files):
+            is_valid = False
             raise ValueError(
                 "The file metadata contains files that are not in the file data folder."
             )
@@ -273,6 +375,7 @@ class InsertAnalysis:
         if not all(
             file in validation_data_files for file in file_metadata_files
         ):
+            is_valid = False
             raise ValueError(
                 "The file metadata contains files that are not in the validation data folder."
             )
@@ -282,13 +385,57 @@ class InsertAnalysis:
         )
 
         if not template_file_exists:
+            is_valid = False
             raise ValueError(
                 "The private report template file does not exist."
             )
 
-        print("All files are in the right place.")
+        required_markdown_files = [
+            "banner.png",
+            "cardCover.png",
+            "description.md",
+            "shortdesc.md",
+            "SubmissionInstructions.md",
+        ]
 
-        return True
+        markdown_files = os.listdir(self.markdown_files_folder_path)
+
+        for file in required_markdown_files:
+            if file not in markdown_files:
+                is_valid = False
+                raise ValueError(
+                    f"Missing markdown file {file} in the markdown files folder."
+                )
+
+        logger.info(
+            f"Frontend assets folder: {os.path.abspath(self.front_end_assets_folder_path)}"
+        )
+
+        front_end_analysis_assets_folder_exists = os.path.exists(
+            os.path.join(self.front_end_assets_folder_path, "analysis")
+        )
+
+        if not front_end_analysis_assets_folder_exists:
+            is_valid = False
+            raise ValueError(
+                "The analysis folder does not exist in the front end assets folder."
+            )
+
+        frontend_development_assets_folder_exists = os.path.exists(
+            os.path.join(
+                self.front_end_assets_folder_path, "analysis/development"
+            )
+        )
+
+        if not frontend_development_assets_folder_exists:
+            is_valid = False
+            raise ValueError(
+                "The development folder does not exist in the front end assets folder."
+            )
+
+        logger.info("All files are in the right place.")
+
+        return is_valid
 
     def getAllAnalyses(self) -> pd.DataFrame:
         """
@@ -301,7 +448,7 @@ class InsertAnalysis:
         List: List of all analyses.
         """
 
-        df = get_data_from_api_to_df(self.api_url, "analysis/home")
+        df = get_data_from_api_to_df(self.api_url, "analysis/home", logger)
 
         return df
 
@@ -323,26 +470,23 @@ class InsertAnalysis:
             in list(db_analysis_df["analysis_name"])
             and not force
         ):
-            db_analysis_id = cast(
-                int,
-                db_analysis_df.loc[
-                    db_analysis_df["analysis_name"]
-                    == self.config["category_name"],
-                    "analysis_id",
-                ].values[  # type: ignore
-                    0
-                ],
-            )
-            print(
+            specific_analysis = db_analysis_df[
+                db_analysis_df["analysis_name"] == self.config["category_name"]
+            ]
+            db_analysis_id = specific_analysis["analysis_id"].values[0]
+            analysis_version = specific_analysis["version"].values[0]
+            db_hash = specific_analysis["hash"].values[0]
+            logger.info(
                 f'Analysis {self.config["category_name"]} already exists with id {db_analysis_id}'
             )
-            print(f"{db_analysis_id} is { type(db_analysis_id)}")
             self.analysis_id = db_analysis_id
+            self.analysis_version = analysis_version
+            self.db_hash = db_hash
 
         else:
 
             if force:
-                print("Force is True. Creating a new analysis.")
+                logger.info("Force is True. Creating a new analysis.")
 
             performance_metrics: list[str] | None = self.config.get(
                 "performance_metrics", None
@@ -369,20 +513,24 @@ class InsertAnalysis:
             #     display_error = (metric, display)
             #     display_errors.append(display_error)
 
-            print("display_errors", display_errors)
+            # increment analysis version
 
-            body = {
+            logger.info("display_errors", display_errors)
+            logger.info(f"number of files: {len(self.new_file_metadata_df)}")
+
+            body: dict[str, Any] = {
                 "analysis_name": self.config["category_name"],
                 "display_errors": display_errors,
                 "total_files": len(self.new_file_metadata_df),
             }
 
-            print("body", body)
+            logger.info("body", body)
 
             res = post_data_to_api_to_df(
-                self.api_url, "analysis/create/", body
+                self.api_url, "analysis/create/", body, logger
             )
-            print("Analysis created")
+
+            logger.info("Analysis created")
             self.analysis_id = res["analysis_id"].values[0]
 
     def createSystemMetadata(self, sys_metadata_df: pd.DataFrame):
@@ -394,7 +542,7 @@ class InsertAnalysis:
         s3_path: String. S3 path that we want to write the files to.
         """
 
-        body = sys_metadata_df.to_json(orient="records")
+        body = sys_metadata_df.to_json(orient="records")  # type: ignore
         systems_json_list = json.loads(body)
 
         for system in systems_json_list:
@@ -409,14 +557,17 @@ class InsertAnalysis:
             json_body["longitude"] = system["longitude"]
             json_body["tracking"] = system["tracking"]
             if "dc_capacity" in system:
-                print(system["dc_capacity"])
+                logger.info(system["dc_capacity"])
                 if system["dc_capacity"] is not None:
                     json_body["dc_capacity"] = system["dc_capacity"]
 
-            print(json_body)
+            logger.info(json_body)
 
             post_data_to_api_to_df(
-                self.api_url, "/system_metadata/systemmetadata/", json_body
+                self.api_url,
+                "system_metadata/systemmetadata/",
+                json_body,
+                logger,
             )
 
     def createFileMetadata(self, file_metadata_df: pd.DataFrame):
@@ -428,9 +579,7 @@ class InsertAnalysis:
         s3_path: String. S3 path that we want to write the files to.
         """
 
-        # s3_data_files = list_s3_bucket(self.is_local, self.s3_bucket_name, "data_files/analytical/")
-
-        body = file_metadata_df.to_json(orient="records")
+        body = file_metadata_df.to_json(orient="records")  # type: ignore
         metadata_json_list = json.loads(body)
 
         for metadata in metadata_json_list:
@@ -442,18 +591,20 @@ class InsertAnalysis:
                 "data_sampling_frequency": metadata["data_sampling_frequency"],
                 "issue": metadata["issue"],
                 "subissue": metadata["subissue"],
+                "file_hash": metadata["file_hash"],
+                "include_on_leaderboard": metadata["include_on_leaderboard"],
             }
 
-            print(json_body)
+            logger.info(json_body)
 
             post_data_to_api_to_df(
-                self.api_url, "/file_metadata/filemetadata/", json_body
+                self.api_url, "/file_metadata/filemetadata/", json_body, logger
             )
 
             local_path = os.path.join(
                 self.file_data_folder_path, metadata["file_name"]
             )
-            upload_path = f'data_files/analytical/{metadata["file_name"]}'
+            upload_path = f'data_files/files/{metadata["file_name"]}'
 
             # upload metadata to s3
             upload_to_s3_bucket(
@@ -462,11 +613,14 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
+                self.aws_profile_name,
             )
 
     def uploadValidationData(self):
 
-        file_metadata_names = self.new_file_metadata_df["file_name"]
+        file_metadata_names: pd.Series[str] = self.new_file_metadata_df[
+            "file_name"
+        ]
 
         for file_name in file_metadata_names:
             # upload validation data to s3
@@ -474,7 +628,7 @@ class InsertAnalysis:
                 self.validation_data_folder_path, file_name
             )
             upload_path = (
-                f"data_files/ground_truth/{str(self.analysis_id)}/{file_name}"
+                f"data_files/references/{str(self.analysis_id)}/{file_name}"
             )
             upload_to_s3_bucket(
                 self.s3_url,
@@ -482,6 +636,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
+                self.aws_profile_name,
             )
 
     def createEvaluationScripts(self):
@@ -494,7 +649,7 @@ class InsertAnalysis:
         )
 
         # Upload the evaluation scripts to the S3 bucket
-        for root, dirs, files in os.walk(evaluation_folder_path):
+        for root, _, files in os.walk(evaluation_folder_path):
             directory = os.path.dirname(root)
 
             folder = "/".join(directory.split("/")[-2:])
@@ -512,6 +667,7 @@ class InsertAnalysis:
                     local_path,
                     upload_path,
                     self.is_local,
+                    self.aws_profile_name,
                 )
 
     def updateSystemMetadataIDs(self):
@@ -524,28 +680,34 @@ class InsertAnalysis:
         """
 
         db_sys_metadata_df = get_data_from_api_to_df(
-            self.api_url, "system_metadata/systemmetadata"
+            self.api_url, "system_metadata/systemmetadata/", logger
         )
 
         self.db_sys_metadata_df = db_sys_metadata_df
 
+        if db_sys_metadata_df.empty:
+            return
+
+        name_series: pd.Series[str] = pd.Series()
+        system_id_series: pd.Series[int] = pd.Series()
+
+        if hasAllColumns(db_sys_metadata_df, ["name", "system_id"]):
+
+            name_series: pd.Series[str] = db_sys_metadata_df["name"]
+            system_id_series: pd.Series[int] = db_sys_metadata_df["system_id"]
+
         # Create a dictionary of the system metadata IDs
         db_system_name_to_id_mapping = dict(
             zip(
-                db_sys_metadata_df["name"],
-                db_sys_metadata_df["system_id"],
+                name_series,
+                system_id_series,
             )
         )
 
-        counter = 0
-
-        def map_system_id_to_db_system_id(self, ref_value, target_value):
-            nonlocal counter
+        # TODO: Fix issue when the system_id is not found
+        def map_system_id_to_db_system_id(ref_value: str, target_value: int):
             new_system_id = db_system_name_to_id_mapping.get(ref_value)
-
             if not new_system_id:
-                # new_system_id = max_system_id + counter
-                # counter += 1
                 raise ValueError("System ID not found")
 
             self.system_id_mapping[target_value] = int(new_system_id)
@@ -555,12 +717,14 @@ class InsertAnalysis:
 
         # how do you create unique hash from columns from a dataframe?
 
+        def process_row(row: pd.DataFrame) -> int:
+            name: str = row["name"]  # type: ignore
+            system_id: int = row["system_id"]  # type: ignore
+
+            return map_system_id_to_db_system_id(name, system_id)
+
         df_new["system_id"] = df_new.apply(
-            lambda row: map_system_id_to_db_system_id(
-                self,
-                row["name"],
-                row["system_id"],
-            ),
+            process_row,
             axis=1,
         )
 
@@ -576,28 +740,26 @@ class InsertAnalysis:
         """
 
         db_file_metadata_df = get_data_from_api_to_df(
-            self.api_url, "file_metadata/filemetadata"
+            self.api_url, "file_metadata/filemetadata/", logger
         )
 
         self.db_file_metadata_df = db_file_metadata_df
 
+        file_name_series: pd.Series[str] = db_file_metadata_df["file_name"]
+        file_id_series: pd.Series[int] = db_file_metadata_df["file_id"]
+
         # Create a dictionary of the file metadata IDs
         db_file_name_to_id_mapping: dict[str, int] = dict(
             zip(
-                db_file_metadata_df["file_name"],
-                db_file_metadata_df["file_id"],
+                file_name_series,
+                file_id_series,
             )
         )
 
-        counter = 0
-
-        def map_file_id_to_db_file_id(self, ref_value, target_value):
-            nonlocal counter
+        def map_file_id_to_db_file_id(ref_value: str, target_value: int):
             new_file_id = db_file_name_to_id_mapping.get(ref_value)
 
             if not new_file_id:
-                # new_file_id = max_file_id + counter
-                # counter += 1
                 raise ValueError("File ID not found")
 
             self.file_id_mapping[target_value] = new_file_id
@@ -605,13 +767,16 @@ class InsertAnalysis:
 
         df_new = self.new_file_metadata_df.copy()
 
+        def process_row(row: pd.DataFrame) -> int:
+            file_name: str = row["file_name"]  # type: ignore
+            file_id: int = row["file_id"]  # type: ignore
+
+            return map_file_id_to_db_file_id(file_name, file_id)
+
         df_new["file_id"] = df_new.apply(
-            lambda row: map_file_id_to_db_file_id(
-                self, row["file_name"], row["file_id"]
-            ),
+            process_row,
             axis=1,
         )
-        # self.db_file_metadata_df = df_new
         self.new_file_metadata_df = df_new
 
     def buildSystemMetadata(self):
@@ -636,11 +801,11 @@ class InsertAnalysis:
                 [], columns=["name", "latitude", "longitude"]
             )
 
-        same_systems = pd.merge(
+        same_systems = pd.merge(  # type: ignore
             df_new, df_old, how="inner", on=["name", "latitude", "longitude"]
         )
 
-        df_new = df_new[~df_new["name"].isin(list(same_systems["name"]))]
+        df_new = df_new[~df_new["name"].isin(list(same_systems["name"]))]  # type: ignore
 
         system_metadata_columns = [
             "system_id",
@@ -654,7 +819,7 @@ class InsertAnalysis:
             "dc_capacity",
         ]
 
-        def addNAtoMissingColumns(df, columns):
+        def addNAtoMissingColumns(df: pd.DataFrame, columns: list[str]):
             new_df = df.copy()
             for column in columns:
                 if column not in df.columns:
@@ -663,7 +828,7 @@ class InsertAnalysis:
 
         # Return the system data ready for insertion
         df_modified = addNAtoMissingColumns(df_new, system_metadata_columns)
-        print(df_modified.head(5))
+        logger.info(df_modified.head(5))
         return df_modified
 
     def buildFileMetadata(self):
@@ -678,13 +843,13 @@ class InsertAnalysis:
 
         # Remove the repeat systems from the metadata we want to insert
         df_new = df_new[
-            ~df_new["file_name"].isin(list(overlapping_files["file_name"]))
+            ~df_new["file_name"].isin(list(overlapping_files["file_name"]))  # type: ignore
         ]
 
         df_new["system_id"] = df_new["system_id"].map(self.system_id_mapping)
 
         # Check if any system IDs are missing
-        if df_new["system_id"].isna().any():
+        if df_new["system_id"].isna().any():  # type: ignore
             raise ValueError(
                 "Some system IDs are missing from the system metadata dataframe."
             )
@@ -694,14 +859,30 @@ class InsertAnalysis:
         if "issue" not in df_new.columns:
             df_new["issue"] = "N/A"
         else:
-            df_new["issue"] = df_new["issue"].fillna("N/A")
+            df_new["issue"] = df_new["issue"].fillna("N/A")  # type: ignore
 
         if "subissue" not in df_new.columns:
             df_new["subissue"] = "N/A"
         else:
-            df_new["subissue"] = df_new["subissue"].fillna("N/A")
+            df_new["subissue"] = df_new["subissue"].fillna("N/A")  # type: ignore
 
-        # self.new_file_metadata_df = df_new
+        if "file_hash" not in df_new.columns:
+            df_new["file_hash"] = "N/A"
+        else:
+            df_new["file_hash"] = df_new["file_hash"].fillna("N/A")  # type: ignore
+        if "include_on_leaderboard" not in df_new.columns:
+            df_new["include_on_leaderboard"] = True
+        else:
+            df_new["include_on_leaderboard"] = df_new[
+                "include_on_leaderboard"
+            ].fillna(True)
+
+        for file_name in df_new["file_name"]:
+            local_path = os.path.join(self.file_data_folder_path, file_name)
+            file_hash = get_file_hash(local_path)
+            df_new.loc[df_new["file_name"] == file_name, "file_hash"] = (
+                file_hash
+            )
 
         return df_new[
             [
@@ -711,25 +892,10 @@ class InsertAnalysis:
                 "data_sampling_frequency",
                 "issue",
                 "subissue",
+                "file_hash",
+                "include_on_leaderboard",
             ]
         ]
-
-    # def buildValidationTests(self):
-    #     """
-    #     Build out the validation tests for insert into the validation_tests
-    #     table.
-
-    #     Returns
-    #     -------
-    #     Pandas dataframe: Pandas df ready for insert into the validation_tests
-    #         table.
-    #     """
-
-    #     validation_tests_df = self.validation_tests_df[
-    #         ["category_name", "performance_metrics", "function_name"]
-    #     ]
-
-    #     return validation_tests_df
 
     def getOverlappingMetadataFiles(self):
         """
@@ -746,7 +912,7 @@ class InsertAnalysis:
         if not hasAllColumns(df_old, ["file_name"]):
             df_old = pd.DataFrame([], columns=["file_name", "file_id"])
 
-        overlapping_files = pd.merge(
+        overlapping_files = pd.merge(  # type: ignore
             df_new["file_name"],
             df_old[["file_name", "file_id"]],
             on=["file_name"],
@@ -796,7 +962,7 @@ class InsertAnalysis:
         endpoint = "system_metadata/systemmetadata"
 
         data = request_to_API_w_credentials(
-            self.api_url, "GET", endpoint=endpoint
+            self.api_url, "GET", endpoint=endpoint, logger=logger
         )
 
         # r = requests.get(full_url)
@@ -814,9 +980,9 @@ class InsertAnalysis:
         Prepare the file test linker and drop it into the new evaluation folder.
         """
 
-        file_test_link = self.new_file_metadata_df["file_id"]
+        file_test_link: pd.Series[int] = self.new_file_metadata_df["file_id"]
 
-        file_test_link.index.name = "test_id"
+        file_test_link.index.name = "test_id"  # type: ignore
 
         local_file_path = os.path.join(
             self.evaluation_scripts_folder_path, str(self.analysis_id)
@@ -831,65 +997,305 @@ class InsertAnalysis:
         )
         return file_test_link_path
 
-    def insertData(self, force=False):
+    def updateFrontEndAssets(self):
+        """
+        Update the front end assets.
+        """
+
+        # Copy the markdown files to the new folder
+        markdown_files = os.listdir(self.markdown_files_folder_path)
+
+        valid_file_types = ["md", "png", "PNG"]
+
+        filtered_assets = [
+            file
+            for file in markdown_files
+            if file.split(".")[-1] in valid_file_types
+        ]
+        logger.info(f"filtered_assets {filtered_assets}")
+
+        analysis_assets_folder = os.path.join(
+            self.front_end_assets_folder_path, "analysis"
+        )
+
+        id_analysis_assets_folder = os.path.join(
+            analysis_assets_folder, str(self.analysis_id)
+        )
+
+        # Clear any existing assets associated with the analysis in the front end assets folder
+
+        if os.path.exists(id_analysis_assets_folder):
+            shutil.rmtree(id_analysis_assets_folder)
+
+        # Create the new folder
+        os.makedirs(id_analysis_assets_folder)
+
+        # Copy the files to the new folder
+        for file in filtered_assets:
+            shutil.copy(
+                os.path.join(self.markdown_files_folder_path, file),
+                os.path.join(id_analysis_assets_folder, file),
+            )
+
+    def updateMetadataWithLimit(self, limit: int):
+        limit_new_file_metadata_df = self.new_file_metadata_df.head(limit)
+
+        file_sys_ids: pd.Series[int] = limit_new_file_metadata_df["system_id"]
+
+        limit_new_sys_metadata_df = self.new_sys_metadata_df[
+            self.new_sys_metadata_df["system_id"].isin(file_sys_ids)  # type: ignore
+        ]
+
+        self.new_file_metadata_df = limit_new_file_metadata_df
+        self.new_sys_metadata_df = limit_new_sys_metadata_df
+
+        self.config["category_name"] = (
+            f"{self.config['category_name']} - {limit} File(s)"
+        )
+
+    def createHashofFiles(self):
+        """
+        Create a hash of the data files for the analysis.
+        """
+
+        data_files = os.listdir(self.file_data_folder_path)
+
+        hash_for_data_files = get_hash_for_list_of_files(
+            [
+                os.path.join(self.file_data_folder_path, file)
+                for file in data_files
+            ]
+        )
+
+        logger.info(f"Data files hash: {hash_for_data_files}")
+
+        self.data_files_hash = hash_for_data_files
+
+        references_files = os.listdir(self.validation_data_folder_path)
+
+        hash_for_references_files = get_hash_for_list_of_files(
+            [
+                os.path.join(self.validation_data_folder_path, file)
+                for file in references_files
+            ]
+        )
+
+        logger.info(f"Data files hash: {hash_for_references_files}")
+
+        self.references_files_hash = hash_for_references_files
+
+        self.combined_hash = combine_hashes(
+            [self.data_files_hash, self.references_files_hash]
+        )
+
+        logger.info(f"Combined hash: {self.combined_hash}")
+
+        return self.combined_hash
+
+    def updateAnalysisHash(self, hash: str):
+
+        if are_hashes_the_same(self.db_hash, hash):
+            logger.info(
+                "The hash of the files are the same as the hash in the database. No need to update the analysis version."
+            )
+            return
+
+        logger.info(
+            "The hash of the files are different from the hash in the database. Updating the analysis version."
+        )
+
+        semver = self.analysis_version.split(".")
+        major = semver[0]
+        minor = semver[1]
+
+        if self.db_hash == "" and self.analysis_version == "1.0":
+            self.analysis_version = "1.0"
+        else:
+            self.analysis_version = f"{major}.{int(minor) + 1}"
+
+        logger.info(f"New analysis task version: {self.analysis_version}")
+
+        body = {
+            "hash": hash,
+            "version": self.analysis_version,
+        }
+
+        response = with_credentials(self.api_url, logger)(
+            request_to_API_w_credentials
+        )(
+            self.api_url,
+            "PUT",
+            endpoint=f"analysis/{self.analysis_id}/update",
+            data=body,
+            logger=logger,
+        )
+        logger.info(response)
+        return response
+
+    def insertData(self, use_cloud_files: bool = False, force: bool = False):
         """
         Insert all the data into the API and S3.
         """
 
+        logger.info("Creating analysis")
         db_analyses_df = self.getAllAnalyses()
         self.createAnalysis(db_analyses_df, force)
 
         if not self.analysis_id:
             raise ValueError("Analysis ID not found or created.")
 
+        logger.info(f"Created analysis with ID {self.analysis_id}")
+
         # exit()
+        logger.info("Creating system metadata")
         new_sys_metadata_df = self.buildSystemMetadata()
         self.createSystemMetadata(new_sys_metadata_df)
         self.updateSystemMetadataIDs()
+        logger.info("System metadata created")
 
+        logger.info("Creating file metadata")
         new_file_metadata_df = self.buildFileMetadata()
         self.createFileMetadata(new_file_metadata_df)
         self.updateFileMetadataIDs()
         self.uploadValidationData()
+        logger.info("File metadata created")
 
+        # Create hash of the data files
+        hash = self.createHashofFiles()
+
+        # Compare the hashes and update task version if necessary
+        self.updateAnalysisHash(hash)
+
+        logger.info("Creating evaluation scripts")
         self.prepareFileTestLinker()
         self.prepareConfig()
         self.prepareTemplate()
         self.createEvaluationScripts()
+        logger.info("Evaluation scripts created")
+
+        logger.info("Update assets for front end")
+        self.updateFrontEndAssets()
+        logger.info("Front end assets updated")
+
+        logger.info("Data inserted successfully")
+
+        logger.warning(
+            "If you are running this in a development environment without the `docker compose up --watch` command, you will need to manually rebuild the front end image and restart the container to see the changes."
+        )
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Insert analysis data")
+    parser.add_argument(
+        "--dry-run",
+        help="Run in dry-run mode",
+        default=False,
+    )
+    parser.add_argument(
+        "--force",
+        help="Force the operation",
+        default=False,
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="Limit the number of records",
+        default=0,
+    )
+    parser.add_argument(
+        "--prod",
+        help="Set to production mode",
+        default=False,
+    )
+    parser.add_argument(
+        "--dir",
+        help="Directory of the task",
+    )
+    parser.add_argument(
+        "--use-cloud-files",
+        help="Data files for task are local or in S3",
+    )
+
+    args, unknown = parser.parse_known_args()
+    logger.info(dict(args._get_kwargs()))
+
+    def convert_bool(val: str) -> bool:
+        if val == "True":
+            return True
+        elif val == "False":
+            return False
+        else:
+            raise ValueError(f"Invalid boolean value {val}")
+
+    def convert_int(val: str) -> int:
+        try:
+            return int(val)
+        except ValueError:
+            raise ValueError(f"Invalid integer value {val}")
+
     with open("routes.json", "r") as file:
         config = json.load(file)
 
-        is_local = True
+        ########################################################################
+        is_local = not convert_bool(args.prod)
+        is_force = convert_bool(args.force)
+        limit = convert_int(args.limit)
+        is_dry_run = convert_bool(args.dry_run)
+        use_cloud_files = convert_bool(args.use_cloud_files)
+        task_dir: str = args.dir
+        ########################################################################
+
+        logger.info(f"is_dry_run: {is_dry_run}")
+        logger.info(f"is_force: {is_force}")
+        logger.info(f"limit: {limit}")
+        logger.info(f"is_local: {is_local}")
+        logger.info(f"use_cloud_files: {use_cloud_files}")
+        logger.info(f"task_dir: {task_dir}")
+
+        if not os.path.exists(task_dir):
+            raise ValueError(f"Directory {task_dir} does not exist")
 
         api_url = config["local"]["api"] if is_local else config["prod"]["api"]
         s3_url = config["local"]["s3"] if is_local else config["prod"]["s3"]
 
-        config_file_path = config["config_file_path"]
-        file_data_folder_path = config["file_data_folder_path"]
-        evaluation_scripts_folder_path = config[
-            "evaluation_scripts_folder_path"
-        ]
-        sys_metadata_file_path = config["sys_metadata_file_path"]
-        file_metadata_file_path = config["file_metadata_file_path"]
-        validation_data_folder_path = config["validation_data_folder_path"]
-        private_report_template_file_path = config[
-            "private_report_template_file_path"
-        ]
+        evaluation_scripts_folder_path = "./evaluation_scripts/"
 
-        r = InsertAnalysis(
-            config_file_path=config_file_path,
-            file_data_folder_path=file_data_folder_path,
-            sys_metadata_file_path=sys_metadata_file_path,
-            file_metadata_file_path=file_metadata_file_path,
-            validation_data_folder_path=validation_data_folder_path,
+        front_end_assets_folder_path = "./front_end_assets"
+
+        analysis_instance = InsertAnalysis(
+            task_dir=task_dir,
             evaluation_scripts_folder_path=evaluation_scripts_folder_path,
-            private_report_template_file_path=private_report_template_file_path,
-            s3_bucket_name="pv-validation-hub-bucket",
+            front_end_assets_folder_path=front_end_assets_folder_path,
+            s3_bucket_name="valhub-bucket",
+            s3_task_bucket_name="valhub-task-data-bucket",
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
+            use_cloud_files=use_cloud_files,
+            aws_profile_name="nrel-pvinsight",
         )
-        r.insertData()
+
+        if limit > 0:
+            analysis_instance.updateMetadataWithLimit(limit)
+
+        if not analysis_instance.hasAllValidNewAnalysisData(
+            use_cloud_files=use_cloud_files
+        ):
+            raise ValueError("Data is not valid")
+
+        if not is_local:
+            response = input(
+                "Are you sure you want to create/update a task on production? (yes/no): "
+            )
+            if response.lower() != "yes":
+                logger.info("Exiting...")
+                exit()
+                raise ValueError("Exiting...")
+
+        if is_dry_run:
+            logger.info("Dry run mode enabled. No data will be inserted.")
+        else:
+            analysis_instance.insertData(
+                use_cloud_files=use_cloud_files,
+                force=is_force,
+            )

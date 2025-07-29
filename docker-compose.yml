@@ -1,144 +1,147 @@
 services:
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: valhub
-      POSTGRES_PASSWORD: valhub
-      POSTGRES_USER: valhub
-    ports:
-      - "5432:5432"
-    volumes:
-      - valhub:/data/db
+    db:
+        image: postgres:15-alpine
+        environment:
+            POSTGRES_DB: valhub
+            POSTGRES_PASSWORD: valhub
+            POSTGRES_USER: valhub
+        ports:
+            - '5432:5432'
+        restart: always
+        volumes:
+            - valhub:/data/db
 
-  api:
-    build:
-      context: ./valhub
-      dockerfile: Dockerfile
-      args:
-        djangosk: ${djangosk}
-    env_file:
-      - .env
-    environment:
-      PGDATABASE: valhub
-      PGUSER: valhub
-      PGHOST: db
-      PG_DATABASE_URI: "postgresql://valhub:valhub@db/valhub"
-      DJANGO_SUPERUSER_USERNAME: ${admin_username}
-      DJANGO_SUPERUSER_PASSWORD: ${admin_password}
-      DJANGO_SUPERUSER_EMAIL: ${admin_email}
-      DJANGO_SECRET_KEY: ${djangosk}
-    ports:
-      - "8005:8005"
-    depends_on:
-      - db
-      - sqs
-    volumes:
-      - type: bind
-        source: ./valhub
-        target: /root/valhub
+    api:
+        build:
+            context: ./valhub
+            dockerfile: Dockerfile
+            args:
+                djangosk: ${djangosk}
+        env_file:
+            - .env
+        environment:
+            PGDATABASE: valhub
+            PGUSER: valhub
+            PGHOST: db
+            PG_DATABASE_URI: 'postgresql://valhub:valhub@db/valhub'
+            DJANGO_SUPERUSER_USERNAME: ${admin_username}
+            DJANGO_SUPERUSER_PASSWORD: ${admin_password}
+            DJANGO_SUPERUSER_EMAIL: ${admin_email}
+            DJANGO_SECRET_KEY: ${djangosk}
+            ENVIRONMENT: development
+        ports:
+            - '8005:8005'
+        restart: always
+        depends_on:
+            - db
+            - sqs
+        volumes:
+            - type: bind
+              source: ./valhub
+              target: /root/valhub
 
-  s3:
-    build:
-      context: ./s3Emulator
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    environment:
-      HOST: 0.0.0.0
-    ports:
-      - "5000:5000"
-    depends_on:
-      - api
-    volumes:
-      - type: bind
-        source: ./s3Emulator/pv-validation-hub-bucket
-        target: /pv-validation-hub-bucket
+    s3:
+        build:
+            context: ./s3Emulator
+            dockerfile: Dockerfile
+        env_file:
+            - .env
+        environment:
+            HOST: 0.0.0.0
+        ports:
+            - '5001:5000'
+        depends_on:
+            - api
+        restart: always
+        volumes:
+            - type: bind
+              source: ./s3Emulator/valhub-bucket
+              target: /valhub-bucket
 
-  ec2:
-    build:
-      context: ./ec2
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    environment:
-      HOST: 0.0.0.0
-    ports:
-      - "7000:7000"
-    depends_on:
-      - api
-    volumes:
-      - type: bind
-        source: ./ec2
-        target: /root/admin
-      # aws credentials
-      - type: bind
-        source: ~/.aws
-        target: /root/.aws
+    ec2:
+        build:
+            context: ./ec2
+            dockerfile: Dockerfile
+        env_file:
+            - .env
+        environment:
+            HOST: 0.0.0.0
+        ports:
+            - '7001:7000'
+        depends_on:
+            - api
+            - s3
+        restart: always
+        volumes:
+            - type: bind
+              source: ./ec2
+              target: /root/admin
+            # aws credentials
+            - type: bind
+              source: ~/.aws
+              target: /root/.aws
+            - type: bind
+              source: ./pv-validation-hub-client/public/static/assets
+              target: /root/admin/front_end_assets
 
-  react-client:
-    stdin_open: true
-    build:
-      context: ./pv-validation-hub-client
-      dockerfile: Dockerfile
-    environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - "HOST=0.0.0.0"
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
-      - s3
-    develop:
-      watch:
-        - action: sync
-          path: ./pv-validation-hub-client
-          target: /app
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: package.json
+    react-client:
+        stdin_open: true
+        build:
+            context: ./pv-validation-hub-client
+            dockerfile: Dockerfile
+        environment:
+            - NODE_ENV=development
+        ports:
+            - '3000:3000'
+        depends_on:
+            - api
+            - s3
+        restart: always
+        develop:
+            watch:
+                - action: sync
+                  path: ./pv-validation-hub-client/src
+                  target: /app/src
+                  ignore:
+                      - node_modules/
+                - action: rebuild
+                  path: ./pv-validation-hub-client/public/static/assets/analysis
 
-  sqs:
-    image: softwaremill/elasticmq:latest
-    ports:
-      - "9324:9324"
-    environment:
-      - "ELASTICMQ_OPTS=-Dconfig.file=/opt/elasticmq.conf"
-    volumes:
-      - ./custom.conf:/opt/elasticmq.conf
-      - ./application.ini:/opt/docker/conf/application.ini
+    sqs:
+        image: softwaremill/elasticmq:latest
+        ports:
+            - '9324:9324'
+        environment:
+            - 'ELASTICMQ_OPTS=-Dconfig.file=/opt/elasticmq.conf'
+        volumes:
+            - ./custom.conf:/opt/elasticmq.conf
+            - ./application.ini:/opt/docker/conf/application.ini
 
-  worker:
-    build:
-      context: ./workers
-    env_file:
-      - .env
-    ports:
-      - "8500:8500"
-      - "8787:8787"
-    depends_on:
-      - api
-      - s3
-      - sqs
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./workers/current_evaluation:/root/worker/current_evaluation
-      - ./workers/logs:/root/worker/logs
-      - ./workers/tmp:/tmp
-      - ./workers/requirements.txt:/root/worker/requirements.txt
-      - ./workers/src:/root/worker/src
-      # - type: bind
-      #   source: ~/.aws
-      #   target: /root/.aws
-    restart: unless-stopped
-    develop:
-      watch:
-        - action: sync
-          path: ./workers/src
-          target: /root/worker/src
+    worker:
+        build:
+            context: ./workers
+        env_file:
+            - .env
+        ports:
+            - '8500:8500'
+            - '8787:8787'
+            - '5678:5678'
+        depends_on:
+            - api
+            - s3
+            - sqs
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./workers/current_evaluation:/root/worker/current_evaluation
+            - ./workers/logs:/root/worker/logs
+            - ./workers/tmp:/tmp
+            - ./workers/requirements.txt:/root/worker/requirements.txt
+        restart: always
+        develop:
+            watch:
+                - action: sync+restart
+                  path: ./workers/src
+                  target: /root/worker/src
 
 volumes:
-  valhub:
-  node_modules:
+    valhub:

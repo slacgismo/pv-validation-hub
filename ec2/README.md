@@ -1,47 +1,179 @@
-This section covers the basics for administering the validation hub. It will include step-by-step instructions, as well as planned upgrades to automate these processes in the future. 
+# EC2 Directory
 
-# Manual Method
+## Objective
 
-This is to document how to manually create and update an analysis and its supporting files. While intended for maintaining the early release, use of this method should be deprecated as soon as a functional automated method is implemented, in order to reduce long-term work and human error.
+The EC2 directory aims to be the central point for admins to update and upload new submission tasks through the `insert_analysis.py` script for development or production. This EC2 folder should ideally be hosted on an AWS EC2 instance in the public subnet of the VPC and would be only accessed via IAM privileges. Although, if the correct AWS access keys exist on the host system you are able to update the production analysis tasks regardless.
 
-## Adding an Analysis
+## Contents
 
-An analysis is added using the following steps:
+- `insert_analysis.py` that allows admins with AWS access keys to update or upload analysis tasks to the PV Validation Hub S3 and API for either development or production.
+- `routes.json` is the file which determines the location of the files required for a proper analysis task insertion. This will need to be updated to point to the new files for a new analysis task.
 
-* Navigate to https://api.pv-validation-hub.org/admin
-* Sign in to the API. Credentials should be shared securely from dashlane, and only to administrators.
-* Select "Analysiss"(the extra "s" is not a typo, but a Django-ism), and in the top right corner select "Add Analysis". Type in your analysis name, and hit save.
+## Required
 
-Once this is complete, your new analysis will show up in the list as "Analysis object (number)". The number in the parentheses is the Analysis ID in the database. This number will be needed in the following section.
+- Environment variables
+  - `admin_username` admin user needs to exist in API
+  - `admin_password`
+- `~/.aws` folder containing the AWS access required for S3 
 
-## Adding markdown files and images
+## Insert Analysis
 
-You will need to clone this repository to complete this section. Create a new branch from develop, and give it a clear name like "add-timeshift-markdown". This lets me know to sync the updated markdown and images to s3 upon merging your PR.
+A new analysis task for insertion into the PV Validation Hub needs to contain certain files to be successful.
 
-Markdown files are maintained in the frontend/public/assets/{analysis-id} directory. Analyses are tracked in numerical order within the postgres database, and the front-end uses the ID from the database to pull the correct markdown files for the analysis from the corresponding directory in the s3 bucket. 
+### Analysis File Requirements
 
-There is also a "development" directory that is used for local development. You can run a development instance using several simple steps:
+- `config.json` - contains all metadata regarding the analysis task
+- `file_metadata.csv` - contains the metadata for each data file for the analysis
+- `system_metadata.csv` - contains the metadata for each system associated with the data files
+- `template.py` - marimo template for the private results page for each submission
+- Data files - folder containing all csv files the analysis
+- Reference files - folder containing all results for each data file
 
-* Make sure you have node/npm installed. If you don't have it, follow the ![docs](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-* Change to the frontend directory, which contains the package.json file.
-* In your terminal, Run ```npm install``` to install the node dependencies
-* Run ```npm run build``` to build the front-end
-* Run ```npm start``` to run the frontend
+Below are screenshots of an example folder structure containing all of the files/subfolders for an analysis insertion.
 
-Each filename is important. Below is the dynamic element they correspond to: 
+![alt text](file-structure-example.png)
 
-cardCover.png       ==> This is the image that will go on the analysis card, when selecting an analysis.
-headingCover.png    ==> This is the banner image across the top of the page. If too small, the image repeats to fill the space.
-dataset.md          ==> The markdown file to describle the dataset in the data tab.
-longdesc.md         ==> The markdown file used for the overview tab in an analysis.
-ruleset.md          ==> The markdown file used for the "Rules" tab, will be renamed to "instructions"
-shortdesc.md        ==> The markdown file that is used on the card. Needs work for a cleaner implementation, with defined limits due to card size.
+![alt text](file-structure-example-2.png)
 
-TODO: Add instructions once dynamic image method is implemented and finalized.
+### config.json
 
-Modify the images and text in the "development" directory until you are satisfied, and then copy the files from the development directory over to the numbered directory, corresponding to the analysis number from the last section. If the directory does not exist, create it. 
+Example JSON:
 
-## Updating markdown and images
+```json
+{
+  "category_name": "Time Shift Detection",
+  "s3_bucket_folder_name": "time-shift-detection",
+  "function_name": "detect_time_shifts",
+  "comparison_type": "time_series",
+  "display_metrics": {
+    "mean_mean_absolute_error_time_series": "Mean Mean Absolute Error",
+    "median_mean_absolute_error_time_series": "Median Mean Absolute Error"
+  },
+  "performance_metrics": [
+    "runtime",
+    "mean_absolute_error"
+  ],
+  "metrics_operations": {
+    "mean_absolute_error_time_series": [
+      "mean",
+      "median"
+    ],
+    "runtime": [
+      "mean"
+    ]
+  },
+  "allowable_kwargs": [
+    "latitude",
+    "longitude",
+    "data_sampling_frequency"
+  ],
+  "references_compare": [
+    "time_series"
+  ],
+  "public_results_table": "time-shift-public-metrics.json",
+  "private_results_table": "time-shift-private-metrics.json",
+  "private_results_columns": [
+    "system_id",
+    "file_name",
+    "runtime",
+    "data_requirements",
+    "mean_absolute_error_time_series",
+    "data_sampling_frequency",
+    "issue"
+  ]
+}
+```
 
+#### Properties
 
-This development instance of the frontend can then be used for testing your updated markdown and image files. 
+- "category_name" - name of analysis which will be used on frontend
+- "s3_bucket_folder_name" - name of the folder for the analysis in the S3 bucket
+- "function_name" - name of function required within submission file
+- "comparison_type" - type of comparison
+- "display_metrics" - mapping of final metric name to the display name for the leaderboard
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
+  - e.g. `median_mean_absolute_error_time_series`
+- "performance_metrics" - list of metrics to calculate for analysis task
+- "metrics_operations" - contains a mapping of aggregate metric to the operation list to be performed on each metric
+  - The formatting is as follows `<performance_metric>_<references_type>`
+  - e.g. `mean_absolute_error_time_series`
+- "allowable_kwargs" - kwargs for the submission function that are allowed
+- "references_compare" - results from submission function
+- "public_results_table" - name of json result file that contains information about submission results
+- "private_results_columns" - name of columns that will be in final dataframe that is passed to marimo template
+  - will need to contain final metric name to be used in marimo template
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
+
+### system_metadata.csv
+
+Required columns:
+
+```csv
+system_id,name,latitude,longitude
+```
+
+**name** is the primary key and must be unique to pass validation
+**system_id** must be unique within the file to pass validation
+
+Optional columns:
+
+```csv
+azimuth,tilt,elevation,tracking,dc_capacity
+```
+
+Ideally we want to include as many optional columns as we can, although for some data sets this may not be possible as the data is unavailable.
+
+### file_metadata.csv
+
+Required columns:
+
+```csv
+system_id,file_name,include_on_leaderboard
+```
+
+**file_name** is the primary key and must be unique to pass validation
+**system_id** must match a local `system_id` within the `system_metadata.csv` file. All `system_id` are mapped to a new internal increment identifier within the database upon a valid insertion.
+
+Optional columns:
+
+```csv
+timezone,data_sampling_frequency,issue,data_type
+```
+
+Optional columns may vary based on the type of problem being solved, and is subject to change as needed.
+
+### ./data/files/ folder
+
+This folder contains all of the individual files that we are going to feed into the runner to assess the associated algorithm. File names in this folder link directly to the file_name column in the `file_metadata.csv` file. Columns in these files can vary based on the type of inputs being assessed. A screenshot of an example file for the time shift problem is shown below.
+
+![alt text](input-file-data.png)
+
+### ./data/references/ folder
+
+This folder contains all of the files that contains the reference data, to be assessed against the runner outputs. Files in this folder have the same naming conventions as the files in the ./data/files/ folder, so these files can be successfully linked to their input data file counterparts. Data in these files will vary based on what target variable is being assessed. A screenshot of an example output file for the time shift problem is shown below.
+
+![alt text](output-file-data.png)
+
+### template.py (Marimo template with cli args input)
+
+Marimo python file will need to input data from `mo.cli_args()` method
+
+Example:
+
+```python
+def create_df_from_cli_args():
+        args = mo.cli_args().to_dict()
+        data = args.get("results_df")
+        rows = []
+        for row in data:
+            rows.append(json.loads(row))
+
+        df = pd.DataFrame.from_records(rows)
+        return df
+```
+
+### Regarding Frontend Images and Markdown
+
+To update analytic task images and markdown on the frontend you will need to do so within the frontend client repository. Using the analysis ID that is within the URL or within the admin dashboard in the analysis section.
+
+Within the pv-validation-hub-client you will need to create a new folder using the ID for the task in the `public/static/assets/{ID}` folder. You can use the `development` folder and the markdown and images as a reference. Once the files are updated you may need to redeploy the frontend docker container for the changes to show.

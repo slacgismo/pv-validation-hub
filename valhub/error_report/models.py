@@ -16,4 +16,4 @@ class ErrorReport(models.Model):
     error_message = models.TextField(null=True, blank=True)
     # Non breaking errors
     error_rate = models.FloatField(null=True, blank=True)
-    file_errors = models.JSONField(blank=True, default=dict)
+    file_errors = models.JSONField(blank=True, default=dict)  # type: ignore

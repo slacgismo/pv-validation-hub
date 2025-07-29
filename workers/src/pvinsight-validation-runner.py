@@ -19,7 +19,6 @@ script, the following occurs:
 from typing import (
     Any,
     Callable,
-    Sequence,
     Tuple,
     TypeVar,
     TypedDict,
@@ -32,21 +31,20 @@ from importlib import import_module
 from collections import ChainMap
 import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
 import json
-import requests
 import tarfile
 import shutil
 import sys
 import zipfile
 import subprocess
-import logging
 import boto3
+from metric_operations import performance_metrics_map, metric_operations_map
 from logger import setup_logging
 from utility import (
     RUNNER_ERROR_PREFIX,
     RunnerException,
     SubmissionException,
+    create_blank_error_report,
     create_docker_image_for_submission,
     dask_multiprocess,
     generate_private_report_for_submission,
@@ -65,17 +63,20 @@ P = ParamSpec("P")
 
 FAILED = "failed"
 
-setup_logging()
 
 # Create a logger
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 IS_LOCAL = is_local()
 
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
+S3_BUCKET_NAME = "valhub-bucket"
 
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+API_BASE_URL = (
+    "api:8005"
+    if IS_LOCAL
+    else "https://api-pv-validation-hub.stratus.nrel.gov"
+)
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -87,36 +88,10 @@ runner_error_codes = get_error_codes_dict(
 SUBMISSION_TIMEOUT = 30 * 60  # seconds
 
 
-def push_to_s3(
-    local_file_path,
-    s3_file_path,
-    analysis_id,
-    submission_id,
-    update_submission_status,
-):
-    if s3_file_path.startswith("/"):
-        s3_file_path = s3_file_path[1:]
-
-    if IS_LOCAL:
-        s3_file_full_path = (
-            "http://s3:5000/put_object/" + S3_BUCKET_NAME + "/" + s3_file_path
-        )
-    else:
-        s3_file_full_path = "s3://" + s3_file_path
-
-    if IS_LOCAL:
-        with open(local_file_path, "rb") as f:
-            file_content = f.read()
-            r = requests.put(s3_file_full_path, data=file_content)
-            if r.status_code != 204:
-                logger.error(
-                    f"error put file {s3_file_path} to s3, status code {r.status_code} {r.content}"
-                )
-                logger.info(f"update submission status to {FAILED}")
-                update_submission_status(submission_id, FAILED)
-    else:
-        s3 = boto3.client("s3")  # type: ignore
-        s3.upload_file(local_file_path, S3_BUCKET_NAME, s3_file_path)
+class SubmissionFunctionInfo(TypedDict):
+    data_file_name: str
+    function_name: str
+    function_parameters: list[str]
 
 
 def convert_compressed_file_path_to_directory(compressed_file_path):
@@ -322,6 +297,15 @@ def run(  # noqa: C901
     current_evaluation_dir: str | None = None,
     tmp_dir: str | None = None,
 ) -> dict[str, Any]:
+
+    # Create an Error Report
+    try:
+
+        create_blank_error_report(submission_id, logger=logger)
+    except Exception as e:
+        logger.error("Error creating blank error report")
+        logger.exception(e)
+
     # If a path is provided, set the directories to that path, otherwise use default
     if current_evaluation_dir is not None:
         results_dir = (
@@ -572,11 +556,6 @@ def run(  # noqa: C901
 
     # Get information about the submission function
 
-    class SubmissionFunctionInfo(TypedDict):
-        data_file_name: str
-        function_name: str
-        function_parameters: list[str]
-
     try:
         with open(f"{results_dir}/submission_function_info.json", "r") as fp:
             submission_function_info: SubmissionFunctionInfo = json.load(fp)
@@ -594,117 +573,21 @@ def run(  # noqa: C901
 
     # Convert the results to a pandas dataframe and perform all of the
     # post-processing in the script
-    results_df = pd.DataFrame(results_list)
-    logger.info(f"results_df: {results_df}")
-    # Build out the final processed results:
-    #   1) Public reporting: mean MAE, mean run time, etc.
-    #   2) Private reporting: graphics and tables split by different factors
-    # First get mean value for all the performance metrics and save (this will
-    # be saved to a public metrics dictionary)
-    public_metrics_dict: dict[str, Any] = dict()
+    direct_results_df = pd.DataFrame(results_list)
+    logger.info(f"results_df: {direct_results_df}")
+
+    results_df = pd.merge(direct_results_df, file_metadata_df, on="file_name")
 
     module_name = "submission"
 
-    public_metrics_dict["module"] = module_name
-    # Get the mean and median run times
-    public_metrics_dict["mean_runtime"] = results_df["runtime"].mean()
-    public_metrics_dict["median_runtime"] = results_df["runtime"].median()
-    logger.info(
-        f'function_parameters: {submission_function_info["function_parameters"]}'
+    public_metrics_dict = get_results_dict(
+        is_public=True,
+        results_df=results_df,
+        submission_function_info=submission_function_info,
+        module_name=module_name,
+        config_data=config_data,
+        performance_metrics=performance_metrics,
     )
-    public_metrics_dict["function_parameters"] = submission_function_info[
-        "function_parameters"
-    ]
-    public_metrics_dict["data_requirements"] = results_df[
-        "data_requirements"
-    ].iloc[0]
-
-    metrics_dict: dict[str, str | float] = {}
-
-    def m_mean(df: pd.DataFrame, column: str):
-        return df[column].mean()
-
-    def m_median(df: pd.DataFrame, column: str):
-        return df[column].median()
-
-    metric_operations_mapping = {
-        "mean": m_mean,
-        "median": m_median,
-    }
-
-    # perfomance_metrics_mapping = [
-    #     "mean_absolute_error",
-    #     "absolute_error",
-    #     "error",
-    #     "runtime",
-    # ]
-
-    # Get the mean and median absolute errors
-    # when combining the metric and name for the public metrics dictionary,
-    # do not add anything to them. mean_mean_average_error and median_mean_average_error
-    # are valid keys, anything else breaks our results processing
-    for metric in performance_metrics:
-
-        # if metric not in perfomance_metrics_mapping:
-
-        #     logger.error(
-        #         f"metric `{metric}` not found in perfomance_metrics_mapping"
-        #     )
-        #     # TODO: add error code
-
-        #     raise RunnerException(
-        #         *get_error_by_code(500, runner_error_codes, logger)
-        #     )
-
-        metrics_operations: dict[str, dict[str, str]] = config_data.get(
-            "metrics_operations", {}
-        )
-
-        for val in config_data["ground_truth_compare"]:
-
-            if metric == "runtime":
-                key = "runtime"
-            else:
-                key = f"{metric}_{val}"
-
-            if key not in results_df.columns:
-
-                logger.error(f"key {key} not found in results_df columns")
-
-                # TODO: add error code
-                raise RunnerException(
-                    *get_error_by_code(500, runner_error_codes, logger)
-                )
-
-            if key not in metrics_operations:
-                # TODO: add error code
-                logger.error(
-                    f"metric {metric} not found in metrics_operations within config.json"
-                )
-                raise RunnerException(
-                    *get_error_by_code(500, runner_error_codes, logger)
-                )
-
-            operations = metrics_operations[key]
-
-            for operation in operations:
-                if operation not in metric_operations_mapping:
-                    # TODO: add error code
-                    logger.error(
-                        f"operation {operation} not found in metric_operations_mapping"
-                    )
-                    raise RunnerException(
-                        *get_error_by_code(500, runner_error_codes, logger)
-                    )
-
-                operation_function = metric_operations_mapping[operation]
-
-                metric_result = operation_function(results_df, key)
-
-                metric_result_dict = {f"{operation}_{key}": metric_result}
-                metrics_dict.update(metric_result_dict)
-
-    public_metrics_dict["metrics"] = metrics_dict
 
     # Write public metric information to a public results table.
     with open(
@@ -712,25 +595,30 @@ def run(  # noqa: C901
     ) as fp:
         json.dump(public_metrics_dict, fp)
 
-    logger.info(f"public_metrics_dict: {public_metrics_dict}")
+    private_metrics_dict = get_results_dict(
+        is_public=False,
+        results_df=results_df,
+        submission_function_info=submission_function_info,
+        module_name=module_name,
+        config_data=config_data,
+        performance_metrics=performance_metrics,
+    )
+    with open(
+        os.path.join(results_dir, config_data["private_results_table"]), "w"
+    ) as fp:
+        json.dump(private_metrics_dict, fp)
+
     # Now generate private results. These will be more specific to the
     # type of analysis being run as results will be color-coded by certain
     # parameters. These params will be available as columns in the
     # 'associated_files' dataframe
-    results_df_private_all = pd.merge(
-        results_df, file_metadata_df, on="file_name"
-    )
 
     private_results_columns: list[str] = config_data["private_results_columns"]
 
     # Filter to only the necessary columns (available via the config)
 
-    results_df_private = results_df_private_all[
-        [
-            col
-            for col in private_results_columns
-            if col in results_df_private_all.columns
-        ]
+    results_df_private = results_df[
+        [col for col in private_results_columns if col in results_df.columns]
     ]
 
     results_file_name = module_name + "_full_results.csv"
@@ -767,6 +655,108 @@ def run(  # noqa: C901
 
     # public_metrics_dict["success_rate"] = success_rate
     return public_metrics_dict
+
+
+def calculate_metrics(config_data, performance_metrics, results_df):
+    metrics_dict: dict[str, str | float] = {}
+    for metric in performance_metrics:
+        metrics_operations: dict[str, dict[str, str]] = config_data.get(
+            "metrics_operations", {}
+        )
+
+        for val in config_data["references_compare"]:
+            if metric == "runtime":
+                key = "runtime"
+            else:
+                key = f"{metric}_{val}"
+
+            if key not in results_df.columns:
+                logger.error(f"key {key} not found in results_df columns")
+
+                # TODO: add error code
+                raise RunnerException(
+                    *get_error_by_code(500, runner_error_codes, logger)
+                )
+
+            if key not in metrics_operations:
+                # TODO: add error code
+                logger.error(
+                    f"metric {metric} not found in metrics_operations within config.json"
+                )
+                raise RunnerException(
+                    *get_error_by_code(500, runner_error_codes, logger)
+                )
+
+            operations = metrics_operations[key]
+
+            for operation in operations:
+                if operation not in metric_operations_map:
+                    # TODO: add error code
+                    logger.error(
+                        f"operation {operation} not found in metric_operations_map"
+                    )
+                    raise RunnerException(
+                        *get_error_by_code(500, runner_error_codes, logger)
+                    )
+
+                operation_function = metric_operations_map[operation]
+
+                metric_result = operation_function(results_df, key)
+
+                metric_result_dict = {f"{operation}_{key}": metric_result}
+                metrics_dict.update(metric_result_dict)
+    return metrics_dict
+
+
+def get_results_dict(
+    is_public: bool,
+    results_df: pd.DataFrame,
+    submission_function_info: SubmissionFunctionInfo,
+    module_name: str,
+    config_data: dict[str, Any],
+    performance_metrics: list[str],
+):
+
+    data_requirements = (
+        results_df["data_requirements"].iloc[0] if not results_df.empty else {}
+    )
+
+    filtered_results_df = (
+        results_df[results_df["include_on_leaderboard"] == True].copy()
+        if is_public
+        else results_df.copy()
+    )
+
+    logger.info(f"is_public: {is_public}")
+    logger.info(f"filtered_results_length: {len(filtered_results_df)}")
+    logger.info(f"filtered_resutls_df: {filtered_results_df}")
+
+    results_dict = {}
+    results_dict["module"] = module_name
+    results_dict["number_of_files"] = len(filtered_results_df)
+
+    # Get the mean and median run times
+    results_dict["mean_runtime"] = filtered_results_df["runtime"].mean()
+    results_dict["median_runtime"] = filtered_results_df["runtime"].median()
+    logger.info(
+        f'function_parameters: {submission_function_info["function_parameters"]}'
+    )
+    results_dict["function_parameters"] = submission_function_info[
+        "function_parameters"
+    ]
+    results_dict["data_requirements"] = data_requirements
+
+    # Get the mean and median absolute errors
+    # when combining the metric and name for the public metrics dictionary,
+    # do not add anything to them. mean_mean_average_error and median_mean_average_error
+    # are valid keys, anything else breaks our results processing
+    metrics_dict = calculate_metrics(
+        config_data, performance_metrics, filtered_results_df
+    )
+
+    results_dict["metrics"] = metrics_dict
+
+    return results_dict
 
 
 def install_module_dependencies(
@@ -1080,6 +1070,7 @@ def loop_over_files_and_generate_results(
     return number_of_errors
 
 
+@timeout(SUBMISSION_TIMEOUT, logger)
 def loop_over_results_and_generate_metrics(
     data_dir: str,
     results_dir: str,
@@ -1171,8 +1162,8 @@ def generate_performance_metrics_for_submission(
     submission_output_row: pd.Series | None = None
     submission_output_series: pd.Series | None = None
 
-    # Get the ground truth scalars that we will compare to
-    ground_truth_dict: dict[str, Any] = dict()
+    # Get the reference scalars that we will compare to
+    references_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
         submission_output_row = cast(
             pd.Series,
@@ -1181,11 +1172,9 @@ def generate_performance_metrics_for_submission(
                 index_col=0,
             ).iloc[0],
         )
-        for val in config_data["ground_truth_compare"]:
-            ground_truth_dict[val] = system_metadata_dict[val]
-            logger.info(
-                f'ground_truth_dict["{val}"]: {ground_truth_dict[val]}'
-            )
+        for val in config_data["references_compare"]:
+            references_dict[val] = system_metadata_dict[val]
+            logger.info(f'references_dict["{val}"]: {references_dict[val]}')
     if config_data["comparison_type"] == "time_series":
         submission_output_series = cast(
             pd.Series,
@@ -1194,19 +1183,19 @@ def generate_performance_metrics_for_submission(
                 index_col=0,
             ).squeeze(),
         )
-        ground_truth_series: pd.Series = pd.read_csv(
+        references_series: pd.Series = pd.read_csv(
             os.path.join(data_dir + "/validation_data/", file_name),
             index_col=0,
             parse_dates=True,
         ).squeeze()
-        ground_truth_dict["time_series"] = ground_truth_series
+        references_dict["time_series"] = references_series
 
-        ground_truth_file_length = len(ground_truth_series)
+        references_file_length = len(references_series)
 
         file_submission_result_length = len(submission_output_series)
-        if file_submission_result_length != ground_truth_file_length:
+        if file_submission_result_length != references_file_length:
             logger.error(
-                f"{file_name} submission result length {file_submission_result_length} does not match ground truth file length {ground_truth_file_length}"
+                f"{file_name} submission result length {file_submission_result_length} does not match reference file length {references_file_length}"
             )
             error_code = 8
 
@@ -1214,8 +1203,6 @@ def generate_performance_metrics_for_submission(
                 *get_error_by_code(error_code, runner_error_codes, logger)
             )
 
-    # Convert the data outputs to a dictionary identical to the
-    # ground truth dictionary
     output_dictionary: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
         if submission_output_row is None:
@@ -1227,17 +1214,17 @@ def generate_performance_metrics_for_submission(
                 *get_error_by_code(error_code, runner_error_codes, logger)
             )
 
-        for idx in range(len(config_data["ground_truth_compare"])):
+        for idx in range(len(config_data["references_compare"])):
 
             logger.info(f"submission_output_row: {submission_output_row}")
             logger.info(
                 f"submission_output_row[{idx}]: {submission_output_row.iloc[idx]}"
             )
             logger.info(
-                f"config_data['ground_truth_compare'][{idx}]: {config_data['ground_truth_compare'][idx]}"
+                f"config_data['references_compare'][{idx}]: {config_data['references_compare'][idx]}"
             )
 
-            output_dictionary[config_data["ground_truth_compare"][idx]] = (
+            output_dictionary[config_data["references_compare"][idx]] = (
                 submission_output_row[idx]
             )
     if config_data["comparison_type"] == "time_series":
@@ -1251,28 +1238,6 @@ def generate_performance_metrics_for_submission(
     results_dictionary["data_requirements"] = function_parameters
     # Loop through the rest of the performance metrics and calculate them
     # (this predominantly applies to error metrics)
-
-    def p_absolute_error(output: pd.Series, ground_truth: pd.Series):
-        difference = output - ground_truth
-        absolute_difference = np.abs(difference)
-        return absolute_difference
-
-    def p_mean_absolute_error(output: pd.Series, ground_truth: pd.Series):
-        output.index = ground_truth.index
-        difference = output - ground_truth
-        absolute_difference = np.abs(difference)
-        mean_absolute_error = np.mean(absolute_difference)
-        return mean_absolute_error
-
-    def p_error(output: pd.Series, ground_truth: pd.Series):
-        difference = output - ground_truth
-        return difference
-
-    performance_metrics_map = {
-        "absolute_error": p_absolute_error,
-        "mean_absolute_error": p_mean_absolute_error,
-        "error": p_error,
-    }
 
     for metric in performance_metrics:
 
@@ -1293,11 +1258,11 @@ def generate_performance_metrics_for_submission(
 
         performance_metric_function = performance_metrics_map[metric]
 
-        for val in config_data["ground_truth_compare"]:
+        for val in config_data["references_compare"]:
             logger.info(f'"{metric}_{val}" is being calculated')
             results_dictionary[metric + "_" + val] = (
                 performance_metric_function(
-                    output_dictionary[val], ground_truth_dict[val]
+                    output_dictionary[val], references_dict[val]
                 )
             )
 
@@ -1394,11 +1359,3 @@ def prepare_time_series(
 
 if __name__ == "__main__":
     pass
-    # run(
-    #     "submission_files/submission_user_1/submission_118/dfec718f-bb6e-4194-98cf-2edea6f3f717_sdt-submission.zip",
-    #     "/root/worker/current_evaluation",
-    # )
-    # push_to_s3(
-    #     "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
-    #     "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",
-    # )
