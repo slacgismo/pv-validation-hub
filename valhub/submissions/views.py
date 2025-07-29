@@ -543,14 +543,14 @@ def get_submission_results(request: Request, submission_id: str):
             file_list: list[str] = response.json()
             base_url = urljoin(
                 static_endpoint_url,
-                f"static/{bucket_name}/{results_directory}",
+                f"static/{S3_BUCKET_NAME}/{results_directory}",
             )
         else:
             # get the list of files in the results directory
             s3 = boto3.client("s3")
             logging.info(f"pre-list_objects_v2")
             response = s3.list_objects_v2(
-                Bucket=bucket_name, Prefix=results_directory
+                Bucket=S3_BUCKET_NAME, Prefix=results_directory
             )
             logging.info(f"post-list_objects_v2")
             if "Contents" not in response or response["Contents"] is None:
@@ -577,9 +577,7 @@ def get_submission_results(request: Request, submission_id: str):
                     for file in files
                     if file.get("Key", None) is not None
                 ]
-            base_url = (
-                f"https://{bucket_name}.s3.amazonaws.com/{results_directory}"
-            )
+            base_url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{results_directory}"
 
         html_files = [
             file for file in file_list if file.lower().endswith(".html")

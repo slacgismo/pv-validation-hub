@@ -717,6 +717,10 @@ def get_results_dict(
     performance_metrics: list[str],
 ):
 
+    data_requirements = (
+        results_df["data_requirements"].iloc[0] if not results_df.empty else {}
+    )
+
     filtered_results_df = (
         results_df[results_df["include_on_leaderboard"] == True].copy()
         if is_public
@@ -740,9 +744,7 @@ def get_results_dict(
     results_dict["function_parameters"] = submission_function_info[
         "function_parameters"
     ]
-    results_dict["data_requirements"] = filtered_results_df[
-        "data_requirements"
-    ].iloc[0]
+    results_dict["data_requirements"] = data_requirements
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -1357,11 +1359,3 @@ def prepare_time_series(
 
 if __name__ == "__main__":
     pass
-    # run(
-    #     "submission_files/submission_user_1/submission_118/dfec718f-bb6e-4194-98cf-2edea6f3f717_sdt-submission.zip",
-    #     "/root/worker/current_evaluation",
-    # )
-    # push_to_s3(
-    #     "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
-    #     "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",
-    # )

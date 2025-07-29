@@ -592,6 +592,7 @@ class InsertAnalysis:
                 "issue": metadata["issue"],
                 "subissue": metadata["subissue"],
                 "file_hash": metadata["file_hash"],
+                "include_on_leaderboard": metadata["include_on_leaderboard"],
             }
 
             logger.info(json_body)
@@ -869,7 +870,12 @@ class InsertAnalysis:
             df_new["file_hash"] = "N/A"
         else:
             df_new["file_hash"] = df_new["file_hash"].fillna("N/A")  # type: ignore
-        # hash the files
+        if "include_on_leaderboard" not in df_new.columns:
+            df_new["include_on_leaderboard"] = True
+        else:
+            df_new["include_on_leaderboard"] = df_new[
+                "include_on_leaderboard"
+            ].fillna(True)
 
         for file_name in df_new["file_name"]:
             local_path = os.path.join(self.file_data_folder_path, file_name)

@@ -46,7 +46,7 @@ echo "Cleaned up Valhub directories"
 # Remove all files from the s3Emulator directory
 
 S3_DIR='./s3Emulator'
-S3_BUCKET_DIR="${S3_DIR}/pv-validation-hub-bucket"
+S3_BUCKET_DIR="${S3_DIR}/valhub-bucket"
 
 S3_DATA_DIR="${S3_BUCKET_DIR}/data_files"
 S3_FILES_DIR="${S3_DATA_DIR}/files"
@@ -80,9 +80,16 @@ FRONTEND_DIR='./pv-validation-hub-client'
 
 FRONTEND_ANALYSIS_ASSETS_DIR="${FRONTEND_DIR}/public/static/assets/analysis"
 
+# Where folder is a number, e.g., 1, 2, 3, etc. 
+
 if [ -d "${FRONTEND_ANALYSIS_ASSETS_DIR}" ]; then
-    rm -rf "${FRONTEND_ANALYSIS_ASSETS_DIR:?}/"*
+    # Remove all numbered folders inside the analysis assets directory
+    find "${FRONTEND_ANALYSIS_ASSETS_DIR}" -mindepth 1 -maxdepth 1 -type d -regex '.*/[0-9]+' -exec rm -rf {} +
 fi
+
+# if [ -d "${FRONTEND_ANALYSIS_ASSETS_DIR}" ]; then
+#     rm -rf "${FRONTEND_ANALYSIS_ASSETS_DIR:?}/"*
+# fi
 
 echo "Cleaned up Frontend directories"
 
