@@ -137,7 +137,9 @@ def get_django_secret_key():
         SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
     elif ENVIRONMENT == "production":
         try:
-            secret = get_secret_from_aws_secrets_manager("DjangoSecretKey")
+            secret = get_secret_from_aws_secrets_manager(
+                "valhub-api-django-secret-key"
+            )
             if secret is None:
                 raise Exception("Secret is None")
 
@@ -149,7 +151,7 @@ def get_django_secret_key():
             SECRET_KEY = secret["DJANGO_SECRET_KEY"]
 
         except Exception as e:
-            raise Exception("Error retrieving Django secret key")
+            raise e
     else:
         raise Exception("Environment not set")
     return SECRET_KEY
@@ -171,9 +173,9 @@ DEBUG = False
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://pv-validation-hub.org",
-    "https://api.pv-validation-hub.org",
-    "https://db.pv-validation-hub.org",
+    "https://pv-validation-hub.stratus.nrel.gov",
+    "https://api-pv-validation-hub.stratus.nrel.gov",
+    # "https://db-pv-validation-hub.stratus.nrel.gov",
 ]
 
 MEDIA_URL = "/media/"
@@ -271,7 +273,9 @@ def configure_db():
             }
         }
     elif ENVIRONMENT == "production":
-        db_secrets = get_secret_from_aws_secrets_manager("pvinsight-db")
+        db_secrets = get_secret_from_aws_secrets_manager(
+            "valhub-rds-proxy-credentials"
+        )
 
         if db_secrets is None:
             raise Exception("Database secrets are None")
@@ -282,11 +286,13 @@ def configure_db():
         logger.debug("Retrieved secrets")
 
         db_name = "postgres"
-        db_identifier = db_secrets.get("dbInstanceIdentifier", None)
+        # db_identifier = db_secrets.get("dbInstanceIdentifier", None)
         username = db_secrets.get("username", None)
         password = db_secrets.get("password", None)
-        hostname = db_secrets.get("proxy", None)
-        port = db_secrets.get("port", None)
+        hostname = (
+            "valhub-rds-proxy.proxy-cz0mg00uet8h.us-west-2.rds.amazonaws.com"
+        )
+        port = "5432"
 
         if None in [db_name, username, password, hostname, port]:
             raise Exception("One or more database secrets are missing")

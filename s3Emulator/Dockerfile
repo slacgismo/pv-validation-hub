@@ -28,11 +28,11 @@ RUN pip install -r requirements.txt
 
 
 # Make simulated bucket in location
-RUN mkdir /pv-validation-hub-bucket
-RUN mkdir /pv-validation-hub-bucket/data_files
-RUN mkdir /pv-validation-hub-bucket/data_files/files
-RUN mkdir /pv-validation-hub-bucket/data_files/references
-RUN mkdir /pv-validation-hub-bucket/submission_files
+RUN mkdir /valhub-bucket
+RUN mkdir /valhub-bucket/data_files
+RUN mkdir /valhub-bucket/data_files/files
+RUN mkdir /valhub-bucket/data_files/references
+RUN mkdir /valhub-bucket/submission_files
 
 # Install the required dependencies
 RUN pip install flask boto3

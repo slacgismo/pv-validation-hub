@@ -1,4 +1,4 @@
-FROM python:3.10-slim as base
+FROM python:3.10-slim
 
 # docker build --progress=plain -t "hmm:Dockerfile" -f valhub/Dockerfile .
 WORKDIR /root
@@ -6,8 +6,6 @@ WORKDIR /root
 RUN apt-get update && apt-get install -y gawk
 
 ARG region=us-west-2
-ARG ak
-ARG sak
 ARG DOCKER_HOST_VOLUME_DATA_DIR
 ARG DOCKER_HOST_VOLUME_RESULTS_DIR
 # Copy AWS configuration if needed
@@ -16,22 +14,9 @@ RUN mkdir worker
 
 WORKDIR /home
 
-# # Set environment variables for prod
-# RUN awk -v DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR} -v DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR} \
-#     'BEGIN {print "export DOCKER_HOST_VOLUME_DATA_DIR=" DOCKER_HOST_VOLUME_DATA_DIR "\nexport DOCKER_HOST_VOLUME_RESULTS_DIR=" DOCKER_HOST_VOLUME_RESULTS_DIR > "/home/.profile"}'
 # Set environment variables for prod
 ENV DOCKER_HOST_VOLUME_DATA_DIR=${DOCKER_HOST_VOLUME_DATA_DIR}
 ENV DOCKER_HOST_VOLUME_RESULTS_DIR=${DOCKER_HOST_VOLUME_RESULTS_DIR}
-
-WORKDIR /root/.aws
-
-RUN awk -v ak="${ak}" -v sak="${sak}" \
-    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "/root/.aws/credentials"}'
-
-RUN awk -v region=${region} \
-    'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
-
-
 
 WORKDIR /root/worker
 COPY . .

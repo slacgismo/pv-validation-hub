@@ -1,74 +1,83 @@
 name: Deploy Production to s3/Cloudfront
 
 on:
-  workflow_dispatch:
-  release:
-    types: [published]
+    workflow_dispatch:
+    release:
+        types: [published]
 
 env:
-  AWS_REGION: us-west-2                    
+    AWS_REGION: ${{ vars.AWS_REGION }}
+    AWS_S3_WEBSITE_BUCKET: ${{ vars.AWS_S3_WEBSITE_BUCKET }}
+    AWS_GITHUB_OIDC_ROLE_ARN: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
+
+permissions:
+    contents: read
+    id-token: write
 
 jobs:
-  build_fe:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    environment: production
+    build_fe:
+        name: Build and Test
+        runs-on: ubuntu-latest
+        environment: production
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
 
-      - name: Install Node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '21.6.2'
+            - name: Update submodules
+              run: git submodule update --init --recursive
 
-      - name: Cache node modules
-        uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            - name: Install Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22.17.0' # Latest LTS version
 
-      - name: install dependencies and build
-        run: |
-          cd frontend
-          npm install
-          npm run build
+            - name: Cache node modules
+              uses: actions/cache@v4
+              with:
+                  path: ~/.npm
+                  key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-build-
+                      ${{ runner.os }}-
 
-      - name: Move Build to tmp
-        run: |
-          mkdir -p /tmp/workspace/build
-          mv -v frontend/build/* /tmp/workspace/build
+            - name: install dependencies and build
+              run: |
+                  cd pv-validation-hub-client
+                  npm ci
+                  npm run build
 
-      - name: Temporarily save Build to artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-client
-          path: /tmp/workspace
+            - name: Move Build to tmp
+              run: |
+                  mkdir -p /tmp/workspace/build
+                  mv -v pv-validation-hub-client/out/* /tmp/workspace/build
 
-  deploy_fe:
-    needs: build_fe
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+            - name: Temporarily save Build to artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: build-client
+                  path: /tmp/workspace
 
-      - name: Retrieve saved Build
-        uses: actions/download-artifact@v2
-        with:
-          name: build-client
-          path: /tmp/workspace
+    deploy_fe:
+        needs: build_fe
+        runs-on: ubuntu-latest
+        environment: production
+        steps:
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_ARN }}
+                  aws-region: ${{ env.AWS_REGION }}
+                  role-session-name: github_actions_deploy_fe
 
-      - name: Deploy to S3
-        run: aws s3 sync /tmp/workspace/build/ s3://pv-validation-hub-website --acl public-read
+            - name: Retrieve saved Build
+              uses: actions/download-artifact@v4
+              with:
+                  name: build-client
+                  path: /tmp/workspace
 
-      - name: Run CF invalidation
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.FE_CF_ID }} --paths '/*'
+            - name: Deploy to S3
+              run: aws s3 sync /tmp/workspace/build/ s3://${{ env.AWS_S3_WEBSITE_BUCKET }} --acl public-read
+
+            - name: Run CF invalidation
+              run: aws cloudfront create-invalidation --distribution-id ${{ secrets.FE_CF_ID }} --paths '/*'
