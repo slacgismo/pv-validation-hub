@@ -19,11 +19,7 @@ variable "log_bucket_id" {
   type        = string
 }
 
-variable "valhub_acm_certificate_arn" {
-  description = "ARN of the ACM certificate for CloudFront"
-  type        = string
 
-}
 
 # Variables for the VPC module
 variable "vpc_name" {
@@ -51,3 +47,8 @@ variable "api_lb_logs_prefix" {
   type        = string
 }
 
+variable "domain_name" {
+  description = "Domain name for the website"
+  type        = string
+
+}

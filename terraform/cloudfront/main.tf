@@ -18,7 +18,7 @@ resource "aws_acm_certificate" "valhub_acm_certificate" {
 
 
   tags = {
-    Name = "valhub-certificate"
+    Name = "valhub-certificate-us-east-1"
   }
 
 }

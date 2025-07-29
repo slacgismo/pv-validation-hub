@@ -397,6 +397,18 @@ resource "aws_lb_listener" "api_listener_http" {
   }
 }
 
+resource "aws_acm_certificate" "valhub_acm_certificate_us_west_2" {
+
+
+  domain_name       = "*.${var.domain_name}"
+  validation_method = "DNS"
+
+
+  tags = {
+    Name = "valhub-certificate-us-west-2"
+  }
+
+}
 
 resource "aws_lb_listener" "api_listener_https" {
   load_balancer_arn = aws_lb.valhub_api_lb.id
@@ -404,7 +416,7 @@ resource "aws_lb_listener" "api_listener_https" {
   protocol          = "HTTPS"
 
   ssl_policy      = "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
-  certificate_arn = "arn:aws:acm:us-west-2:693299947844:certificate/24ab9cb5-ea15-420c-97dd-6fcf3f384c0a"
+  certificate_arn = aws_acm_certificate.valhub_acm_certificate_us_west_2.arn
 
   default_action {
     type             = "forward"

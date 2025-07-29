@@ -15,11 +15,10 @@ module "vpc" {
   source = "./vpc"
 
   # Import
-  account_id                 = data.aws_caller_identity.current.account_id
-  aws_region                 = var.aws_region
-  azs                        = local.azs
-  log_bucket_id              = module.s3.valhub_logs_bucket_id
-  valhub_acm_certificate_arn = module.cloudfront.valhub_acm_certificate_arn
+  account_id    = data.aws_caller_identity.current.account_id
+  aws_region    = var.aws_region
+  azs           = local.azs
+  log_bucket_id = module.s3.valhub_logs_bucket_id
 
   # Variables
   vpc_name             = var.vpc_name
@@ -27,6 +26,7 @@ module "vpc" {
   public_subnet_cidrs  = var.public_subnet_cidrs
   private_subnet_cidrs = var.private_subnet_cidrs
   api_lb_logs_prefix   = var.api_lb_logs_prefix
+  domain_name          = var.domain_name
 
 }
 
