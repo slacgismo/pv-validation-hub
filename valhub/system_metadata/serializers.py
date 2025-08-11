@@ -5,4 +5,14 @@ from .models import SystemMetadata
 class SystemMetadataSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemMetadata
-        fields = "__all__"
+        fields = [
+            "system_id",
+            "name",
+            "azimuth",
+            "tilt",
+            "elevation",
+            "latitude",
+            "longitude",
+            "tracking",
+            "dc_capacity",
+        ]

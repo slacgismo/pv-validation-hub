@@ -7,7 +7,7 @@
         "5": "Configuration file not found in current evaluation directory",
         "6": "Required function name not found within submission python file",
         "7": "Failure cutoff met for submission evaluation and execution has been terminated",
-        "8": "Submission result length does not match ground truth length",
+        "8": "Submission result length does not match reference length",
         "500": "Internal server error"
     },
     "wr": {
@@ -19,8 +19,8 @@
         "6": "Required evaluation files not found in s3 bucket",
         "7": "File metadata for file ID not found in API",
         "8": "No file metadata found in API for analysis ID",
-        "9": "Not all ground truth data files found in s3 bucket for analysis",
-        "10": "Not all analytical data files found in s3 bucket for analysis",
+        "9": "Not all reference data files found in s3 bucket for analysis",
+        "10": "Not all data files found in s3 bucket for analysis",
         "11": "Runner module does not have a 'run' function",
         "12": "Error posting Error Report to API",
         "13": "API did not return a valid response",

@@ -1,5 +1,6 @@
 {
 	"category_name": "Azimuth-Tilt Estimation",
+	"s3_bucket_folder_name": "az-tilt-estimation",
 	"function_name": "estimate_az_tilt",
 	"comparison_type": "scalar",
 	"performance_metrics": [
@@ -42,11 +43,12 @@
 		"latitude",
 		"longitude"
 	],
-	"ground_truth_compare": [
+	"references_compare": [
 		"azimuth",
 		"tilt"
 	],
 	"public_results_table": "az-tilt-public-metrics.json",
+	"private_results_table": "az-tilt-private-metrics.json",
 	"private_results_columns": [
 		"system_id",
 		"file_name",

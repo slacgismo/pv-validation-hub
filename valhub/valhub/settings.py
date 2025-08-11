@@ -19,7 +19,7 @@ import json
 from botocore.config import Config
 import mimetypes
 from base.logger import setup_logging
-import logging
+from base.logger import logging
 
 
 # Add css mimetype
@@ -36,10 +36,26 @@ setup_logging()
 
 logger = logging.getLogger(__name__)
 
+ENVIRONMENT: str = os.environ.get("ENVIRONMENT", "")
+DEBUG: bool = True
 
-def get_secret(secret_name: str):
+if ENVIRONMENT == "production":
+    logger.info("Production environment")
+    DEBUG = False
+
+
+logger.info(f"Environment: {ENVIRONMENT}")
+logger.info(f"Debug: {DEBUG}")
+
+if DEBUG:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
+
+
+def get_secret_from_aws_secrets_manager(secret_name: str):
     region_name = "us-west-2"
-    logger.info("Start of get secret")
+    logger.debug("Start of get secret")
 
     # Create a Secrets Manager client
     session = boto3.session.Session()
@@ -100,7 +116,6 @@ def get_secret(secret_name: str):
             logger.error("Error retrieving secrets 6:", e)
     except Exception as e:
         logger.error("Error retrieving secrets 7:", e)
-
     else:
         # Decrypts secret using the associated KMS key.
         # Depending on whether the secret is a string or binary, one of these fields will be populated.
@@ -117,6 +132,31 @@ def get_secret(secret_name: str):
             raise ValueError("Secret not found")
 
 
+def get_django_secret_key():
+    if ENVIRONMENT == "development":
+        SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+    elif ENVIRONMENT == "production":
+        try:
+            secret = get_secret_from_aws_secrets_manager(
+                "valhub-api-django-secret-key"
+            )
+            if secret is None:
+                raise Exception("Secret is None")
+
+            if not isinstance(secret, dict):
+                raise Exception("Secret is not a dictionary")
+
+            if "DJANGO_SECRET_KEY" not in secret:
+                raise Exception("DJANGO_SECRET_KEY not in secret")
+            SECRET_KEY = secret["DJANGO_SECRET_KEY"]
+
+        except Exception as e:
+            raise e
+    else:
+        raise Exception("Environment not set")
+    return SECRET_KEY
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -125,20 +165,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-try:
-    secret = get_secret("DjangoSecretKey")
-    if secret is None:
-        raise Exception("Secret is None")
-
-    if not isinstance(secret, dict):
-        raise Exception("Secret is not a dictionary")
-
-    if "DJANGO_SECRET_KEY" not in secret:
-        raise Exception("DJANGO_SECRET_KEY not in secret")
-    SECRET_KEY = secret["DJANGO_SECRET_KEY"]
-
-except:
-    SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = get_django_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -146,9 +173,9 @@ DEBUG = False
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://pv-validation-hub.org",
-    "https://api.pv-validation-hub.org",
-    "https://db.pv-validation-hub.org",
+    "https://pv-validation-hub.stratus.nrel.gov",
+    "https://api-pv-validation-hub.stratus.nrel.gov",
+    # "https://db-pv-validation-hub.stratus.nrel.gov",
 ]
 
 MEDIA_URL = "/media/"
@@ -232,53 +259,61 @@ WSGI_APPLICATION = "valhub.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-try:
-    db_secrets = get_secret("pvinsight-db")
 
-    if db_secrets is None:
-        raise Exception("Database secrets are None")
-
-    if not isinstance(db_secrets, dict):
-        raise Exception("Database secrets are not a dictionary")
-
-    logger.info("Retrieved secrets")
-
-    db_name = "postgres"
-    db_identifier = db_secrets.get("dbInstanceIdentifier", None)
-    username = db_secrets.get("username", None)
-    password = db_secrets.get("password", None)
-    hostname = db_secrets.get("proxy", None)
-    port = db_secrets.get("port", None)
-
-    if None in [db_name, username, password, hostname, port]:
-        raise Exception("One or more database secrets are missing")
-
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": db_name,  # db_name,
-            "USER": username,
-            "PASSWORD": password,
-            "HOST": hostname,
-            "PORT": port,
+def configure_db():
+    if ENVIRONMENT == "development":
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql_psycopg2",
+                "NAME": "valhub",
+                "USER": "valhub",
+                "PASSWORD": "valhub",
+                "HOST": "db",
+                "PORT": "5432",
+            }
         }
-    }
+    elif ENVIRONMENT == "production":
+        db_secrets = get_secret_from_aws_secrets_manager(
+            "valhub-rds-proxy-credentials"
+        )
 
-except Exception as e:
-    logger.error(
-        "Error retrieving secrets from AWS Secrets Manager, using default values"
-    )
+        if db_secrets is None:
+            raise Exception("Database secrets are None")
 
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql_psycopg2",
-            "NAME": "valhub",
-            "USER": "valhub",
-            "PASSWORD": "valhub",
-            "HOST": "db",
-            "PORT": "5432",
+        if not isinstance(db_secrets, dict):
+            raise Exception("Database secrets are not a dictionary")
+
+        logger.debug("Retrieved secrets")
+
+        db_name = "postgres"
+        # db_identifier = db_secrets.get("dbInstanceIdentifier", None)
+        username = db_secrets.get("username", None)
+        password = db_secrets.get("password", None)
+        hostname = (
+            "valhub-rds-proxy.proxy-cz0mg00uet8h.us-west-2.rds.amazonaws.com"
+        )
+        port = "5432"
+
+        if None in [db_name, username, password, hostname, port]:
+            raise Exception("One or more database secrets are missing")
+
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql_psycopg2",
+                "NAME": db_name,
+                "USER": username,
+                "PASSWORD": password,
+                "HOST": hostname,
+                "PORT": port,
+            }
         }
-    }
+    else:
+        raise Exception("Environment not set")
+
+    return DATABASES
+
+
+DATABASES = configure_db()
 
 
 # Password validation

@@ -1,6 +1,10 @@
+from dataclasses import dataclass
+from functools import wraps
 import json
+import logging
 import shutil
-from dask.delayed import delayed
+from types import TracebackType
+from dask.delayed import delayed, Delayed  # type: ignore
 from dask.distributed import Client
 from dask import config
 import docker
@@ -11,34 +15,61 @@ from docker.models.images import Image
 from concurrent.futures import (
     ThreadPoolExecutor,
 )
-from logging import Logger
-from time import perf_counter, sleep
+from time import perf_counter
 import os
 from typing import (
     Any,
     Callable,
     ParamSpec,
-    Sequence,
     Tuple,
     TypeVar,
     TypedDict,
     Union,
     cast,
 )
-import logging
 import boto3
 import botocore.exceptions
 from mypy_boto3_s3 import S3Client
+from mypy_boto3_secretsmanager import SecretsManagerClient
 import psutil
 import requests
 import math
 import subprocess
 import pandas as pd
 
+from logger import setup_logging
+
+
+logger = setup_logging(__name__)
 
 WORKER_ERROR_PREFIX = "wr"
 RUNNER_ERROR_PREFIX = "op"
 SUBMISSION_ERROR_PREFIX = "sb"
+
+S3_BUCKET_NAME = "valhub-bucket"
+
+SUBMITTING = "submitting"
+SUBMITTED = "submitted"
+RUNNING = "running"
+FAILED = "failed"
+FINISHED = "finished"
+
+
+def is_local():
+    """
+    Checks if the application is running locally or in an Amazon ECS environment.
+
+    Returns:
+        bool: True if the application is running locally, False otherwise.
+    """
+    return "PROD" not in os.environ
+
+
+IS_LOCAL = is_local()
+
+API_BASE_URL = (
+    "api:8005" if IS_LOCAL else "api-pv-validation-hub.stratus.nrel.gov"
+)
 
 
 T = TypeVar("T")
@@ -47,8 +78,34 @@ P = ParamSpec("P")
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+@dataclass(frozen=True)
+class SubmissionFunctionArgs:
+    submission_id: int
+    image_tag: str
+    memory_limit: str
+    submission_file_name: str
+    submission_function_name: str
+    submission_args: Tuple[Any, ...]
+    volume_data_dir: str
+    volume_results_dir: str
+    logger: logging.Logger
+
+    def to_tuple(self):
+        return (
+            self.submission_id,
+            self.image_tag,
+            self.memory_limit,
+            self.submission_file_name,
+            self.submission_function_name,
+            self.submission_args,
+            self.volume_data_dir,
+            self.volume_results_dir,
+            self.logger,
+        )
+
+
 def logger_if_able(
-    message: object, logger: Logger | None = None, level: str = "INFO"
+    message: object, logger: logging.Logger | None = None, level: str = "INFO"
 ):
     if logger is not None:
         levels_dict = {
@@ -72,7 +129,7 @@ def logger_if_able(
 
 
 def get_error_codes_dict(
-    dir: str, prefix: str, logger: Logger | None
+    dir: str, prefix: str, logger: logging.Logger | None
 ) -> dict[str, str]:
     try:
         with open(
@@ -109,8 +166,10 @@ submission_error_codes = get_error_codes_dict(
     FILE_DIR, SUBMISSION_ERROR_PREFIX, None
 )
 
+worker_error_codes = get_error_codes_dict(FILE_DIR, WORKER_ERROR_PREFIX, None)
 
-def timing(verbose: bool = True, logger: Union[Logger, None] = None):
+
+def timing(verbose: bool = True, logger: Union[logging.Logger, None] = None):
     # @wraps(timing)
     def decorator(func: Callable[P, T]):
         # @wraps(func)
@@ -146,7 +205,7 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
 #     return results
 
 
-def timeout(seconds: int, logger: Union[Logger, None] = None):
+def timeout(seconds: int, logger: Union[logging.Logger, None] = None):
     def decorator(func: Callable[P, T]):
         # @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
@@ -173,11 +232,14 @@ def set_workers_and_threads(
     memory_per_run: float | int,
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> Tuple[int, int]:
 
     def handle_exceeded_resources(
-        n_workers, threads_per_worker, memory_per_run, sys_memory
+        n_workers: int,
+        threads_per_worker: int,
+        memory_per_run: float | int,
+        sys_memory: float,
     ):
         if memory_per_run * n_workers * threads_per_worker > sys_memory:
             config.set({"distributed.worker.memory.spill": True})
@@ -301,12 +363,12 @@ U = TypeVar("U")
 
 def dask_multiprocess(
     func: Callable[P, T],
-    func_arguments: Sequence[Tuple[U, ...]],
+    function_args_list: list[tuple[U, ...]],
     n_workers: int | None = None,
     threads_per_worker: int | None = None,
     memory_per_run: float | int | None = None,
-    logger: Logger | None = None,
-    **kwargs,
+    logger: logging.Logger | None = None,
+    **kwargs: Any,
 ) -> list[T]:
 
     MEMORY_PER_RUN = 8.0  # in GB
@@ -351,29 +413,21 @@ def dask_multiprocess(
 
         logger_if_able(f"client: {client}", logger, "INFO")
 
-        lazy_results = []
-        for args in func_arguments:
+        lazy_results: list[Delayed] = []
+        for args in function_args_list:
+            submission_fn_args = args
+            logger_if_able(f"args: {submission_fn_args}", logger, "INFO")
 
-            logger_if_able(f"args: {args}", logger, "INFO")
-
-            lazy_result = delayed(func, pure=True)(*args)
+            lazy_result = cast(
+                Delayed, delayed(func, pure=True)(*submission_fn_args)
+            )
             lazy_results.append(lazy_result)
 
-        futures = client.compute(lazy_results)
+        futures = client.compute(lazy_results)  # type: ignore
 
         results = client.gather(futures)  # type: ignore
 
     return results
-
-
-def is_local():
-    """
-    Checks if the application is running locally or in an Amazon ECS environment.
-
-    Returns:
-        bool: True if the application is running locally, False otherwise.
-    """
-    return "PROD" not in os.environ
 
 
 class WorkerException(Exception):
@@ -403,12 +457,120 @@ class SubmissionException(Exception):
         self.error_rate = error_rate
 
 
+def list_s3_bucket(s3_dir: str):
+    logger.info(f"list s3 bucket {s3_dir}")
+    if s3_dir.startswith("/"):
+        s3_dir = s3_dir[1:]
+
+    if IS_LOCAL:
+        s3_dir_full_path = "http://s3:5000/list_bucket/" + s3_dir
+        # s3_dir_full_path = 'http://127.0.0.1:5000/list_bucket/' + s3_dir
+    else:
+        s3_dir_full_path = "s3://" + s3_dir
+
+    all_files: list[str] = []
+    if IS_LOCAL:
+        r = requests.get(s3_dir_full_path)
+        ret = r.json()
+        for entry in ret["Contents"]:
+            all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
+    else:
+        # if so, remove it
+        s3_dir = s3_dir.replace(f"{S3_BUCKET_NAME}/", "")
+        logger.info(f"dir after removing {S3_BUCKET_NAME}/ returns {s3_dir}")
+
+        s3: S3Client = boto3.client("s3")  # type: ignore
+        paginator = s3.get_paginator("list_objects_v2")
+        pages = paginator.paginate(Bucket=S3_BUCKET_NAME, Prefix=s3_dir)
+        for page in pages:
+            if page["KeyCount"] > 0:
+                if "Contents" in page:
+                    for entry in page["Contents"]:
+                        if "Key" in entry:
+                            all_files.append(entry["Key"])
+
+        # remove the first entry if it is the same as s3_dir
+        if len(all_files) > 0 and all_files[0] == s3_dir:
+            all_files.pop(0)
+
+    logger.info(f"listed s3 bucket {s3_dir_full_path} returns {all_files}")
+    return all_files
+
+
+def update_submission_status(submission_id: int, new_status: str):
+    # route needs to be a string stored in a variable, cannot parse in deployed environment
+    api_route = f"submissions/change_submission_status/{submission_id}"
+
+    try:
+        data = request_to_API_w_credentials(
+            "PUT", api_route, data={"status": new_status}
+        )
+        return data
+    except Exception as e:
+        logger.error(f"Error updating submission status to {new_status}")
+        logger.exception(e)
+        error_code = 5
+        raise WorkerException(
+            *get_error_by_code(error_code, worker_error_codes, logger),
+        )
+
+
+def push_to_s3(local_file_path: str, s3_file_path: str, submission_id: int):
+    logger.info(f"push file {local_file_path} to s3")
+    if s3_file_path.startswith("/"):
+        s3_file_path = s3_file_path[1:]
+
+    if IS_LOCAL:
+        s3_file_full_path = (
+            f"http://s3:5000/put_object/{S3_BUCKET_NAME}/" + s3_file_path
+        )
+    else:
+        s3_file_full_path = "s3://" + s3_file_path
+
+    if IS_LOCAL:
+        with open(local_file_path, "rb") as f:
+            file_content = f.read()
+            logger.info(
+                f"Sending emulator PUT request to {s3_file_full_path} with file content (100 chars): {file_content[:100]}"
+            )
+            r = requests.put(s3_file_full_path, data=file_content)
+            logger.info(f"Received S3 emulator response: {r.status_code}")
+            if not r.ok:
+                logger.error(f"S3 emulator error: {r.content}")
+                error_code = 1
+                raise WorkerException(
+                    *get_error_by_code(error_code, worker_error_codes, logger),
+                )
+            return {"status": "success"}
+    else:
+        s3: S3Client = boto3.client("s3")  # type: ignore
+        try:
+            extra_args = {}
+            if s3_file_path.endswith(".html"):
+                extra_args = {"ContentType": "text/html"}
+            ExtraArgs = extra_args if extra_args else None
+            s3.upload_file(
+                local_file_path,
+                S3_BUCKET_NAME,
+                s3_file_path,
+                ExtraArgs=ExtraArgs,
+            )
+        except botocore.exceptions.ClientError as e:
+            logger.error(f"Error: {e}")
+            logger.info(f"update submission status to {FAILED}")
+            update_submission_status(submission_id, FAILED)
+            error_code = 1
+            raise WorkerException(
+                *get_error_by_code(error_code, worker_error_codes, logger)
+            )
+
+
 def pull_from_s3(
     IS_LOCAL: bool,
     S3_BUCKET_NAME: str,
     s3_file_path: str,
     local_file_path: str,
-    logger: Logger,
+    logger: logging.Logger,
 ) -> str:
     logger.info(f"pull file {s3_file_path} from s3")
     if s3_file_path.startswith("/"):
@@ -439,11 +601,10 @@ def pull_from_s3(
     else:
         s3: S3Client = boto3.client("s3")  # type: ignore
 
-        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
-        s3_file_path = s3_file_path.replace("pv-validation-hub-bucket/", "")
+        s3_file_path = s3_file_path.replace(f"{S3_BUCKET_NAME}/", "")
         logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_file_path}"
+            f"dir after removing {S3_BUCKET_NAME}/ returns {s3_file_path}"
         )
 
         try:
@@ -462,11 +623,10 @@ def pull_from_s3(
 
 
 def get_error_by_code(
-    error_code: int, error_codes_dict: dict[str, str], logger: Logger | None
+    error_code: int,
+    error_codes_dict: dict[str, str],
+    logger: logging.Logger | None,
 ) -> tuple[int, str]:
-    if error_codes_dict is None:
-        logger_if_able("Error codes dictionary is None", logger, "ERROR")
-        raise ValueError("Error codes dictionary is None")
     error_code_str = str(error_code)
     if error_code_str not in error_codes_dict:
         logger_if_able(
@@ -479,7 +639,10 @@ def get_error_by_code(
 
 
 def copy_file_to_directory(
-    file: str, src_dir: str, dest_dir: str, logger: Logger | None = None
+    file: str,
+    src_dir: str,
+    dest_dir: str,
+    logger: logging.Logger | None = None,
 ):
     src_file_path = os.path.join(src_dir, file)
 
@@ -500,7 +663,10 @@ def copy_file_to_directory(
 
 
 def move_file_to_directory(
-    file: str, src_dir: str, dest_dir: str, logger: Logger | None = None
+    file: str,
+    src_dir: str,
+    dest_dir: str,
+    logger: logging.Logger | None = None,
 ):
     src_file_path = os.path.join(src_dir, file)
 
@@ -525,7 +691,9 @@ def move_file_to_directory(
 IS_LOCAL = is_local()
 
 API_BASE_URL = (
-    "http://api:8005" if IS_LOCAL else "https://api.pv-validation-hub.org"
+    "http://api:8005"
+    if IS_LOCAL
+    else "https://api-pv-validation-hub.stratus.nrel.gov"
 )
 
 S3_BASE_URL = "http://s3:5000/get_object/" if IS_LOCAL else "s3://"
@@ -536,7 +704,7 @@ def method_request(
     url: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     logger_if_able(f"{method} request to {url}", logger)
@@ -545,7 +713,9 @@ def method_request(
         "Content-Type": "application/json",
     }
 
-    all_headers = {**base_headers, **headers} if headers else base_headers
+    all_headers: dict[str, str] = (
+        {**base_headers, **headers} if headers else base_headers
+    )
 
     body = json.dumps(data) if data else None
 
@@ -554,7 +724,9 @@ def method_request(
     return response
 
 
-def login_to_API(username: str, password: str, logger: Logger | None = None):
+def login_to_API(
+    username: str, password: str, logger: logging.Logger | None = None
+):
 
     login_url = f"{API_BASE_URL}/login"
 
@@ -571,12 +743,11 @@ def login_to_API(username: str, password: str, logger: Logger | None = None):
 
 def get_login_secrets_from_aws() -> tuple[str, str]:
 
-    secret_name = "pv-validation-hub-worker-credentials"
+    secret_name = "valhub-worker-credentials"
     region_name = "us-west-2"
 
     # Create a Secrets Manager client
-    session = boto3.session.Session()
-    client = session.client(
+    client: SecretsManagerClient = boto3.client(  # type: ignore
         service_name="secretsmanager", region_name=region_name
     )
 
@@ -602,23 +773,23 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
     return username, password
 
 
-def with_credentials(logger: Logger | None = None):
+def with_credentials(logger: logging.Logger | None = None):
 
     if IS_LOCAL:
-        username = os.environ.get("admin_username", None)
-        password = os.environ.get("admin_password", None)
+        username = os.environ.get("worker_username", None)
+        password = os.environ.get("worker_password", None)
     else:
         username, password = get_login_secrets_from_aws()
 
     if not username or not password:
-        raise Exception("Missing admin credentials")
+        raise Exception("Missing worker credentials")
 
     api_auth_token = None
     headers = {}
 
-    def decorator(func: Callable[P, T]):
-        # @wraps(func)
-        def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs):
             nonlocal api_auth_token
             if not api_auth_token:
                 logger_if_able("Logging in", logger)
@@ -638,7 +809,7 @@ def request_to_API_w_credentials(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
     **kwargs: Any,
 ):
 
@@ -665,7 +836,7 @@ def request_to_API(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     url = f"{API_BASE_URL}/{endpoint}"
@@ -679,7 +850,7 @@ def request_to_s3(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     url = f"{S3_BASE_URL}{endpoint}"
@@ -693,7 +864,7 @@ def request_handler(
     endpoint: str,
     data: dict[str, Any] | None = None,
     headers: dict[str, Any] | None = None,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     r = method_request(method, endpoint, headers=headers, data=data)
@@ -711,20 +882,25 @@ def flatten_list(items: list[T]) -> list[T]:
     flat_list: list[T] = []
     for item in items:
         if isinstance(item, list):
-            flat_list.extend(flatten_list(item))
+            new_list: list[T] = flatten_list(item)  # type: ignore
+            flat_list.extend(new_list)
         else:
             flat_list.append(item)
     return flat_list
 
 
 def format_tuple(
-    t: tuple[str, Any], logger: Logger | None = None
+    t: tuple[str, Union[int, float, str, dict[str, Any], bool, list[Any]]],
+    logger: logging.Logger | None = None,
 ) -> str | list[str]:
     key, value = t
 
     logger_if_able(
         f"key: {key}, value: {value}, type: {type(value)}", logger, "DEBUG"
     )
+
+    if isinstance(value, bool):
+        return f"--{key}={str(value).lower()}"
 
     if isinstance(value, (int, float)):
         return f"--{key}={value}"
@@ -733,17 +909,6 @@ def format_tuple(
         if " " in [value]:
             return f'--{key}="{value}"'
         return f"--{key}={value}"
-
-    if isinstance(value, (dict)):
-        try:
-            json_str = json.dumps(value)
-        except Exception as e:
-            raise ValueError(f"Failed to convert to JSON: {e}")
-
-        return f"--{key}={json_str}"
-
-    if isinstance(value, bool):
-        return f"--{key}={str(value).lower()}"
 
     if isinstance(value, list):
         list_args: list[str] = []
@@ -754,6 +919,14 @@ def format_tuple(
             if isinstance(formatted_item, str):
                 list_args.append(formatted_item)
         return list_args
+
+    if isinstance(value, dict):  # type: ignore
+        try:
+            json_str = json.dumps(value)
+        except Exception as e:
+            raise ValueError(f"Failed to convert to JSON: {e}")
+
+        return f"--{key}={json_str}"
 
     raise ValueError(f"Unsupported type: {type(value)}")
 
@@ -779,10 +952,10 @@ def generate_private_report_for_submission(
     action: str,
     template_file_path: str,
     html_file_path: str,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
     json_data: dict[str, Any] = {}
-    json_data["results_df"] = df.to_dict(orient="records")
+    json_data["results_df"] = df.to_dict(orient="records")  # type: ignore
 
     data_args_list = prepare_json_for_marimo_args(json_data)
 
@@ -850,7 +1023,7 @@ class DockerContainerContextManager:
         client: docker.DockerClient,
         image: Image | str,
         command: str | list[str],
-        volumes: dict[str, str] | list[str],
+        volumes: list[str],
         mem_limit: str | None = None,
     ) -> None:
         self.client = client
@@ -870,15 +1043,20 @@ class DockerContainerContextManager:
             stdout=True,
             stderr=True,
             mem_limit=self.mem_limit,
-        )
+        )  # type: ignore
 
-        self.container = cast(Container, container)
+        self.container = container
 
         self.id = self.container.id
 
         return self.container
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ):
         if self.container:
             if self.container.status == "running":
                 self.container.stop()
@@ -891,26 +1069,14 @@ def docker_task(
     memory_limit: str,
     submission_file_name: str,
     submission_function_name: str,
-    submission_args: Sequence[Any],
+    submission_args: tuple[Any, ...],
     data_dir: str,
     results_dir: str,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, int | None]:
 
     error_raised = False
     error_code: int | None = None
-
-    if submission_args is None:
-        submission_args = []
-
-    # Define volumes to mount
-    # results_dir = os.path.join(os.path.dirname(__file__), "results")
-    # data_dir = os.path.join(os.path.dirname(__file__), "data")
-
-    # volumes = {
-    #     results_dir: {"bind": "/app/results", "mode": "rw"},
-    #     data_dir: {"bind": "/app/data", "mode": "ro"},
-    # }
 
     volumes = [f"{results_dir}:/app/results", f"{data_dir}:/app/data"]
 
@@ -953,7 +1119,7 @@ def docker_task(
                 "Error: Docker container did not return status code"
             )
 
-        exit_code: int = cast(int, container_dict["StatusCode"])
+        exit_code = container_dict["StatusCode"]
 
         if exit_code != 0:
             error_raised = True
@@ -964,7 +1130,9 @@ def docker_task(
 
 
 def update_submission_progress(
-    submission_id: str, data: dict[str, Any], logger: Logger | None = None
+    submission_id: str,
+    data: dict[str, Any],
+    logger: logging.Logger | None = None,
 ):
     result = request_to_API_w_credentials(
         "POST",
@@ -985,7 +1153,7 @@ class NonBreakingErrorReport(TypedDict):
 def update_error_report_non_breaking(
     submission_id: str,
     data: NonBreakingErrorReport,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
     result = request_to_API_w_credentials(
         "POST",
@@ -996,21 +1164,30 @@ def update_error_report_non_breaking(
     return result
 
 
+class ErrorReport(TypedDict):
+    submission: int
+    error_code: str
+    error_type: str
+    error_message: str
+    error_rate: int
+    file_errors: dict[str, Any]
+
+
 def create_blank_error_report(
     submission_id: int,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
-    error_report = {
+    error_report: ErrorReport = {
         "submission": submission_id,
         "error_code": "",
         "error_type": "",
-        # "error_message": "",
-        # "error_rate": '',
+        "error_message": "",
+        "error_rate": 0,
         "file_errors": {"errors": []},
     }
 
     request_to_API_w_credentials(
-        "POST", "error/error_report/new", error_report
+        "POST", "error/error_report/new", error_report, logger=logger  # type: ignore
     )
 
     return error_report
@@ -1022,10 +1199,10 @@ def submission_task(
     memory_limit: str,
     submission_file_name: str,
     submission_function_name: str,
-    submission_args: Sequence[Any],
+    submission_args: tuple[Any, ...],
     data_dir: str,
     results_dir: str,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ) -> tuple[bool, int | None]:
 
     error = False
@@ -1113,7 +1290,7 @@ def create_docker_image(
     submission_file_name: str,
     client: docker.DockerClient,
     overwrite: bool = False,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     # file_path = os.path.join(os.path.dirname(__file__), "environment")
@@ -1198,36 +1375,18 @@ class DockerClientContextManager:
         self.client = initialize_docker_client()
         return self.client
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ):
         if self.client:
-            self.client.close()
+            self.client.close()  # type: ignore
 
 
 def initialize_docker_client():
     base_url = os.environ.get("DOCKER_HOST", None)
-
-    # if not base_url:
-    #     logger_if_able("Docker host not set", None, "WARNING")
-
-    # cert_path = os.environ.get("DOCKER_CERT_PATH")
-    # if not cert_path:
-    #     raise FileNotFoundError(
-    #         "DOCKER_CERT_PATH environment variable not set"
-    #     )
-
-    # if not os.path.exists(cert_path):
-    #     raise FileNotFoundError(f"Cert path {cert_path} not found")
-
-    # ca_cert = cert_path + "/ca.pem"
-    # client_cert = cert_path + "/ca-key.pem"
-    # client_key = cert_path + "/key.pem"
-
-    # if not os.path.exists(ca_cert):
-    #     raise FileNotFoundError(f"CA cert {ca_cert} not found")
-    # if not os.path.exists(client_cert):
-    #     raise FileNotFoundError(f"Client cert {client_cert} not found")
-    # if not os.path.exists(client_key):
-    #     raise FileNotFoundError(f"Client key {client_key} not found")
 
     client = docker.DockerClient(
         base_url=base_url,
@@ -1245,7 +1404,7 @@ def is_docker_daemon_running():
     is_running = False
 
     with DockerClientContextManager() as client:
-        if client.ping():
+        if client.ping():  # type: ignore
             is_running = True
 
     return is_running
@@ -1257,7 +1416,7 @@ def create_docker_image_for_submission(
     python_version: str,
     submission_file_name: str,
     overwrite: bool = True,
-    logger: Logger | None = None,
+    logger: logging.Logger | None = None,
 ):
 
     is_docker_daemon_running()
@@ -1274,87 +1433,3 @@ def create_docker_image_for_submission(
         )
 
     return image, image_tag
-
-
-def dask_main():
-    results: list = []
-
-    total_workers = 2
-    total_threads = 1
-    memory_per_worker = 8
-
-    dir_path = os.path.join(os.path.dirname(__file__), "environment")
-
-    image_tag = "submission:latest"
-
-    submission_file_name = "submission.zip"
-
-    python_version = "3.10"
-
-    image, _ = create_docker_image_for_submission(
-        dir_path, image_tag, python_version, submission_file_name
-    )
-
-    data_files = os.listdir("data")
-    print(data_files)
-
-    if not data_files:
-        raise FileNotFoundError("No data files found")
-
-    files = data_files[:5]
-
-    submission_file_name = "submission.submission_wrapper"
-    submission_function_name = "detect_time_shifts"
-
-    data_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/data"
-    results_dir = "/Users/mvicto/Desktop/Projects/PVInsight/pv-validation-hub/pv-validation-hub/dockerize-workflow/results"
-
-    with Client(
-        n_workers=total_workers,
-        threads_per_worker=total_threads,
-        memory_limit=f"{memory_per_worker}GiB",
-        # **kwargs,
-    ) as client:
-
-        lazy_results = []
-        for file in files:
-            submission_args = (file,)
-            lazy_result = delayed(submission_task, pure=True)(
-                image_tag,
-                memory_per_worker,
-                submission_file_name,
-                submission_function_name,
-                submission_args,
-                data_dir,
-                results_dir,
-                logger,
-            )
-            lazy_results.append(lazy_result)
-
-        futures = client.compute(lazy_results)
-
-        results = client.gather(futures)  # type: ignore
-
-    return results
-
-
-if __name__ == "__main__":
-
-    def expensive_function(x):
-        print(x)
-        sleep(2)
-        return x**2
-
-    data = list(range(10))
-    func_args = [(d,) for d in data]
-    n_processes = 2
-    threads_per_worker = 1
-    logger = None
-    results = dask_multiprocess(
-        expensive_function,
-        [(d,) for d in data],
-        n_workers=n_processes,
-        threads_per_worker=threads_per_worker,
-        logger=logger,
-    )
-    print(results)

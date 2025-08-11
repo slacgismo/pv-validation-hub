@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.6.16"
+__generated_with = "0.1.18"
 app = marimo.App()
 
 
@@ -11,50 +11,40 @@ def __(mo):
 
 
 @app.cell
-def __(create_df_from_cli_args, generatePlots):
-    results_df = create_df_from_cli_args()
+def __(pd, generatePlots):
+    results_df = pd.read_csv("time_shifts_full_results.csv")
     plotting = generatePlots(results_df)
-    return plotting, results_df
+    return results_df, plotting
 
 
 @app.cell
-def __(mo, plotting):
+def __(plotting, mo):
     if plotting is not None:
-        median_runtime = round(plotting.results_df.runtime.median(), 2)
-        mean_runtime = round(plotting.results_df.runtime.mean(), 2)
-        max_runtime = round(plotting.results_df.runtime.max(), 2)
-        min_runtime = round(plotting.results_df.runtime.min(), 2)
+        median_run_time = round(plotting.results_df.run_time.median(), 2)
+        mean_run_time = round(plotting.results_df.run_time.mean(), 2)
+        max_run_time = round(plotting.results_df.run_time.max(), 2)
+        min_run_time = round(plotting.results_df.run_time.min(), 2)
         _fig = mo.md(
             f"""
                      First, we visualize the distribution of run times. 
-
+                     
                      Median run time: """
-            + str(median_runtime)
+            + str(median_run_time)
             + """ seconds
-
+                     
                      Mean run time: """
-            + str(mean_runtime)
+            + str(mean_run_time)
             + """ seconds
-
+                     
                      Max run time: """
-            + str(max_runtime)
+            + str(max_run_time)
             + """ seconds
-
+                     
                      Min run time: """
-            + str(min_runtime)
+            + str(min_run_time)
             + """ seconds
                      """
         )
-    else:
-        _fig = None
-    _fig
-    return max_runtime, mean_runtime, median_runtime, min_runtime
-
-
-@app.cell
-def __(plotting):
-    if plotting is not None:
-        _fig = plotting.plot_runtimes()
     else:
         _fig = None
     _fig
@@ -62,7 +52,17 @@ def __(plotting):
 
 
 @app.cell
-def __(mo, plotting):
+def __(plotting):
+    if plotting is not None:
+        _fig = plotting.plot_run_times()
+    else:
+        _fig = None
+    _fig
+    return
+
+
+@app.cell
+def __(plotting, mo):
     if plotting is not None:
         median_mae = round(
             plotting.results_df["Time Series-Level MAE"].median(), 2
@@ -73,11 +73,11 @@ def __(mo, plotting):
         _fig = mo.md(
             f"""
                      Next, we visualize the mean absolute error distribution, color-coded by issues present in the time series.
-
+                     
                      Median time series MAE: """
             + str(median_mae)
             + """ minutes
-
+                     
                      Mean time series MAE: """
             + str(mean_mae)
             + """ minutes
@@ -86,7 +86,7 @@ def __(mo, plotting):
     else:
         _fig = None
     _fig
-    return mean_mae, median_mae
+    return
 
 
 @app.cell
@@ -100,7 +100,7 @@ def __(plotting):
 
 
 @app.cell
-def __(mo, plotting):
+def __(plotting, mo):
     if plotting is not None:
         _fig = mo.md(
             f"""
@@ -114,7 +114,7 @@ def __(mo, plotting):
 
 
 @app.cell
-def __(plotting):
+def __(plotting, mo):
     if plotting is not None:
         _fig = plotting.dataframe_mae_by_issue_type()
     else:
@@ -124,7 +124,7 @@ def __(plotting):
 
 
 @app.cell
-def __(mo, plotting):
+def __(plotting, mo):
     if plotting is not None:
         _fig = mo.md(
             f"""
@@ -148,7 +148,7 @@ def __(plotting):
 
 
 @app.cell
-def __(mo, plotting):
+def __(plotting, mo):
     if plotting is not None:
         _fig = mo.md(
             f"""
@@ -162,7 +162,7 @@ def __(mo, plotting):
 
 
 @app.cell
-def __(plotting):
+def __(plotting, mo, pd):
     if plotting is not None:
         _fig = plotting.dataframe_mae_by_sampling()
     else:
@@ -172,7 +172,14 @@ def __(plotting):
 
 
 @app.cell
-def __(pd, sns):
+def __(
+    mo,
+    np,
+    sns,
+    pd,
+    plt,
+):
+
     class generatePlots:
 
         def __init__(self, results_df):
@@ -186,8 +193,8 @@ def __(pd, sns):
                 }
             )
 
-        def plot_runtimes(self):
-            fig = sns.histplot(self.results_df, x="runtime", bins=40)
+        def plot_run_times(self):
+            fig = sns.histplot(self.results_df, x="run_time", bins=40)
             fig.set(xlabel="Run Time (seconds)", ylabel="Number Instances")
             return fig
 
@@ -239,27 +246,16 @@ def __():
     import marimo as mo
     import numpy as np
     import pandas as pd
-    import json
     import matplotlib.pyplot as plt
     import seaborn as sns
 
-    return json, mo, np, pd, plt, sns
-
-
-@app.cell
-def __(json, mo, pd):
-
-    def create_df_from_cli_args():
-        args = mo.cli_args().to_dict()
-        data = args.get("results_df")
-        rows = []
-        for row in data:
-            rows.append(json.loads(row))
-
-        df = pd.DataFrame.from_records(rows)
-        return df
-
-    return (create_df_from_cli_args,)
+    return (
+        mo,
+        np,
+        sns,
+        pd,
+        plt,
+    )
 
 
 if __name__ == "__main__":

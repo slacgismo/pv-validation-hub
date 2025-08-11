@@ -67,4 +67,5 @@ class Submission(models.Model):
         null=True, blank=True
     )  # Time in seconds remaining
 
-    worker_version = models.FloatField(null=False, blank=False, default=1.0)
+    worker_version = models.CharField(max_length=100, default="1.0")
+    analysis_version = models.CharField(max_length=100, default="1.0")

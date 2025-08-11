@@ -1,8 +1,8 @@
 requests
 boto3
-boto3-stubs[s3,sqs]
+boto3-stubs[s3,sqs,secretsmanager]
 pandas
-numpy==1.26.4
+numpy
 seaborn
 matplotlib
 dask
@@ -10,3 +10,4 @@ distributed
 bokeh
 marimo
 docker
+debugpy

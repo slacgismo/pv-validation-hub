@@ -6,22 +6,12 @@ WORKDIR /root
 RUN apt-get update && apt-get install -y gawk
 
 ARG region=us-west-2
-ARG ak
-ARG sak
-ARG PEM
+
 # Copy AWS and PEM configuration if needed
 # Manually add the files to copy if not included in the host system
 RUN mkdir -p .aws
 RUN mkdir -p .pem
 COPY .pem /root/.pem
-
-WORKDIR /root/.aws
-
-RUN awk -v ak="${ak}" -v sak="${sak}" \
-    'BEGIN {print "[default]\naws_access_key_id = " ak "\naws_secret_access_key = " sak > "/root/.aws/credentials"}'
-
-RUN awk -v region=${region} \
-    'BEGIN {print "[default]\nregion = " region > "/root/.aws/config"}'
 
 WORKDIR /root/.pem
 
@@ -45,6 +35,7 @@ ENV DJANGO_SUPERUSER_USERNAME=${admin_username}
 ENV DJANGO_SUPERUSER_PASSWORD=${admin_password}
 ENV DJANGO_SUPERUSER_EMAIL=${admin_email}
 ENV DJANGO_SECRET_KEY=${djangosk}
+ENV ENVIRONMENT=production
 ENV PORT 8005
 
 # Install required system dependencies including Nginx
@@ -56,12 +47,7 @@ RUN apt-get install -y python3-dev default-libmysqlclient-dev build-essential pk
     python3 -m pip install --upgrade pip && \
     python3 -m pip install -r requirements.txt
 
-# Create Django database migrations
-RUN python3 manage.py makemigrations
-RUN python3 manage.py collectstatic
-
 # Expose ports for incoming HTTP traffic
 EXPOSE 80 443 22 8005
 
-# Start Nginx and Supervisor
-CMD ["/usr/bin/supervisord", "-c", "/root/valhub/supervisord.prod.conf"]
+CMD ["/bin/bash", "/root/valhub/startup-prod.sh"]

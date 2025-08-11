@@ -1,33 +1,41 @@
-# subdirectory/variables.tf
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-west-2"
-}
-
-variable "bucket_name" {
-  description = "The name of the S3 bucket where the website is hosted"
+# Import
+variable "valhub_logs_bucket_domain_name" {
+  description = "Name of the S3 bucket for CloudFront logs"
   type        = string
 }
 
-variable "default_root_object" {
-  description = "The default root object for the CloudFront distribution"
+variable "valhub_website_bucket_domain_name" {
+  description = "Domain name of the S3 bucket for the website"
   type        = string
 }
 
-variable "acm_certificate_arn" {
-  description = "The ARN of the ACM certificate"
+variable "valhub_bucket_domain_name" {
+  description = "Domain name of the S3 bucket for the main application"
   type        = string
 }
 
-variable "alt_domain_name" {
-  description = "Needed to allow cf use in route53"
-  type        = string 
+# Variables for the CloudFront module
+
+variable "website_origin_id" {
+  description = "Origin ID for the S3 bucket used as the website origin"
+  type        = string
 }
 
-variable "project_tags" {
-  type    = object({
-    Project = string,
-    project-pa-number = string
-  })
+variable "private_origin_id" {
+  description = "Origin ID for the S3 bucket used as the private origin"
+  type        = string
+}
+
+variable "domain_name" {
+  description = "Domain name for the CloudFront distribution"
+  type        = string
+}
+
+variable "website_name" {
+  description = "Name of the website for CloudFront distribution"
+  type        = string
+}
+variable "private_content_name" {
+  description = "Name of the private content for CloudFront distribution"
+  type        = string
 }

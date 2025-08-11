@@ -14,7 +14,7 @@ The worker will create a docker image from the user's submission given the speci
 
 1. Worker will initialize itself and run in an infinite loop checking if there are any messages within the AWS SQS Queue
 2. Once the worker finds that a message exists in the AWS SQS Queue it will remove the message from the Queue and process the submission
-3. The worker will download all the ground truth and data files, the metadata, the user submission zip, and any other files associated with the analysis task
+3. The worker will download all the reference and data files, the metadata, the user submission zip, and any other files associated with the analysis task
 4. The worker will then create a docker image from the user's submission from the provided metadata
 5. The worker will then create multiple docker containers depending on how much memory is available to process each data file from the analysis task
 6. The result from every docker container will be saved in multiple files to the worker machine
