@@ -27,7 +27,13 @@ A new analysis task for insertion into the PV Validation Hub needs to contain ce
 - `system_metadata.csv` - contains the metadata for each system associated with the data files
 - `template.py` - marimo template for the private results page for each submission
 - Data files - folder containing all csv files the analysis
-- Ground truth files - folder containing all results for each data file
+- Reference files - folder containing all results for each data file
+
+Below are screenshots of an example folder structure containing all of the files/subfolders for an analysis insertion.
+
+![alt text](file-structure-example.png)
+
+![alt text](file-structure-example-2.png)
 
 ### config.json
 
@@ -36,6 +42,7 @@ Example JSON:
 ```json
 {
   "category_name": "Time Shift Detection",
+  "s3_bucket_folder_name": "time-shift-detection",
   "function_name": "detect_time_shifts",
   "comparison_type": "time_series",
   "display_metrics": {
@@ -60,10 +67,11 @@ Example JSON:
     "longitude",
     "data_sampling_frequency"
   ],
-  "ground_truth_compare": [
+  "references_compare": [
     "time_series"
   ],
   "public_results_table": "time-shift-public-metrics.json",
+  "private_results_table": "time-shift-private-metrics.json",
   "private_results_columns": [
     "system_id",
     "file_name",
@@ -79,37 +87,72 @@ Example JSON:
 #### Properties
 
 - "category_name" - name of analysis which will be used on frontend
+- "s3_bucket_folder_name" - name of the folder for the analysis in the S3 bucket
 - "function_name" - name of function required within submission file
 - "comparison_type" - type of comparison
 - "display_metrics" - mapping of final metric name to the display name for the leaderboard
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
   - e.g. `median_mean_absolute_error_time_series`
 - "performance_metrics" - list of metrics to calculate for analysis task
 - "metrics_operations" - contains a mapping of aggregate metric to the operation list to be performed on each metric
-  - The formatting is as follows `<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<performance_metric>_<references_type>`
   - e.g. `mean_absolute_error_time_series`
 - "allowable_kwargs" - kwargs for the submission function that are allowed
-- "ground_truth_compare" - results from submission function
+- "references_compare" - results from submission function
 - "public_results_table" - name of json result file that contains information about submission results
 - "private_results_columns" - name of columns that will be in final dataframe that is passed to marimo template
   - will need to contain final metric name to be used in marimo template
-  - The formatting is as follows `<metric_operation>_<performance_metric>_<ground_truth_type>`
+  - The formatting is as follows `<metric_operation>_<performance_metric>_<references_type>`
 
 ### system_metadata.csv
 
 Required columns:
 
 ```csv
-system_id,name,azimuth,tilt,elevation,latitude,longitude,tracking,climate_type,dc_capacity
+system_id,name,latitude,longitude
 ```
+
+**name** is the primary key and must be unique to pass validation
+**system_id** must be unique within the file to pass validation
+
+Optional columns:
+
+```csv
+azimuth,tilt,elevation,tracking,dc_capacity
+```
+
+Ideally we want to include as many optional columns as we can, although for some data sets this may not be possible as the data is unavailable.
 
 ### file_metadata.csv
 
 Required columns:
 
 ```csv
-file_id,system_id,file_name,timezone,data_sampling_frequency,issue
+system_id,file_name,include_on_leaderboard
 ```
+
+**file_name** is the primary key and must be unique to pass validation
+**system_id** must match a local `system_id` within the `system_metadata.csv` file. All `system_id` are mapped to a new internal increment identifier within the database upon a valid insertion.
+
+Optional columns:
+
+```csv
+timezone,data_sampling_frequency,issue,data_type
+```
+
+Optional columns may vary based on the type of problem being solved, and is subject to change as needed.
+
+### ./data/files/ folder
+
+This folder contains all of the individual files that we are going to feed into the runner to assess the associated algorithm. File names in this folder link directly to the file_name column in the `file_metadata.csv` file. Columns in these files can vary based on the type of inputs being assessed. A screenshot of an example file for the time shift problem is shown below.
+
+![alt text](input-file-data.png)
+
+### ./data/references/ folder
+
+This folder contains all of the files that contains the reference data, to be assessed against the runner outputs. Files in this folder have the same naming conventions as the files in the ./data/files/ folder, so these files can be successfully linked to their input data file counterparts. Data in these files will vary based on what target variable is being assessed. A screenshot of an example output file for the time shift problem is shown below.
+
+![alt text](output-file-data.png)
 
 ### template.py (Marimo template with cli args input)
 
@@ -128,6 +171,26 @@ def create_df_from_cli_args():
         df = pd.DataFrame.from_records(rows)
         return df
 ```
+
+### Insert the Analysis
+
+In the EC2 containers shell, you are able to manage tasks by using the manage.sh bash script with optional flags
+
+```bash
+bash manage.sh {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--limit <number>] [--use-cloud-files]
+```
+
+**-–dry-run** - Test that all the files are present and validation has passed without inserting the analysis
+
+**-–force** - Forcefully create an analysis even if the exact same analysis is already present
+
+**-–limit** - Useful during development to only include the top N files for an analysis to shorten time for testing
+
+**-–prod** - If a valid AWS key exists to the production AWS, you can push an analysis to production instead of your local development environment
+
+**--use-cloud-files** - If you have a valid AWS key then you can use files that exist within a private AWS S3 bucket for sensitive data
+
+#### REQUIRED: YOU WILL NEED TO REBUILD THE FRONTEND IMAGE AFTER INSERTING A NEW ANALYSIS FOR CHANGES TO SHOW ON FRONT END IF `--watch` IS NOT IS NOT ENABLED FOR LOCAL DEVELOPMENT
 
 ### Regarding Frontend Images and Markdown
 

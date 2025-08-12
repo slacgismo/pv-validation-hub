@@ -13,73 +13,26 @@ Finally, both industry and academia will be able to enjoy the assurance of accur
 - [PV-Validation-Hub](#pv-validation-hub)
   - [Table of Contents](#table-of-contents)
   - [Quick Start Instructions](#quick-start-instructions)
-    - [Update Submodule](#update-submodule)
-    - [Pre-commit and Black formatting](#pre-commit-and-black-formatting)
-    - [ENV File](#env-file)
-    - [Docker compose](#docker-compose)
-      - [Increasing memory limit](#increasing-memory-limit)
+  - [FAQ](#faq)
+    - [Increasing memory limit](#increasing-memory-limit)
     - [Website links](#website-links)
-    - [Uploading an analysis](#uploading-an-analysis)
-    - [Debugging and Troubleshooting](#debugging-and-troubleshooting)
-  - [Troubleshooting](#troubleshooting)
+  - [Debugging and Troubleshooting](#debugging-and-troubleshooting)
+    - [Inspecting Submission Logs](#inspecting-submission-logs)
     - [Django API Fixes](#django-api-fixes)
       - [Admin not found](#admin-not-found)
       - [Migrate Django API](#migrate-django-api)
   - [Documentation](#documentation)
   - [Figma Board](#figma-board)
   - [Useful tutorials for new devs](#useful-tutorials-for-new-devs)
-    - [Docker-compose](#docker-compose-1)
+    - [Docker-compose](#docker-compose)
 
 ## Quick Start Instructions
 
-To get a local version of the PV Validation Hub running you will need to have Docker installed on your host machine.
+For a quickstart tutorial to get a development environment installed on your local machine please refer to the [QuickStart.md](./QuickStart.md) document in the root of this repository.
 
-### Update Submodule
+## FAQ
 
-To have the front-end client build properly you will need to pull the latest changes from the repo. Since it exists as a submodule you can pull all the latest changes from main with the following git command
-
-```bash
-git submodule update --init --recursive
-```
-
-### Pre-commit and Black formatting
-
-Install the base python packages using `python pip install -r requirements.txt` in the base directory of the repository.
-
-To make sure pre-commit is active for submitting changes to the Github repository you will need to install pre-commit using the following command.
-
-```bash
-pre-commit install
-```
-
-Additional information is located here:
-
-[pre-commit](https://pre-commit.com/)
-
-### ENV File
-
-Here is an example .env file which you should fill out with your own values
-
-```bash
-djangosk=django-insecure-y&pp1if&0y)pxtmqf_@o1br(&-6mrxv**f5%&73d@d51kscvg!
-POSTGRES_PASSWORD=valhub
-POSTGRES_USER=valhub
-admin_username=admin
-admin_password=admin
-admin_email=admin@admin.com
-DOCKER_HOST_VOLUME_DATA_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/data"
-DOCKER_HOST_VOLUME_RESULTS_DIR="<path-to-repository>/<repo-name>/workers/current_evaluation/results"
-```
-
-### Docker compose
-
-To get all the environments up and running all you will need to do is to use `docker compose up` or `docker compose up --watch`.
-
-Using this will download the images required for each service and spin then up in the correct order automatically.
-
-There are many different bind mounts for each service which will create a symbolic link between the files on the host directory and the files attributed within the docker containers for debugging purposes. These various bind mounts can be seen within the `docker-compose.yml` file.
-
-#### Increasing memory limit
+### Increasing memory limit
 
 If you find that there is not enough memory when running submissions you can change the memory limit within Docker Desktop. You can increase the memory allocation for Docker through the Settings > Resources > Memory Limit slider.
 
@@ -87,29 +40,15 @@ If you find that there is not enough memory when running submissions you can cha
 
 The frontend port is 3000 and the Django API port is 8005. So you can access the frontend at [localhost:3000](http://localhost:3000) and the admin dashboard at [localhost:8005/admin](http://localhost:8005/admin)
 
-### Uploading an analysis
+## Debugging and Troubleshooting
 
-To upload a new analysis to the PV Validation Hub you will need to create a shell inside the running EC2 docker container in the same way described on how to do so listed in the [Admin not found](#admin-not-found) section.
-
-Once you have a valid shell inside the docker container you will notice that there is an `manage.sh` bash script. This will be your main entrypoint to uploading a new analysis.
-
-```bash
-bash manage.sh {insert} [--dry-run] [--force] [--prod] [--limit <number>]
-```
-
-You will also need all the files required for a valid analysis. All of this is described within the [README.md](/ec2/README.md) within the `ec2` folder within this repository.
-
-### Debugging and Troubleshooting
+### Inspecting Submission Logs
 
 When uploading a submission zip to the analysis task you created you can view the logs both in the docker desktop for the worker container but also within the `worker/logs` folder.
 
 After the submission has been processed the logs are reset for the next submission and the logs are added to the submission S3 artifacts. In the repository for example a submission is located here `s3Emulator/pv-validation-hub-bucket/submission_files/submission_user_{###}/submission_{###}/logs`.
 
-## Troubleshooting
-
 ### Django API Fixes
-
-There may be two different issues that could come up when running docker compose.
 
 #### Admin not found
 

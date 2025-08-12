@@ -1,0 +1,36 @@
+terraform {
+  # Can't put variables in here, so these values are hardcoded. Make sure the S3 bucket exists with the correct permissions.
+  backend "s3" {
+    bucket  = "valhub-terraform-storage"
+    key     = "terraform.tfstate"
+    region  = "us-west-1"
+    profile = "default"
+  }
+
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      version               = "~> 5.0"
+      configuration_aliases = [aws.us-east]
+    }
+  }
+}
+
+provider "aws" {
+  profile = var.aws_profile
+  region  = var.aws_region
+
+  default_tags {
+    tags = var.global_tags
+  }
+}
+
+provider "aws" {
+  alias   = "us-east"
+  profile = var.aws_profile
+  region  = "us-east-1"
+  default_tags {
+    tags = var.global_tags
+  }
+
+}

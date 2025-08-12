@@ -1,50 +1,47 @@
 name: Build and Test
 
 on:
-  push:
-  workflow_dispatch:
+    push:
+    workflow_dispatch:
 
 env:
-  applicationfolder: valhub
-  AWS_REGION: us-west-2
-  S3BUCKET: pv-validation-hub-bucket
-  DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+    DJANGOSK: ${{ secrets.DJANGOSK }}
 
 jobs:
-  build-api:
-    name: Build and Test API
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout Repository
+    build-api:
+        name: Build and Test API
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              name: Checkout Repository
 
-      - uses: psf/black@stable
-        with:
-          options: "--check --verbose"
-          src: "./valhub"
-          version: "24.2.0"
+            - uses: psf/black@stable
+              with:
+                  options: '--check --verbose'
+                  src: './valhub'
+                  version: '25.1.0'
 
-      - name: build
-        run: |
-          cd valhub
-          export DOCKER_BUILDKIT=1
-          docker build --build-arg admin_username="placeholder" --build-arg admin_password="placeholder" --build-arg djangosk="${{ env.DJANGO_SECRET_KEY }}" -t pv/val:tag -f Dockerfile .
+            - name: build
+              run: |
+                  cd valhub
+                  export DOCKER_BUILDKIT=1
+                  docker build --build-arg admin_username="placeholder" --build-arg admin_password="placeholder" --build-arg djangosk="${{ env.DJANGOSK }}" -t pv/val:tag -f Dockerfile .
 
-  build-worker:
-    name: Build and Test Worker
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        name: Checkout Repository
+    build-worker:
+        name: Build and Test Worker
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              name: Checkout Repository
 
-      - uses: psf/black@stable
-        with:
-          options: "--check --verbose"
-          src: "./workers"
-          version: "24.2.0"
+            - uses: psf/black@stable
+              with:
+                  options: '--check --verbose'
+                  src: './workers'
+                  version: '25.1.0'
 
-      - name: build
-        run: |
-          cd workers
-          export DOCKER_BUILDKIT=1
-          docker build -t pv/val:tag -f Dockerfile .
+            - name: build
+              run: |
+                  cd workers
+                  export DOCKER_BUILDKIT=1
+                  docker build -t pv/val:tag -f Dockerfile .

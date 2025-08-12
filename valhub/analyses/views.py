@@ -42,7 +42,9 @@ def list_analysis(request: Request):
     analyses = Analysis.objects.all()
     # print(analyses)
     # response_data = serializers.serialize('json', analyses)
-    response_data = AnalysisSerializer(analyses, many=True).data
+    serializer = AnalysisSerializer(analyses, many=True)
+
+    response_data = serializer.data
 
     return Response(response_data, status=status.HTTP_200_OK)
 
@@ -50,11 +52,12 @@ def list_analysis(request: Request):
 # Public route, leaderboard details
 @api_view(["GET"])
 @csrf_exempt
-def analysis_detail(request, analysis_id):
+def analysis_detail(request: Request, analysis_id: str):
     analysis = Analysis.objects.get(analysis_id=analysis_id)
-    # print(analysis)
-    # response_data = serializers.serialize('json', [analysis])
-    response_data = AnalysisSerializer(analysis).data
+
+    serializer = AnalysisSerializer(analysis)
+
+    response_data = serializer.data
 
     return Response(response_data, status=status.HTTP_200_OK)
 
@@ -62,15 +65,11 @@ def analysis_detail(request, analysis_id):
 # Public Route, leaderboard
 @api_view(["GET"])
 @csrf_exempt
-def leaderboard(request, analysis_id):
-    _analysis = Analysis.objects.get(analysis_id=analysis_id)
-
-    if _analysis is None:
-        response_data = {"error": "analysis does not exist"}
-        return JsonResponse(response_data, status=status.HTTP_400_BAD_REQUEST)
+def leaderboard(request: Request, analysis_id: str):
+    analysis = Analysis.objects.get(analysis_id=analysis_id)
 
     submission_list = Submission.objects.filter(
-        analysis=_analysis, result__isnull=False, status=Submission.FINISHED
+        analysis=analysis, result__isnull=False, status=Submission.FINISHED
     )
     serializer = SubmissionDetailSerializer(submission_list, many=True)
 
@@ -86,10 +85,24 @@ def leaderboard(request, analysis_id):
 def create_new_analysis(request: Request):
     # Remove user_id related code
     serializer = AnalysisSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        response_data = serializer.data
-        return Response(response_data, status=status.HTTP_201_CREATED)
-    else:
-        response_data = serializer.errors
-        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer.is_valid(raise_exception=True)
+
+    serializer.save()
+    response_data = serializer.data
+    return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["PUT"])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def update_analysis(request: Request, analysis_id: str):
+    analysis = Analysis.objects.get(analysis_id=analysis_id)
+
+    serializer = AnalysisSerializer(analysis, data=request.data, partial=True)
+
+    serializer.is_valid(raise_exception=True)
+
+    serializer.save()
+    response_data = serializer.data
+    return Response(response_data, status=status.HTTP_201_CREATED)

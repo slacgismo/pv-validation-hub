@@ -1,4 +1,8 @@
-from rest_framework import generics, status
+from rest_framework import status
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.request import Request
@@ -18,14 +22,14 @@ from rest_framework.permissions import IsAuthenticated
 
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-class SystemMetadataList(generics.ListCreateAPIView):
+class SystemMetadataList(ListCreateAPIView):
     queryset = SystemMetadata.objects.all()
     serializer_class = SystemMetadataSerializer
 
 
 @authentication_classes([TokenAuthentication, SessionAuthentication])
 @permission_classes([IsAuthenticated])
-class SystemMetadataDetail(generics.RetrieveUpdateDestroyAPIView):
+class SystemMetadataDetail(RetrieveUpdateDestroyAPIView):
     queryset = SystemMetadata.objects.all()
     serializer_class = SystemMetadataSerializer
 

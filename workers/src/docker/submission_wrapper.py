@@ -6,7 +6,7 @@ import json
 import pandas as pd
 import numpy as np
 from time import perf_counter
-from typing import Any, Union, Tuple, TypeVar, Callable, cast, Optional
+from typing import Any, Union, Tuple, TypeVar, Callable, Optional
 from logging import Logger
 import logging
 

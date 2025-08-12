@@ -108,6 +108,6 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
 
 
-@app.route("/static/pv-validation-hub-bucket/<path:file_path>")
+@app.route("/static/valhub-bucket/<path:file_path>")
 def serve_static_files(file_path):
-    return send_from_directory("/pv-validation-hub-bucket", file_path)
+    return send_from_directory("/valhub-bucket", file_path)

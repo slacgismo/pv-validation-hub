@@ -76,11 +76,11 @@ class JSONFormatter(logging.Formatter):
 
 
 class NonErrorFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool | logging.LogRecord:
+    def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno <= logging.INFO
 
 
-def setup_logging():
+def setup_logging(name: str):
     config_file_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "logging_config.json"
     )
@@ -94,3 +94,7 @@ def setup_logging():
         config: dict[str, Any] = json.load(f)
 
     logging.config.dictConfig(config)
+
+    logger = logging.getLogger(name)
+
+    return logger

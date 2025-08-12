@@ -2,6 +2,8 @@
 
 ## Requirements
 
+To begin development on the validation hub, download and install the [Docker client](https://www.docker.com). Alternatively, if you installed docker only for the command line tools, then you will need to also make sure to install ```docker-compose``` and to update both to the latest versions.
+
 Docker Desktop:
 <https://www.docker.com/products/docker-desktop/>
 
@@ -14,12 +16,6 @@ Git: <https://git-scm.com/>
 PV Validation Hub: <https://github.com/slacgismo/pv-validation-hub>
 
 PV Validation Hub Front-end: <https://github.com/slacgismo/pv-validation-hub-client>
-
-Analysis Markdown files: <https://github.com/kperrynrel/pvinsight_validation_hub_markdowns>
-
-Time Shift Analysis: <https://github.com/kperrynrel/time-shift-validation-hub>
-
-AZ Tilt Analysis: <https://github.com/kperrynrel/az-tilt-estimation-validator>
 
 ## Outline
 
@@ -75,6 +71,10 @@ pip install -r requirements.txt
 pre-commit install
 ```
 
+### Start Docker Desktop
+
+To have access to the Docker Daemon you will need to start the Docker Desktop Application on your machine
+
 ### Run all containers
 
 **Note:** You can increase the memory allocation for Docker through the Settings > Resources > Memory Limit slider
@@ -82,9 +82,9 @@ pre-commit install
 Kill all containers with ctrl + C or cmd + C and relaunch docker compose
 
 ```bash
-docker compose up
+docker compose build
 
-docker compose build api
+docker compose up
 ```
 
 ### Sign Into Frontend and Django Backend
@@ -96,24 +96,6 @@ Backend: <http://localhost:8005/admin/>
 ### Upload new analysis
 
 Inserting new Analysis happens in the EC2 folder within the PV Validation Hub Repository.
-
-Pull Analysis you wish to insert into EC2 folder
-
-### Clone the markdown repo
-
-```bash
-git clone https://github.com/kperrynrel/pvinsight_validation_hub_markdowns.git
-```
-
-### Clone time shift analysis into EC2 folder
-
-```bash
-git clone https://github.com/kperrynrel/time-shift-validation-hub.git
-```
-
-### Update routes.json
-
-Depending on the analysis you may need to change the file paths stored within the routes.json depending on their location
 
 ### Open a shell within the EC2 container
 
@@ -128,7 +110,7 @@ If you have the Docker VS Code extension you can right click on the EC2 containe
 In the EC2 containers shell, you are able to manage tasks by using the manage.sh bash script with optional flags
 
 ```bash
-bash manage.sh insert [--dry-run] [--force] [--prod] [--limit <number>]
+bash manage.sh {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--limit <number>] [--use-cloud-files]
 ```
 
 **-–dry-run** - Test that all the files are present and validation has passed without inserting the analysis
@@ -139,8 +121,11 @@ bash manage.sh insert [--dry-run] [--force] [--prod] [--limit <number>]
 
 **-–prod** - If a valid AWS key exists to the production AWS, you can push an analysis to production instead of your local development environment
 
-#### REQUIRED: YOU WILL NEED TO REBUILD THE FRONTEND IMAGE AFTER INSERTING A NEW ANALYSIS FOR CHANGES TO SHOW ON FRONT END
+**--use-cloud-files** - If you have a valid AWS key then you can use files that exist within a private AWS S3 bucket for sensitive data
+
+#### REQUIRED: YOU WILL NEED TO REBUILD THE FRONTEND IMAGE AFTER INSERTING A NEW ANALYSIS FOR CHANGES TO SHOW ON FRONT END IF `--watch` IS NOT IS NOT ENABLED FOR LOCAL DEVELOPMENT
 
 ```bash
 docker compose build react-client
+docker compose up react-client
 ```
