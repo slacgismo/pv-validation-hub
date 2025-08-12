@@ -4,7 +4,7 @@ terraform {
     bucket  = "valhub-terraform-storage"
     key     = "terraform.tfstate"
     region  = "us-west-1"
-    profile = "nrel-pvinsight"
+    profile = "default"
   }
 
   required_providers {

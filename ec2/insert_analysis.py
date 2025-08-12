@@ -1272,7 +1272,7 @@ if __name__ == "__main__":
             s3_url=s3_url,
             is_local=is_local,
             use_cloud_files=use_cloud_files,
-            aws_profile_name="nrel-pvinsight",
+            aws_profile_name="default",
         )
 
         if limit > 0:
