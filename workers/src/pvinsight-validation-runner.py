@@ -822,7 +822,7 @@ def install_module_dependencies(
 def create_function_args_for_file(
     file_metadata_row: pd.Series,
     system_metadata_row: pd.Series,
-    allowable_kwargs: list[str],
+    function_outputs: list[str],
 ):
 
     submission_file_name: str = cast(str, file_metadata_row["file_name"])
@@ -836,18 +836,24 @@ def create_function_args_for_file(
     ).squeeze()
 
     args: list[str] = []
+    # All columns can be args
+    args = list(merged_row.columns)
+    # Take out any columns that are outputs if they're in the list
+    args = [arg for arg in args if arg not in function_outputs]    
+    # Also remove any unneccessary metadata fields (name, system_id, etc)
+    args = [arg for arg in args if arg not in ['system_id', 'name',
+                                               'file_id', 'file_name']]    
+    # for argument in allowable_kwargs:
+    #     if argument not in merged_row:
+    #         logger.error(f"argument {argument} not found in merged_row")
+    #         # raise RunnerException(
+    #         #     *get_error_by_code(500, runner_error_codes, logger)
+    #         # )
+    #         args.append("")
+    #         continue
+    #     value = merged_row[argument]
 
-    for argument in allowable_kwargs:
-        if argument not in merged_row:
-            logger.error(f"argument {argument} not found in merged_row")
-            # raise RunnerException(
-            #     *get_error_by_code(500, runner_error_codes, logger)
-            # )
-            args.append("")
-            continue
-        value = merged_row[argument]
-
-        args.append(str(value))
+    #     args.append(str(value))
 
     # Submission Args for the function
     function_args = (submission_file_name, *args)
@@ -893,10 +899,14 @@ def prepare_function_args_for_parallel_processing(
     )
 
     function_args_list = None
+    
+    function_outputs: list[str] = config_data.get("outputs", {})
+    
+    logger.info(f"function_outputs: {function_outputs}")
+    
+    #allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
 
-    allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
-
-    logger.info(f"allowable_kwargs: {allowable_kwargs}")
+    #logger.info(f"allowable_kwargs: {allowable_kwargs}")
 
     for file_number, (_, file_metadata_row) in enumerate(
         file_metadata_df.iterrows()
@@ -917,7 +927,7 @@ def prepare_function_args_for_parallel_processing(
         submission_args = create_function_args_for_file(
             file_metadata_row,
             system_metadata_row,
-            allowable_kwargs,
+            function_outputs
         )
 
         logger.info(f"submission_args: {submission_args}")
@@ -963,15 +973,14 @@ def run_submission(
     # Now that we've collected all of the information associated with the
     # test, let's read in the file as a pandas dataframe (this data
     # would most likely be stored in an S3 bucket)
-    time_series = prepare_time_series(data_dir, file_name, row)
-
+    time_series_list = prepare_time_series(data_dir, file_name, row)
     # Run the routine (timed)
     logger.info(
         f"running function {submission_function.__name__} with kwargs {kwargs}"
     )
 
     data_outputs, function_run_time = run_user_submission(
-        submission_function, time_series, kwargs
+        submission_function, time_series_list, kwargs
     )
 
     return (
@@ -1342,19 +1351,18 @@ def prepare_kwargs_for_submission_function(
 
 
 def prepare_time_series(
-    data_dir: str, file_name: str, row: pd.Series
-) -> pd.Series:
+    data_dir: str, file_name: str, row: pd.Series) -> pd.Series:
     time_series_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir + "/file_data/", file_name),
         index_col=0,
         parse_dates=True,
     )
 
-    time_series: pd.Series = time_series_df.asfreq(
+    time_series_list: list = [time_series_df[x].asfreq(
         str(row["data_sampling_frequency"]) + "min"
-    ).squeeze()
+    ) for x in list(time_series_df.columns)]
 
-    return time_series
+    return time_series_list
 
 
 if __name__ == "__main__":
