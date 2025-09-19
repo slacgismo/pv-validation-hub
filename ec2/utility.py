@@ -220,7 +220,7 @@ def request_to_API_w_credentials(
 ):
 
     url = f"{api_url}/{endpoint}"
-
+    print(url)
     auth_header: dict[str, str] | None = (
         kwargs["auth"] if "auth" in kwargs else None
     )

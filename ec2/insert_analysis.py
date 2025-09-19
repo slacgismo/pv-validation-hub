@@ -11,6 +11,7 @@ import pandas as pd
 import os
 import shutil
 import argparse
+import aws_access_cred_manager
 
 from utility import (
     are_hashes_the_same,
@@ -75,8 +76,8 @@ class InsertAnalysis:
         api_url: str,
         s3_url: str,
         is_local: bool,
+        aws_creds: dict,
         use_cloud_files: bool = False,
-        aws_profile_name: str = "default",  # Default AWS profile name
     ):
         self.task_dir = task_dir
         self.config_file_path = os.path.join(task_dir, "config.json")
@@ -84,7 +85,7 @@ class InsertAnalysis:
         self.analysis_version: str = "1.0"
         self.config = config
         self.is_local = is_local
-        self.aws_profile_name = aws_profile_name
+        self.aws_creds = aws_creds
 
         self.api_url = api_url
         self.s3_url = s3_url
@@ -162,7 +163,7 @@ class InsertAnalysis:
                 is_s3_emulation=False,
                 s3_bucket_name=self.s3_task_bucket_name,
                 s3_dir="files/",
-                aws_profile_name=self.aws_profile_name,
+                aws_creds=self.aws_creds,
             )
         ]
 
@@ -172,7 +173,7 @@ class InsertAnalysis:
                 is_s3_emulation=False,
                 s3_bucket_name=self.s3_task_bucket_name,
                 s3_dir=f"references/{self.config['s3_bucket_folder_name']}/",
-                aws_profile_name=self.aws_profile_name,
+                aws_creds=self.aws_ceds,
             )
         ]
 
@@ -197,7 +198,7 @@ class InsertAnalysis:
         files_to_exclude: list[str] = []
 
         for file in file_metadata_files:
-            session = boto3.Session(profile_name=self.aws_profile_name)
+            session = boto3.Session(profile_name=self.aws_creds)
             s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_data_folder:
                 local_file_hash = get_file_hash(
@@ -227,7 +228,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
-                    aws_profile_name=self.aws_profile_name,
+                    aws_creds=self.aws_creds,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -242,7 +243,7 @@ class InsertAnalysis:
         files_to_exclude = []
 
         for file in file_metadata_files:
-            session = boto3.Session(profile_name=self.aws_profile_name)
+            session = boto3.Session(profile_name=self.aws_creds)
             s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_reference_folder:
                 local_file_hash = get_file_hash(
@@ -274,7 +275,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
-                    aws_profile_name=self.aws_profile_name,
+                    aws_creds=self.aws_creds,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -286,7 +287,7 @@ class InsertAnalysis:
         if not use_cloud_files:
             return
 
-        check_aws_credentials(profile_name=self.aws_profile_name)
+        check_aws_credentials(profile_name=self.aws_creds)
 
         # Pull metadata files from the cloud
 
@@ -305,7 +306,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
-                    aws_profile_name=self.aws_profile_name,
+                    aws_creds=self.aws_creds,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -613,7 +614,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
-                self.aws_profile_name,
+                self.aws_creds,
             )
 
     def uploadValidationData(self):
@@ -636,7 +637,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
-                self.aws_profile_name,
+                self.aws_creds,
             )
 
     def createEvaluationScripts(self):
@@ -667,7 +668,7 @@ class InsertAnalysis:
                     local_path,
                     upload_path,
                     self.is_local,
-                    self.aws_profile_name,
+                    self.aws_creds,
                 )
 
     def updateSystemMetadataIDs(self):
@@ -1272,7 +1273,7 @@ if __name__ == "__main__":
             s3_url=s3_url,
             is_local=is_local,
             use_cloud_files=use_cloud_files,
-            aws_profile_name="default",
+            aws_creds=aws_creds,
         )
 
         if limit > 0:
