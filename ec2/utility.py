@@ -241,7 +241,6 @@ def request_to_API_w_credentials(
 def get_data_from_api_to_df(
     api_url: str, endpoint: str, logger: Logger | None = None
 ) -> pd.DataFrame:
-
     response = with_credentials(api_url, logger)(request_to_API_w_credentials)(
         api_url, "GET", endpoint=endpoint, logger=logger
     )
