@@ -11,7 +11,8 @@ import pandas as pd
 import os
 import shutil
 import argparse
-import aws_access_cred_manager
+import aws_keys_and_tokens
+
 
 from utility import (
     are_hashes_the_same,
@@ -76,7 +77,7 @@ class InsertAnalysis:
         api_url: str,
         s3_url: str,
         is_local: bool,
-        aws_creds: dict,
+        aws_creds: dict = {},
         use_cloud_files: bool = False,
     ):
         self.task_dir = task_dir
@@ -198,7 +199,11 @@ class InsertAnalysis:
         files_to_exclude: list[str] = []
 
         for file in file_metadata_files:
-            session = boto3.Session(profile_name=self.aws_creds)
+            session = boto3.Session(
+                aws_access_key_id=self.aws_creds["key"],
+                aws_secret_access_key=self.aws_creds["secret"],
+                aws_session_token=self.aws_creds["token"],
+            )
             s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_data_folder:
                 local_file_hash = get_file_hash(
@@ -243,7 +248,12 @@ class InsertAnalysis:
         files_to_exclude = []
 
         for file in file_metadata_files:
-            session = boto3.Session(profile_name=self.aws_creds)
+            session = boto3.Session(
+                aws_access_key_id=self.aws_creds["key"],
+                aws_secret_access_key=self.aws_creds["secret"],
+                aws_session_token=self.aws_creds["token"],
+            )
+            s3_client: S3Client = session.client("s3")  # type: ignore
             s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_reference_folder:
                 local_file_hash = get_file_hash(
@@ -1246,6 +1256,13 @@ if __name__ == "__main__":
         task_dir: str = args.dir
         ########################################################################
 
+        if not is_local:
+            # Access the credentials via the cred rotator
+            awsc = aws_keys_and_tokens.load_config("developers", display=False)
+            aws_creds = list(awsc.values())[0]
+        else:
+            aws_creds = {}
+
         logger.info(f"is_dry_run: {is_dry_run}")
         logger.info(f"is_force: {is_force}")
         logger.info(f"limit: {limit}")
@@ -1272,8 +1289,8 @@ if __name__ == "__main__":
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
-            use_cloud_files=use_cloud_files,
             aws_creds=aws_creds,
+            use_cloud_files=use_cloud_files,
         )
 
         if limit > 0:
