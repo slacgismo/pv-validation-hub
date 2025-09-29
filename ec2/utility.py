@@ -69,6 +69,7 @@ def request_handler(
 
     r = method_request(method, endpoint, headers=headers, data=data)
     if not r.ok:
+        print(r.text)
         logger_if_able(f"Error: {r.text}", logger, "ERROR")
         raise Exception("Failed to get data")
     logger_if_able(r.text, logger)

@@ -1256,12 +1256,15 @@ if __name__ == "__main__":
         task_dir: str = args.dir
         ########################################################################
 
-        if not is_local:
-            # Access the credentials via the cred rotator
-            awsc = aws_keys_and_tokens.load_config("developers", display=False)
-            aws_creds = list(awsc.values())[0]
-        else:
-            aws_creds = {}
+        # if not is_local:
+        #     # Access the credentials via the cred rotator
+        #     awsc = aws_keys_and_tokens.load_config("developers", display=False)
+        #     aws_creds = list(awsc.values())[0]
+        # else:
+        #     aws_creds = {}
+        awsc = aws_keys_and_tokens.load_config("developers", display=False)
+        aws_creds = list(awsc.values())[0]
+        logger.info(aws_creds)
 
         logger.info(f"is_dry_run: {is_dry_run}")
         logger.info(f"is_force: {is_force}")
