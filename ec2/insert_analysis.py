@@ -605,7 +605,6 @@ class InsertAnalysis:
                 "file_hash": metadata["file_hash"],
                 "include_on_leaderboard": metadata["include_on_leaderboard"],
             }
-
             logger.info(json_body)
 
             post_data_to_api_to_df(
@@ -821,13 +820,8 @@ class InsertAnalysis:
         system_metadata_columns = [
             "system_id",
             "name",
-            "azimuth",
-            "tilt",
-            "elevation",
             "latitude",
             "longitude",
-            "tracking",
-            "dc_capacity",
         ]
 
         def addNAtoMissingColumns(df: pd.DataFrame, columns: list[str]):
@@ -839,6 +833,13 @@ class InsertAnalysis:
 
         # Return the system data ready for insertion
         df_modified = addNAtoMissingColumns(df_new, system_metadata_columns)
+
+        # add some missing columns
+        if "elevation" not in df_modified.columns:
+            df_modified["elevation"] = 0
+        else:
+            df_modified["elevation"] = df_modified["elevation"].fillna(0)  # type: ignore
+
         logger.info(df_modified.head(5))
         return df_modified
 
@@ -866,7 +867,6 @@ class InsertAnalysis:
             )
 
         # Fill in any missing values with "N/A"
-
         if "issue" not in df_new.columns:
             df_new["issue"] = "N/A"
         else:
@@ -1256,14 +1256,13 @@ if __name__ == "__main__":
         task_dir: str = args.dir
         ########################################################################
 
-        # if not is_local:
-        #     # Access the credentials via the cred rotator
-        #     awsc = aws_keys_and_tokens.load_config("developers", display=False)
-        #     aws_creds = list(awsc.values())[0]
-        # else:
-        #     aws_creds = {}
-        awsc = aws_keys_and_tokens.load_config("developers", display=False)
-        aws_creds = list(awsc.values())[0]
+        if not is_local:
+            # Access the credentials via the cred rotator
+            awsc = aws_keys_and_tokens.load_config("developers", display=False)
+            aws_creds = list(awsc.values())[0]
+        else:
+            aws_creds = {"key": None, "secret": None, "token": None}
+
         logger.info(aws_creds)
 
         logger.info(f"is_dry_run: {is_dry_run}")
