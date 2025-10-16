@@ -172,6 +172,26 @@ def create_df_from_cli_args():
         return df
 ```
 
+### Insert the Analysis
+
+In the EC2 containers shell, you are able to manage tasks by using the manage.sh bash script with optional flags
+
+```bash
+bash manage.sh {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--limit <number>] [--use-cloud-files]
+```
+
+**-–dry-run** - Test that all the files are present and validation has passed without inserting the analysis
+
+**-–force** - Forcefully create an analysis even if the exact same analysis is already present
+
+**-–limit** - Useful during development to only include the top N files for an analysis to shorten time for testing
+
+**-–prod** - If a valid AWS key exists to the production AWS, you can push an analysis to production instead of your local development environment
+
+**--use-cloud-files** - If you have a valid AWS key then you can use files that exist within a private AWS S3 bucket for sensitive data
+
+#### REQUIRED: YOU WILL NEED TO REBUILD THE FRONTEND IMAGE AFTER INSERTING A NEW ANALYSIS FOR CHANGES TO SHOW ON FRONT END IF `--watch` IS NOT IS NOT ENABLED FOR LOCAL DEVELOPMENT
+
 ### Regarding Frontend Images and Markdown
 
 To update analytic task images and markdown on the frontend you will need to do so within the frontend client repository. Using the analysis ID that is within the URL or within the admin dashboard in the analysis section.

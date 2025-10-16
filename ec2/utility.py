@@ -69,6 +69,7 @@ def request_handler(
 
     r = method_request(method, endpoint, headers=headers, data=data)
     if not r.ok:
+        print(r.text)
         logger_if_able(f"Error: {r.text}", logger, "ERROR")
         raise Exception("Failed to get data")
     logger_if_able(r.text, logger)
@@ -220,7 +221,7 @@ def request_to_API_w_credentials(
 ):
 
     url = f"{api_url}/{endpoint}"
-
+    print(url)
     auth_header: dict[str, str] | None = (
         kwargs["auth"] if "auth" in kwargs else None
     )
@@ -241,7 +242,6 @@ def request_to_API_w_credentials(
 def get_data_from_api_to_df(
     api_url: str, endpoint: str, logger: Logger | None = None
 ) -> pd.DataFrame:
-
     response = with_credentials(api_url, logger)(request_to_API_w_credentials)(
         api_url, "GET", endpoint=endpoint, logger=logger
     )

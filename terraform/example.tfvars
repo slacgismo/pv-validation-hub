@@ -3,7 +3,7 @@
 # production.tfvars for production settings
 
 # Root Module
-aws_profile = "nrel-pvinsight"
+aws_profile = "default"
 aws_region  = "us-west-2"
 global_tags = {
   org         = "pvvalhub"
