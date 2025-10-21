@@ -107,7 +107,7 @@ def login_to_API(
 ):
 
     login_url = f"{api_url}/login"
-
+    print(username, password)
     json_body = request_handler(
         "POST", login_url, {"username": username, "password": password}
     )
@@ -233,7 +233,7 @@ def request_to_API_w_credentials(
         headers = {}
 
     headers = {**headers, **auth_header}
-
+    print(headers)
     response = request_handler(method, url, data, headers, logger)
     return response
 
@@ -285,7 +285,7 @@ def upload_to_s3_bucket(
     local_path: str,
     upload_path: str,
     is_local: bool,
-    aws_profile_name: str = "default",  # Default AWS profile name,
+    aws_profile_name: str = "nrel-aws-pvvalhub-developers",  # Default AWS profile name,
 ):
     """
     Upload file to S3 bucket and return object URL
@@ -321,7 +321,8 @@ def upload_to_s3_bucket(
                 )
     else:
         """Upload file to S3 bucket and return object URL"""
-        session = boto3.Session(profile_name=aws_profile_name)
+        print(aws_profile_name)
+        session = boto3.Session(profile_name="nrel-aws-pvvalhub-developers")
         s3: S3Client = session.client("s3")  # type: ignore
 
         try:
