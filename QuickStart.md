@@ -140,5 +140,5 @@ Deploying code to production is done through [GitHub actions](https://github.com
 
 For the _current Validation Hub sandbox website_, those with administrative credentials will be able to select "run workflow" after selecting an action to initiate changes to production API, frontend, and backend respectively. For those that want to replicate this project, the files containing the GitHub actions will be copied over in your fork, but you will need to update the configuration to match your hosting environment and credientials.
 
-**Note:** Changes to the website _infrasctructure_ (as opposed to codebase) are handled through the [terraform scripts](https://github.com/slacgismo/pv-validation-hub/tree/main/terraform). For more information, [see here](https://developer.hashicorp.com/terraform/docs).
+**Note:** Changes to the website _infrasctructure_ (as opposed to the codebase) are handled through the [terraform scripts](https://github.com/slacgismo/pv-validation-hub/tree/main/terraform). For more information, [see here](https://developer.hashicorp.com/terraform/docs).
 
