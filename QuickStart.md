@@ -138,7 +138,7 @@ Deploying code to production is done through [GitHub actions](https://github.com
 - Deploy Production to s3/Cloudfront
 - Deploy Worker to Amazon ECS/ECR
 
-For the _current Validation Hub sandbox website_, those with administrative credentials will be able to select "run workflow" after selecting an action to initiate changes to production API, frontend, and backend respectively. For authorized alpha testers, the website is available here: (pv-validation-hub.stratus.nrel.gov)[https://pv-validation-hub.stratus.nrel.gov/]
+For the _current Validation Hub sandbox website_, those with administrative credentials will be able to select "run workflow" after selecting an action to initiate changes to production API, frontend, and backend respectively. For authorized alpha testers, the website is available here: [pv-validation-hub.stratus.nrel.gov](https://pv-validation-hub.stratus.nrel.gov/)
 
 For those that want to replicate this project, the files containing the GitHub actions will be copied over in your fork, but you will need to update the configuration to match your hosting environment and credientials.
 
