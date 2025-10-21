@@ -129,3 +129,16 @@ bash manage.sh {insert} <analysis-task-name> [--dry-run] [--force] [--prod] [--l
 docker compose build react-client
 docker compose up react-client
 ```
+
+### Publish code to production
+
+Deploying code to production is done through [GitHub actions](https://github.com/slacgismo/pv-validation-hub/actions). There are three actions, accessible from the left sidebar:
+
+- Deploy API to Amazon ECS/ECR
+- Deploy Production to s3/Cloudfront
+- Deploy Worker to Amazon ECS/ECR
+
+For the _current Validation Hub sandbox website_, those with administrative credentials will be able to select "run workflow" after selecting an action to initiate changes to production API, frontend, and backend respectivelyt. For those that want to replicate this project, the files containing the GitHub actions will be copied over in your fork, but you will need to update the configuration to match your hosting environment and credientials.
+
+**Note:** Changes to the website _infrasctructure_ (as opposed to codebase) are handled through the [terraform scripts](https://github.com/slacgismo/pv-validation-hub/tree/main/terraform). For more information, [see here](https://developer.hashicorp.com/terraform/docs).
+
