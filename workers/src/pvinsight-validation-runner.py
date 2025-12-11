@@ -275,10 +275,12 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
 @timing(verbose=True, logger=logger)
 def run_user_submission(
     fn: Callable[P, pd.Series],
-    *args,
+    args: dict,
     **kwargs,
 ):
-    return fn(*args, **kwargs)
+    print(args)
+    print(kwargs)
+    return fn(**args, **kwargs)
 
 
 def move_files_to_directory(files: list[str], src_dir: str, dest_dir: str):
@@ -963,7 +965,7 @@ def run_submission(
     # Now that we've collected all of the information associated with the
     # test, let's read in the file as a pandas dataframe (this data
     # would most likely be stored in an S3 bucket)
-    time_series = prepare_time_series(data_dir, file_name, row)
+    time_series_params = prepare_time_series(data_dir, file_name, row)
 
     # Run the routine (timed)
     logger.info(
@@ -971,7 +973,7 @@ def run_submission(
     )
 
     data_outputs, function_run_time = run_user_submission(
-        submission_function, time_series, kwargs
+        submission_function, time_series_params, kwargs
     )
 
     return (
@@ -1341,20 +1343,25 @@ def prepare_kwargs_for_submission_function(
     return kwargs
 
 
-def prepare_time_series(
-    data_dir: str, file_name: str, row: pd.Series
-) -> pd.Series:
+def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
     time_series_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir + "/file_data/", file_name),
         index_col=0,
         parse_dates=True,
     )
-
-    time_series: pd.Series = time_series_df.asfreq(
-        str(row["data_sampling_frequency"]) + "min"
-    ).squeeze()
-
-    return time_series
+    time_series_dict = dict()
+    if len(time_series_df.columns) == 1:
+        time_series: pd.Series = time_series_df.asfreq(
+            str(row["data_sampling_frequency"]) + "min"
+        ).squeeze()
+        time_series_dict['time_series'] = time_series
+    else:
+        for col in list(time_series_df.columns):
+            time_series: pd.Series = time_series_df[col].asfreq(
+                str(row["data_sampling_frequency"]) + "min"
+            )
+            time_series_dict[col] = time_series
+    return time_series_dict
 
 
 if __name__ == "__main__":
