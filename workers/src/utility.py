@@ -729,7 +729,8 @@ def login_to_API(
 ):
 
     login_url = f"{API_BASE_URL}/login"
-
+    print(login_url)
+    print(username, password)
     json_body = request_handler(
         "POST", login_url, {"username": username, "password": password}
     )
@@ -776,8 +777,8 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
 def with_credentials(logger: logging.Logger | None = None):
 
     if IS_LOCAL:
-        username = os.environ.get("worker_username", None)
-        password = os.environ.get("worker_password", None)
+        username = os.environ.get("valhub_admin_username", None)
+        password = os.environ.get("valhub_admin_password", None)
     else:
         username, password = get_login_secrets_from_aws()
 
@@ -1258,6 +1259,7 @@ def submission_task(
                 "error_message": error_message,
                 "file_name": submission_args[0],
             }
+            logger.info(file_error_report)
 
             logger_if_able(f"Error: {file_error_report}", logger, "ERROR")
             # error, error_code = create_error_report(
