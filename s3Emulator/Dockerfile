@@ -1,6 +1,5 @@
 # Use an official Python runtime as the base image
-FROM python:3.9-slim-buster
-
+FROM python:3.9-slim
 WORKDIR /
 
 RUN apt-get update && apt-get install git sudo curl jq gawk nano -y
