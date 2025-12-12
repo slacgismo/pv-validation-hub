@@ -1361,6 +1361,7 @@ def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
                 str(row["data_sampling_frequency"]) + "min"
             )
             time_series_dict[col] = pd.Series(time_series)
+            print(time_series_dict)
     return time_series_dict
 
 
