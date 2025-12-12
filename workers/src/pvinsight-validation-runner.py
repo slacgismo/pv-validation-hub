@@ -1361,11 +1361,5 @@ def prepare_time_series(
 
 if __name__ == "__main__":
     pass
-    # run(
-    #     "submission_files/submission_user_1/submission_118/dfec718f-bb6e-4194-98cf-2edea6f3f717_sdt-submission.zip",
-    #     "/root/worker/current_evaluation",
-    # )
-    # push_to_s3(
-    #     "/pv-validation-hub-bucket/submission_files/submission_user_1/submission_1/results/time-shift-public-metrics.json",
-    #     "pv-validation-hub-bucket/test_bucket/test_subfolder/res.json",
-    # )
+
+ 

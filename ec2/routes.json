@@ -5,7 +5,7 @@
         "api": "http://api:8005"
     },
     "prod": {
-        "s3": "s3://pv-validation-hub-bucket",
-        "api": "https://api.pv-validation-hub.org"
+        "s3": "s3://valhub-bucket",
+        "api": "https://api-pv-validation-hub.stratus.nrel.gov"
     }
 }

@@ -7,6 +7,7 @@ services:
             POSTGRES_USER: valhub
         ports:
             - '5432:5432'
+        restart: always
         volumes:
             - valhub:/data/db
 
@@ -30,6 +31,7 @@ services:
             ENVIRONMENT: development
         ports:
             - '8005:8005'
+        restart: always
         depends_on:
             - db
             - sqs
@@ -50,10 +52,11 @@ services:
             - '5001:5000'
         depends_on:
             - api
+        restart: always
         volumes:
             - type: bind
-              source: ./s3Emulator/pv-validation-hub-bucket
-              target: /pv-validation-hub-bucket
+              source: ./s3Emulator/valhub-bucket
+              target: /valhub-bucket
 
     ec2:
         build:
@@ -68,6 +71,7 @@ services:
         depends_on:
             - api
             - s3
+        restart: always
         volumes:
             - type: bind
               source: ./ec2
@@ -92,6 +96,7 @@ services:
         depends_on:
             - api
             - s3
+        restart: always
         develop:
             watch:
                 - action: sync

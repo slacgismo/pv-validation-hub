@@ -1,23 +1,26 @@
 name: Deploy API to Amazon ECS/ECR
 
 on:
-  workflow_dispatch:
-  release:
-    types: [published]
+    workflow_dispatch:
+    release:
+        types: [published]
 
 env:
-  AWS_REGION: us-west-2                    
-  ECR_API_REPOSITORY: pv-validation-hub-api     
-  ECS_API_SERVICE: ecs-api-service
-  ECS_API_CLUSTER: pv-validation-hub-api-cluster               
-  API_CONTAINER_NAME: pv-validation-hub-api-task
-  DJANGOSK: ${{ secrets.DJANGOSK }}
-  ADU: ${{ secrets.ADU }}
-  ADP: ${{ secrets.ADP }}
-  ADE: ${{ secrets.ADE }}
-  AK: ${{ secrets.API_AK }}
-  SAK: ${{ secrets.API_SAK }}
-  PEM: ${{ secrets.PEM }}
+    AWS_REGION: ${{ vars.AWS_REGION }}
+    ECR_API_REPOSITORY: ${{ vars.ECR_API_REPOSITORY }}
+    ECS_API_SERVICE: ${{ vars.ECS_API_SERVICE }}
+    ECS_API_CLUSTER: ${{ vars.ECS_API_CLUSTER }}
+    API_TASK_DEFINITION_NAME: ${{ vars.API_TASK_DEFINITION_NAME }}
+    AWS_GITHUB_OIDC_ROLE_ARN: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
+    DJANGOSK: ${{ secrets.DJANGOSK }}
+    ADU: ${{ secrets.ADU }}
+    ADP: ${{ secrets.ADP }}
+    ADE: ${{ secrets.ADE }}
+    PEM: ${{ secrets.PEM }}
+
+permissions:
+    contents: read
+    id-token: write
 
 jobs:
     deploy_api:
@@ -25,61 +28,59 @@ jobs:
         runs-on: ubuntu-latest
         environment: production
         steps:
-          - name: Checkout
-            uses: actions/checkout@v3
-    
-          - name: Configure AWS credentials
-            uses: aws-actions/configure-aws-credentials@v1
-            with:
-              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-              aws-region: ${{ env.AWS_REGION }}
-    
-          - name: Login to Amazon ECR
-            id: login-ecr
-            uses: aws-actions/amazon-ecr-login@v1
-    
-          - name: Build, tag, and push image to Amazon ECR
-            id: build-image-api
-            env:
-              ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-              ECR_REPOSITORY: ${{ env.ECR_API_REPOSITORY }}
-              IMAGE_TAG: latest
-            run: |
-              cd valhub
-              mkdir .pem
-              echo "${{ env.PEM }}" > .pem/private-key.pem
-              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-              --build-arg djangosk=${{ env.DJANGOSK }} \
-              --build-arg admin_username=${{ env.ADU }} \
-              --build-arg admin_password=${{ env.ADP }} \
-              --build-arg admin_email=${{ env.ADE }} \
-              --build-arg region=${{ env.AWS_REGION }} \
-              --build-arg ak=${{ env.AK }} \
-              --build-arg sak=${{ env.SAK }} \
-               -f Dockerfile.prod .
-              docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-              echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
-    
-          # needed for the task-definition.json file, update task family here
-          # can also use the CLI to manually generate the task, new def forces new deployment of containers 
-          - name: Download task definition
-            run: |
-              aws ecs describe-task-definition --task-definition ${{ env.API_CONTAINER_NAME }} --query taskDefinition > task-definition.json
+            - name: Checkout
+              uses: actions/checkout@v4
 
-          - name: Fill in the new image ID in the Amazon ECS task definition
-            id: task-def
-            uses: aws-actions/amazon-ecs-render-task-definition@v1
-            with:
-              task-definition: task-definition.json
-              container-name: ${{ env.API_CONTAINER_NAME }}
-              image: ${{ env.IMAGE }}
-    
-          - name: Deploy Amazon ECS task definition
-            uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-            with:
-              task-definition: ${{ steps.task-def.outputs.task-definition }}
-              service: ${{ env.ECS_API_SERVICE }}
-              cluster: ${{ env.ECS_API_CLUSTER }}
-              wait-for-service-stability: true
-    
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.AWS_GITHUB_OIDC_ROLE_ARN }}
+                  aws-region: ${{ env.AWS_REGION }}
+                  role-session-name: github_actions_deploy_api
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build, tag, and push image to Amazon ECR
+              id: build-image-api
+              env:
+                  ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                  ECR_REPOSITORY: ${{ env.ECR_API_REPOSITORY }}
+                  IMAGE_TAG: latest
+              run: |
+                  cd valhub
+                  mkdir .pem
+                  echo "${{ env.PEM }}" > .pem/private-key.pem
+                  docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+                  --build-arg djangosk=${{ env.DJANGOSK }} \
+                  --build-arg admin_username=${{ env.ADU }} \
+                  --build-arg admin_password=${{ env.ADP }} \
+                  --build-arg admin_email=${{ env.ADE }} \
+                  --build-arg region=${{ env.AWS_REGION }} \
+                   -f Dockerfile.prod .
+                  docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                  echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+            # needed for the task-definition.json file, update task family here
+            # can also use the CLI to manually generate the task, new def forces new deployment of containers
+            - name: Download task definition
+              run: |
+                  aws ecs describe-task-definition --task-definition ${{ env.API_TASK_DEFINITION_NAME }} --query taskDefinition > task-definition.json
+
+            - name: Fill in the new image ID in the Amazon ECS task definition
+              id: task-def
+              uses: aws-actions/amazon-ecs-render-task-definition@v1
+              with:
+                  task-definition: task-definition.json
+                  container-name: ${{ env.API_TASK_DEFINITION_NAME }}
+                  image: ${{ env.IMAGE }}
+
+            - name: Deploy Amazon ECS task definition
+              uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+              with:
+                  task-definition: ${{ steps.task-def.outputs.task-definition }}
+                  service: ${{ env.ECS_API_SERVICE }}
+                  cluster: ${{ env.ECS_API_CLUSTER }}
+                  wait-for-service-stability: true
+                  force-new-deployment: true

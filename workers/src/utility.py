@@ -46,7 +46,7 @@ WORKER_ERROR_PREFIX = "wr"
 RUNNER_ERROR_PREFIX = "op"
 SUBMISSION_ERROR_PREFIX = "sb"
 
-S3_BUCKET_NAME = "pv-validation-hub-bucket"
+S3_BUCKET_NAME = "valhub-bucket"
 
 SUBMITTING = "submitting"
 SUBMITTED = "submitted"
@@ -67,7 +67,9 @@ def is_local():
 
 IS_LOCAL = is_local()
 
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+API_BASE_URL = (
+    "api:8005" if IS_LOCAL else "api-pv-validation-hub.stratus.nrel.gov"
+)
 
 
 T = TypeVar("T")
@@ -473,12 +475,9 @@ def list_s3_bucket(s3_dir: str):
         for entry in ret["Contents"]:
             all_files.append(os.path.join(s3_dir.split("/")[0], entry["Key"]))
     else:
-        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
-        s3_dir = s3_dir.replace("pv-validation-hub-bucket/", "")
-        logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_dir}"
-        )
+        s3_dir = s3_dir.replace(f"{S3_BUCKET_NAME}/", "")
+        logger.info(f"dir after removing {S3_BUCKET_NAME}/ returns {s3_dir}")
 
         s3: S3Client = boto3.client("s3")  # type: ignore
         paginator = s3.get_paginator("list_objects_v2")
@@ -602,11 +601,10 @@ def pull_from_s3(
     else:
         s3: S3Client = boto3.client("s3")  # type: ignore
 
-        # check s3_dir string to see if it contains "pv-validation-hub-bucket/"
         # if so, remove it
-        s3_file_path = s3_file_path.replace("pv-validation-hub-bucket/", "")
+        s3_file_path = s3_file_path.replace(f"{S3_BUCKET_NAME}/", "")
         logger.info(
-            f"dir after removing pv-validation-hub-bucket/ returns {s3_file_path}"
+            f"dir after removing {S3_BUCKET_NAME}/ returns {s3_file_path}"
         )
 
         try:
@@ -693,7 +691,9 @@ def move_file_to_directory(
 IS_LOCAL = is_local()
 
 API_BASE_URL = (
-    "http://api:8005" if IS_LOCAL else "https://api.pv-validation-hub.org"
+    "http://api:8005"
+    if IS_LOCAL
+    else "https://api-pv-validation-hub.stratus.nrel.gov"
 )
 
 S3_BASE_URL = "http://s3:5000/get_object/" if IS_LOCAL else "s3://"
@@ -743,7 +743,7 @@ def login_to_API(
 
 def get_login_secrets_from_aws() -> tuple[str, str]:
 
-    secret_name = "pv-validation-hub-worker-credentials"
+    secret_name = "valhub-worker-credentials"
     region_name = "us-west-2"
 
     # Create a Secrets Manager client
@@ -776,13 +776,13 @@ def get_login_secrets_from_aws() -> tuple[str, str]:
 def with_credentials(logger: logging.Logger | None = None):
 
     if IS_LOCAL:
-        username = os.environ.get("admin_username", None)
-        password = os.environ.get("admin_password", None)
+        username = os.environ.get("worker_username", None)
+        password = os.environ.get("worker_password", None)
     else:
         username, password = get_login_secrets_from_aws()
 
     if not username or not password:
-        raise Exception("Missing admin credentials")
+        raise Exception("Missing worker credentials")
 
     api_auth_token = None
     headers = {}
