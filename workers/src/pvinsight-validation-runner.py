@@ -58,6 +58,7 @@ from utility import (
     timing,
     is_local,
 )
+import inspect
 
 P = ParamSpec("P")
 
@@ -278,8 +279,8 @@ def run_user_submission(
     args: dict,
     **kwargs,
 ):
-    print(args)
-    print(kwargs)
+    sig = inspect.signature(fn(**args, **kwargs))
+    logger.info("final function params :" + sig.parameters.keys())
     return fn(**args, **kwargs)
 
 
@@ -971,6 +972,8 @@ def run_submission(
     logger.info(
         f"running function {submission_function.__name__} with kwargs {kwargs}"
     )
+    logger.info(time_series_params)
+
 
     data_outputs, function_run_time = run_user_submission(
         submission_function, time_series_params, kwargs
@@ -1361,7 +1364,6 @@ def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
                 str(row["data_sampling_frequency"]) + "min"
             )
             time_series_dict[col] = pd.Series(time_series)
-            print(time_series_dict)
     return time_series_dict
 
 
