@@ -1354,7 +1354,7 @@ def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
         time_series: pd.Series = time_series_df.asfreq(
             str(row["data_sampling_frequency"]) + "min"
         ).squeeze()
-        time_series_dict['time_series'] = time_series
+        time_series_dict["time_series"] = time_series
     else:
         for col in list(time_series_df.columns):
             time_series: pd.Series = time_series_df[col].asfreq(
