@@ -83,8 +83,15 @@ def format_args_for_submission(
         index_col=0,
         parse_dates=True,
     )
-
-    series: pd.Series = df.squeeze()
+    
+    time_series_list = list()
+    if len(df.columns) == 1:
+        series: pd.Series = df.squeeze()
+        time_series_list.append(series)
+    else:
+        for col in list(df.columns):
+            time_series: pd.Series = df[col]
+            time_series_list.append(pd.Series(time_series))
 
     rest_args = args[1:]
     new_args = []
@@ -97,7 +104,7 @@ def format_args_for_submission(
         else:
             new_args.append(arg)
 
-    submission_args: list = [series, *new_args]
+    submission_args: list = [*time_series_list, *new_args]
 
     if len(submission_args) != len(function_params):
         print(
