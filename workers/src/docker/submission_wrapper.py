@@ -194,7 +194,8 @@ def main():
     results_file_path = f"{results_dir}/files/{data_file_name}"
     print(f"Saving results to {results_file_path}")
     if isinstance(results, tuple):
-
+        results_df = pd.DataFrame([results])
+    elif isinstance(results, (int, float, str,bool)):
         results_df = pd.DataFrame([results])
     else:
         results_df = pd.DataFrame(results)
