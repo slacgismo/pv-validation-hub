@@ -58,6 +58,7 @@ from utility import (
     timing,
     is_local,
 )
+import inspect
 
 P = ParamSpec("P")
 
@@ -72,7 +73,11 @@ IS_LOCAL = is_local()
 
 S3_BUCKET_NAME = "valhub-bucket"
 
-API_BASE_URL = "api:8005" if IS_LOCAL else "api.pv-validation-hub.org"
+API_BASE_URL = (
+    "api:8005"
+    if IS_LOCAL
+    else "https://api-pv-validation-hub.stratus.nrel.gov"
+)
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -271,10 +276,12 @@ def generate_scatter_plot(dataframe, x_axis, y_axis, title):
 @timing(verbose=True, logger=logger)
 def run_user_submission(
     fn: Callable[P, pd.Series],
-    *args,
+    args: dict,
     **kwargs,
 ):
-    return fn(*args, **kwargs)
+    sig = inspect.signature(fn(**args, **kwargs))
+    logger.info("final function params :" + sig.parameters.keys())
+    return fn(**args, **kwargs)
 
 
 def move_files_to_directory(files: list[str], src_dir: str, dest_dir: str):
@@ -713,6 +720,10 @@ def get_results_dict(
     performance_metrics: list[str],
 ):
 
+    data_requirements = (
+        results_df["data_requirements"].iloc[0] if not results_df.empty else {}
+    )
+
     filtered_results_df = (
         results_df[results_df["include_on_leaderboard"] == True].copy()
         if is_public
@@ -736,9 +747,7 @@ def get_results_dict(
     results_dict["function_parameters"] = submission_function_info[
         "function_parameters"
     ]
-    results_dict["data_requirements"] = filtered_results_df[
-        "data_requirements"
-    ].iloc[0]
+    results_dict["data_requirements"] = data_requirements
 
     # Get the mean and median absolute errors
     # when combining the metric and name for the public metrics dictionary,
@@ -816,7 +825,7 @@ def install_module_dependencies(
 def create_function_args_for_file(
     file_metadata_row: pd.Series,
     system_metadata_row: pd.Series,
-    function_outputs: list[str],
+    allowable_kwargs: list[str],
 ):
 
     submission_file_name: str = cast(str, file_metadata_row["file_name"])
@@ -830,24 +839,18 @@ def create_function_args_for_file(
     ).squeeze()
 
     args: list[str] = []
-    # All columns can be args
-    args = list(merged_row.columns)
-    # Take out any columns that are outputs if they're in the list
-    args = [arg for arg in args if arg not in function_outputs]    
-    # Also remove any unneccessary metadata fields (name, system_id, etc)
-    args = [arg for arg in args if arg not in ['system_id', 'name',
-                                               'file_id', 'file_name']]    
-    # for argument in allowable_kwargs:
-    #     if argument not in merged_row:
-    #         logger.error(f"argument {argument} not found in merged_row")
-    #         # raise RunnerException(
-    #         #     *get_error_by_code(500, runner_error_codes, logger)
-    #         # )
-    #         args.append("")
-    #         continue
-    #     value = merged_row[argument]
 
-    #     args.append(str(value))
+    for argument in allowable_kwargs:
+        if argument not in merged_row:
+            logger.error(f"argument {argument} not found in merged_row")
+            # raise RunnerException(
+            #     *get_error_by_code(500, runner_error_codes, logger)
+            # )
+            args.append("")
+            continue
+        value = merged_row[argument]
+
+        args.append(str(value))
 
     # Submission Args for the function
     function_args = (submission_file_name, *args)
@@ -893,14 +896,10 @@ def prepare_function_args_for_parallel_processing(
     )
 
     function_args_list = None
-    
-    function_outputs: list[str] = config_data.get("outputs", {})
-    
-    logger.info(f"function_outputs: {function_outputs}")
-    
-    #allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
 
-    #logger.info(f"allowable_kwargs: {allowable_kwargs}")
+    allowable_kwargs: list[str] = config_data.get("allowable_kwargs", {})
+
+    logger.info(f"allowable_kwargs: {allowable_kwargs}")
 
     for file_number, (_, file_metadata_row) in enumerate(
         file_metadata_df.iterrows()
@@ -921,7 +920,7 @@ def prepare_function_args_for_parallel_processing(
         submission_args = create_function_args_for_file(
             file_metadata_row,
             system_metadata_row,
-            function_outputs
+            allowable_kwargs,
         )
 
         logger.info(f"submission_args: {submission_args}")
@@ -967,14 +966,17 @@ def run_submission(
     # Now that we've collected all of the information associated with the
     # test, let's read in the file as a pandas dataframe (this data
     # would most likely be stored in an S3 bucket)
-    time_series_list = prepare_time_series(data_dir, file_name, row)
+    time_series_params = prepare_time_series(data_dir, file_name, row)
+
     # Run the routine (timed)
     logger.info(
         f"running function {submission_function.__name__} with kwargs {kwargs}"
     )
+    logger.info(time_series_params)
+
 
     data_outputs, function_run_time = run_user_submission(
-        submission_function, time_series_list, kwargs
+        submission_function, time_series_params, kwargs
     )
 
     return (
@@ -1344,22 +1346,26 @@ def prepare_kwargs_for_submission_function(
     return kwargs
 
 
-def prepare_time_series(
-    data_dir: str, file_name: str, row: pd.Series) -> pd.Series:
+def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
     time_series_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir + "/file_data/", file_name),
         index_col=0,
         parse_dates=True,
     )
-
-    time_series_list: list = [time_series_df[x].asfreq(
-        str(row["data_sampling_frequency"]) + "min"
-    ) for x in list(time_series_df.columns)]
-
-    return time_series_list
+    time_series_dict = dict()
+    if len(time_series_df.columns) == 1:
+        time_series: pd.Series = time_series_df.asfreq(
+            str(row["data_sampling_frequency"]) + "min"
+        ).squeeze()
+        time_series_dict["time_series"] = time_series
+    else:
+        for col in list(time_series_df.columns):
+            time_series: pd.Series = time_series_df[col].asfreq(
+                str(row["data_sampling_frequency"]) + "min"
+            )
+            time_series_dict[col] = pd.Series(time_series)
+    return time_series_dict
 
 
 if __name__ == "__main__":
     pass
-
- 
