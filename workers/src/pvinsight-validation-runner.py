@@ -974,7 +974,6 @@ def run_submission(
     )
     logger.info(time_series_params)
 
-
     data_outputs, function_run_time = run_user_submission(
         submission_function, time_series_params, kwargs
     )
@@ -1171,7 +1170,12 @@ def generate_performance_metrics_for_submission(
     references_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
         submission_output_row = pd.read_csv(
-            os.path.join(results_dir, file_name)).iloc[0]
+            os.path.join(results_dir, file_name)
+        ).iloc[0]
+        print("file name KIRSTEN:")
+        print(os.path.join(results_dir, file_name))
+        print("submission row output:")
+        print(submission_output_row)
         for val in config_data["references_compare"]:
             references_dict[val] = submission_output_row[val]
             logger.info(f'references_dict["{val}"]: {references_dict[val]}')
