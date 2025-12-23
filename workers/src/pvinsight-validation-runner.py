@@ -1083,7 +1083,7 @@ def loop_over_results_and_generate_metrics(
     all_results: list[dict[str, Any]] = []
     number_of_errors = 0
 
-    result_files_dir = os.path.join(results_dir, "references")
+    result_files_dir = os.path.join(results_dir, "files")
 
     file_metadata_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir, "metadata", "file_metadata.csv")
@@ -1170,10 +1170,8 @@ def generate_performance_metrics_for_submission(
     references_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
         submission_output_row = pd.read_csv(
-            os.path.join(results_dir, file_name)
+            os.path.join(data_dir + "/validation_data/", file_name)
         ).iloc[0]
-        print("file name KIRSTEN:")
-        print(os.path.join(results_dir, file_name))
         print("submission row output:")
         print(submission_output_row)
         for val in config_data["references_compare"]:
