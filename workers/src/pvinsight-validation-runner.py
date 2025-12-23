@@ -1083,7 +1083,7 @@ def loop_over_results_and_generate_metrics(
     all_results: list[dict[str, Any]] = []
     number_of_errors = 0
 
-    result_files_dir = os.path.join(results_dir, "files")
+    result_files_dir = os.path.join(results_dir, "references")
 
     file_metadata_df: pd.DataFrame = pd.read_csv(
         os.path.join(data_dir, "metadata", "file_metadata.csv")
