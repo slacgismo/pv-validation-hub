@@ -1169,13 +1169,18 @@ def generate_performance_metrics_for_submission(
     # Get the reference scalars that we will compare to
     references_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
-        submission_output_row = pd.read_csv(
+        reference_row = pd.read_csv(
             os.path.join(data_dir + "/validation_data/", file_name)
         ).iloc[0]
-        print("submission row output:")
-        print(submission_output_row)
+        submission_output_row = cast(
+            pd.Series,
+            pd.read_csv(
+                os.path.join(results_dir, file_name),
+                index_col=0,
+            ).iloc[0]
+        )
         for val in config_data["references_compare"]:
-            references_dict[val] = submission_output_row[val]
+            references_dict[val] = reference_row[val]
             logger.info(f'references_dict["{val}"]: {references_dict[val]}')
     if config_data["comparison_type"] == "time_series":
         submission_output_series = cast(

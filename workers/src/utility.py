@@ -719,7 +719,7 @@ def method_request(
 
     body = json.dumps(data) if data else None
 
-    response = requests.request(method, url, headers=all_headers, data=body)
+    response = requests.request(method, url, headers=all_headers, data=body, verify=False)
 
     return response
 
