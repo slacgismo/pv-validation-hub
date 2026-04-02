@@ -52,6 +52,8 @@ RUN apt-get update -qq && \
     && \
     apt-get clean
 
+RUN apt-get update && apt-get clean && apt-get install -y build-essential
+
 RUN apt-get update
 RUN apt-get install -y ca-certificates curl
 RUN install -m 0755 -d /etc/apt/keyrings
