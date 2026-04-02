@@ -1177,7 +1177,7 @@ def generate_performance_metrics_for_submission(
             pd.read_csv(
                 os.path.join(results_dir, file_name),
                 index_col=0,
-            ).iloc[0]
+            ).iloc[0],
         )
         for val in config_data["references_compare"]:
             references_dict[val] = reference_row[val]

@@ -84,7 +84,7 @@ def format_args_for_submission(
         parse_dates=True,
     )
 
-    series_list: list =  [df[x] for x in list(df.columns)]
+    series_list: list = [df[x] for x in list(df.columns)]
 
     rest_args = args[1:]
     new_args = []
@@ -195,7 +195,7 @@ def main():
     print(f"Saving results to {results_file_path}")
     if isinstance(results, tuple):
         results_df = pd.DataFrame([results])
-    elif isinstance(results, (int, float, str,bool)):
+    elif isinstance(results, (int, float, str, bool)):
         results_df = pd.DataFrame([results])
     else:
         results_df = pd.DataFrame(results)
@@ -218,4 +218,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
