@@ -58,6 +58,7 @@ from utility import (
     timing,
     is_local,
 )
+import inspect
 
 P = ParamSpec("P")
 
@@ -278,8 +279,8 @@ def run_user_submission(
     args: dict,
     **kwargs,
 ):
-    print(args)
-    print(kwargs)
+    sig = inspect.signature(fn(**args, **kwargs))
+    logger.info("final function params :" + sig.parameters.keys())
     return fn(**args, **kwargs)
 
 
@@ -971,6 +972,7 @@ def run_submission(
     logger.info(
         f"running function {submission_function.__name__} with kwargs {kwargs}"
     )
+    logger.info(time_series_params)
 
     data_outputs, function_run_time = run_user_submission(
         submission_function, time_series_params, kwargs
@@ -1167,6 +1169,9 @@ def generate_performance_metrics_for_submission(
     # Get the reference scalars that we will compare to
     references_dict: dict[str, Any] = dict()
     if config_data["comparison_type"] == "scalar":
+        reference_row = pd.read_csv(
+            os.path.join(data_dir + "/validation_data/", file_name)
+        ).iloc[0]
         submission_output_row = cast(
             pd.Series,
             pd.read_csv(
@@ -1175,7 +1180,7 @@ def generate_performance_metrics_for_submission(
             ).iloc[0],
         )
         for val in config_data["references_compare"]:
-            references_dict[val] = system_metadata_dict[val]
+            references_dict[val] = reference_row[val]
             logger.info(f'references_dict["{val}"]: {references_dict[val]}')
     if config_data["comparison_type"] == "time_series":
         submission_output_series = cast(
@@ -1360,7 +1365,7 @@ def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
             time_series: pd.Series = time_series_df[col].asfreq(
                 str(row["data_sampling_frequency"]) + "min"
             )
-            time_series_dict[col] = time_series
+            time_series_dict[col] = pd.Series(time_series)
     return time_series_dict
 
 

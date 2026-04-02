@@ -84,7 +84,7 @@ def format_args_for_submission(
         parse_dates=True,
     )
 
-    series: pd.Series = df.squeeze()
+    series_list: list = [df[x] for x in list(df.columns)]
 
     rest_args = args[1:]
     new_args = []
@@ -97,7 +97,7 @@ def format_args_for_submission(
         else:
             new_args.append(arg)
 
-    submission_args: list = [series, *new_args]
+    submission_args: list = [*series_list, *new_args]
 
     if len(submission_args) != len(function_params):
         print(
@@ -194,7 +194,8 @@ def main():
     results_file_path = f"{results_dir}/files/{data_file_name}"
     print(f"Saving results to {results_file_path}")
     if isinstance(results, tuple):
-
+        results_df = pd.DataFrame([results])
+    elif isinstance(results, (int, float, str, bool)):
         results_df = pd.DataFrame([results])
     else:
         results_df = pd.DataFrame(results)

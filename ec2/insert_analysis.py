@@ -11,6 +11,8 @@ import pandas as pd
 import os
 import shutil
 import argparse
+import aws_keys_and_tokens
+
 
 from utility import (
     are_hashes_the_same,
@@ -75,8 +77,8 @@ class InsertAnalysis:
         api_url: str,
         s3_url: str,
         is_local: bool,
+        aws_creds: dict = {},
         use_cloud_files: bool = False,
-        aws_profile_name: str = "default",  # Default AWS profile name
     ):
         self.task_dir = task_dir
         self.config_file_path = os.path.join(task_dir, "config.json")
@@ -84,7 +86,7 @@ class InsertAnalysis:
         self.analysis_version: str = "1.0"
         self.config = config
         self.is_local = is_local
-        self.aws_profile_name = aws_profile_name
+        self.aws_creds = aws_creds
 
         self.api_url = api_url
         self.s3_url = s3_url
@@ -162,7 +164,7 @@ class InsertAnalysis:
                 is_s3_emulation=False,
                 s3_bucket_name=self.s3_task_bucket_name,
                 s3_dir="files/",
-                aws_profile_name=self.aws_profile_name,
+                aws_creds=self.aws_creds,
             )
         ]
 
@@ -172,7 +174,7 @@ class InsertAnalysis:
                 is_s3_emulation=False,
                 s3_bucket_name=self.s3_task_bucket_name,
                 s3_dir=f"references/{self.config['s3_bucket_folder_name']}/",
-                aws_profile_name=self.aws_profile_name,
+                aws_creds=self.aws_ceds,
             )
         ]
 
@@ -197,7 +199,11 @@ class InsertAnalysis:
         files_to_exclude: list[str] = []
 
         for file in file_metadata_files:
-            session = boto3.Session(profile_name=self.aws_profile_name)
+            session = boto3.Session(
+                aws_access_key_id=self.aws_creds["key"],
+                aws_secret_access_key=self.aws_creds["secret"],
+                aws_session_token=self.aws_creds["token"],
+            )
             s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_data_folder:
                 local_file_hash = get_file_hash(
@@ -227,7 +233,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
-                    aws_profile_name=self.aws_profile_name,
+                    aws_creds=self.aws_creds,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -242,7 +248,12 @@ class InsertAnalysis:
         files_to_exclude = []
 
         for file in file_metadata_files:
-            session = boto3.Session(profile_name=self.aws_profile_name)
+            session = boto3.Session(
+                aws_access_key_id=self.aws_creds["key"],
+                aws_secret_access_key=self.aws_creds["secret"],
+                aws_session_token=self.aws_creds["token"],
+            )
+            s3_client: S3Client = session.client("s3")  # type: ignore
             s3_client: S3Client = session.client("s3")  # type: ignore
             if file in files_in_reference_folder:
                 local_file_hash = get_file_hash(
@@ -274,7 +285,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
-                    aws_profile_name=self.aws_profile_name,
+                    aws_creds=self.aws_creds,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -286,7 +297,7 @@ class InsertAnalysis:
         if not use_cloud_files:
             return
 
-        check_aws_credentials(profile_name=self.aws_profile_name)
+        check_aws_credentials(profile_name=self.aws_creds)
 
         # Pull metadata files from the cloud
 
@@ -305,7 +316,7 @@ class InsertAnalysis:
                     s3_file_path=s3_file_path,
                     local_file_path=download_path,
                     logger=logger,
-                    aws_profile_name=self.aws_profile_name,
+                    aws_creds=self.aws_creds,
                 )
                 logger.info(f"File {file} pulled from S3 to {file_path}")
             except Exception as e:
@@ -594,7 +605,6 @@ class InsertAnalysis:
                 "file_hash": metadata["file_hash"],
                 "include_on_leaderboard": metadata["include_on_leaderboard"],
             }
-
             logger.info(json_body)
 
             post_data_to_api_to_df(
@@ -613,7 +623,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
-                self.aws_profile_name,
+                self.aws_creds,
             )
 
     def uploadValidationData(self):
@@ -636,7 +646,7 @@ class InsertAnalysis:
                 local_path,
                 upload_path,
                 self.is_local,
-                self.aws_profile_name,
+                self.aws_creds,
             )
 
     def createEvaluationScripts(self):
@@ -667,7 +677,7 @@ class InsertAnalysis:
                     local_path,
                     upload_path,
                     self.is_local,
-                    self.aws_profile_name,
+                    self.aws_creds,
                 )
 
     def updateSystemMetadataIDs(self):
@@ -810,13 +820,8 @@ class InsertAnalysis:
         system_metadata_columns = [
             "system_id",
             "name",
-            "azimuth",
-            "tilt",
-            "elevation",
             "latitude",
             "longitude",
-            "tracking",
-            "dc_capacity",
         ]
 
         def addNAtoMissingColumns(df: pd.DataFrame, columns: list[str]):
@@ -828,6 +833,13 @@ class InsertAnalysis:
 
         # Return the system data ready for insertion
         df_modified = addNAtoMissingColumns(df_new, system_metadata_columns)
+
+        # add some missing columns
+        if "elevation" not in df_modified.columns:
+            df_modified["elevation"] = 0
+        else:
+            df_modified["elevation"] = df_modified["elevation"].fillna(0)  # type: ignore
+
         logger.info(df_modified.head(5))
         return df_modified
 
@@ -855,7 +867,6 @@ class InsertAnalysis:
             )
 
         # Fill in any missing values with "N/A"
-
         if "issue" not in df_new.columns:
             df_new["issue"] = "N/A"
         else:
@@ -1245,6 +1256,15 @@ if __name__ == "__main__":
         task_dir: str = args.dir
         ########################################################################
 
+        if not is_local:
+            # Access the credentials via the cred rotator
+            awsc = aws_keys_and_tokens.load_config("developers", display=False)
+            aws_creds = list(awsc.values())[0]
+        else:
+            aws_creds = {"key": None, "secret": None, "token": None}
+
+        logger.info(aws_creds)
+
         logger.info(f"is_dry_run: {is_dry_run}")
         logger.info(f"is_force: {is_force}")
         logger.info(f"limit: {limit}")
@@ -1271,8 +1291,8 @@ if __name__ == "__main__":
             api_url=api_url,
             s3_url=s3_url,
             is_local=is_local,
+            aws_creds=aws_creds,
             use_cloud_files=use_cloud_files,
-            aws_profile_name="nrel-pvinsight",
         )
 
         if limit > 0:

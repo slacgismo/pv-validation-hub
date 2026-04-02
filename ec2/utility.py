@@ -69,6 +69,7 @@ def request_handler(
 
     r = method_request(method, endpoint, headers=headers, data=data)
     if not r.ok:
+        print(r.text)
         logger_if_able(f"Error: {r.text}", logger, "ERROR")
         raise Exception("Failed to get data")
     logger_if_able(r.text, logger)
@@ -96,7 +97,9 @@ def method_request(
 
     body = json.dumps(data) if data else None
 
-    response = requests.request(method, url, headers=all_headers, data=body)
+    response = requests.request(
+        method, url, headers=all_headers, data=body, verify=False
+    )
 
     return response
 
@@ -106,7 +109,7 @@ def login_to_API(
 ):
 
     login_url = f"{api_url}/login"
-
+    print(username, password)
     json_body = request_handler(
         "POST", login_url, {"username": username, "password": password}
     )
@@ -220,7 +223,7 @@ def request_to_API_w_credentials(
 ):
 
     url = f"{api_url}/{endpoint}"
-
+    print(url)
     auth_header: dict[str, str] | None = (
         kwargs["auth"] if "auth" in kwargs else None
     )
@@ -232,7 +235,7 @@ def request_to_API_w_credentials(
         headers = {}
 
     headers = {**headers, **auth_header}
-
+    print(headers)
     response = request_handler(method, url, data, headers, logger)
     return response
 
@@ -241,7 +244,6 @@ def request_to_API_w_credentials(
 def get_data_from_api_to_df(
     api_url: str, endpoint: str, logger: Logger | None = None
 ) -> pd.DataFrame:
-
     response = with_credentials(api_url, logger)(request_to_API_w_credentials)(
         api_url, "GET", endpoint=endpoint, logger=logger
     )
@@ -285,7 +287,7 @@ def upload_to_s3_bucket(
     local_path: str,
     upload_path: str,
     is_local: bool,
-    aws_profile_name: str = "default",  # Default AWS profile name,
+    aws_profile_name: str = "nrel-aws-pvvalhub-developers",  # Default AWS profile name,
 ):
     """
     Upload file to S3 bucket and return object URL
@@ -321,7 +323,8 @@ def upload_to_s3_bucket(
                 )
     else:
         """Upload file to S3 bucket and return object URL"""
-        session = boto3.Session(profile_name=aws_profile_name)
+        print(aws_profile_name)
+        session = boto3.Session(profile_name="nrel-aws-pvvalhub-developers")
         s3: S3Client = session.client("s3")  # type: ignore
 
         try:

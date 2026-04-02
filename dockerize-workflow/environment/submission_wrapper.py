@@ -57,7 +57,8 @@ def timing(verbose: bool = True, logger: Union[Logger, None] = None):
     return decorator
 
 
-def format_args_for_submission(data_dir: str, args: list[str]):
+def format_args_for_submission(data_dir: str, args: list[str],
+                               data_input_columns: list[str]):
     filename = args[0]
 
     file_path = f"{data_dir}/{filename}"
@@ -69,8 +70,11 @@ def format_args_for_submission(data_dir: str, args: list[str]):
     )
 
     print(df.head(5))
-
-    series: pd.Series = df.asfreq("60min").squeeze()
+    
+    # feed in the data input columns into the submission args
+    submission_args = 
+    for data_input in data_input_columns:
+        series: pd.Series = df[data_input].asfreq("60min").squeeze()
 
     submission_args = [series, *args[1:]]
 

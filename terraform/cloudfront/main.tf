@@ -1,3 +1,4 @@
+# Cloudfront resources must be created in the us-east-1 region which is the only region that supports Cloudfront. Since us-east-1 is a different region from the other resources, we need to configure the provider accordingly.
 terraform {
   required_providers {
     aws = {
