@@ -279,13 +279,8 @@ def run_user_submission(
     args: dict,
     **kwargs,
 ):
-<<<<<<< develop
     sig = inspect.signature(fn(**args, **kwargs))
     logger.info("final function params :" + sig.parameters.keys())
-=======
-    print(args)
-    print(kwargs)
->>>>>>> main
     return fn(**args, **kwargs)
 
 
@@ -1370,11 +1365,7 @@ def prepare_time_series(data_dir: str, file_name: str, row: pd.Series) -> dict:
             time_series: pd.Series = time_series_df[col].asfreq(
                 str(row["data_sampling_frequency"]) + "min"
             )
-<<<<<<< develop
             time_series_dict[col] = pd.Series(time_series)
-=======
-            time_series_dict[col] = time_series
->>>>>>> main
     return time_series_dict
 
 
